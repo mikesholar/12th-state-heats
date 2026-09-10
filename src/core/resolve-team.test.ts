@@ -17,7 +17,7 @@ describe("resolving a team's next heat", () => {
   });
 
   it("rounds partial minutes down", () => {
-    const status = resolveTeam({ schedule, team: TEAM, now: new Date("2026-09-13T12:30:30-04:00") });
+    const status = resolveTeam({ schedule, team: TEAM, now: new Date("2026-09-12T12:30:30-04:00") });
 
     expect(status.kind === "upcoming" && status.minutesUntilStart).toBe(17);
   });
@@ -46,7 +46,7 @@ describe("resolving a team's next heat", () => {
   });
 
   it("the day before, points at the team's first heat", () => {
-    const status = resolveTeam({ schedule, team: TEAM, now: at("09:15", "2026-09-12") });
+    const status = resolveTeam({ schedule, team: TEAM, now: at("09:15", "2026-09-11") });
 
     expect(status.kind).toBe("upcoming");
     if (status.kind !== "upcoming") return;

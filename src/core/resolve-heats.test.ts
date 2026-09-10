@@ -49,12 +49,12 @@ describe("resolving heats from the clock", () => {
   });
 
   it("is not comp day on any other date", () => {
-    expect(resolveHeats(schedule, at("09:15", "2026-09-12")).phase).toBe("not-comp-day");
-    expect(resolveHeats(schedule, at("09:15", "2026-09-14")).phase).toBe("not-comp-day");
+    expect(resolveHeats(schedule, at("09:15", "2026-09-11")).phase).toBe("not-comp-day");
+    expect(resolveHeats(schedule, at("09:15", "2026-09-13")).phase).toBe("not-comp-day");
   });
 
   it("resolves a UTC instant against comp-local heat times", () => {
-    const status = resolveHeats(schedule, new Date("2026-09-13T13:15:00Z"));
+    const status = resolveHeats(schedule, new Date("2026-09-12T13:15:00Z"));
 
     expect(status.phase === "during" && label(status.current)).toBe("E2H1");
   });

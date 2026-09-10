@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A single-page, phone-first heat/lane tracker for the 12th State comp (2026-09-13) that highlights the heat on the floor, the next heat, and the viewer's own next heat.
+**Goal:** A single-page, phone-first heat/lane tracker for the 12th State comp (2026-09-12) that highlights the heat on the floor, the next heat, and the viewer's own next heat.
 
 **Architecture:** Pure core in `src/core/` takes `(schedule, now)` and returns status objects; `src/ui/` renders them to the DOM with template strings and re-renders every 15 s. Schedule is a typed constant in `src/data/schedule.ts`, validated by a test. No frameworks; Vite bundles to `dist/`.
 
@@ -62,8 +62,8 @@ Iterate once more to absorb a DST edge. The comp day is well inside EDT
 export const makeLane = (o?: Partial<Lane>): Lane => ({ lane: 1, team: "Team A", athletes: "A One + A Two", division: "F/M Scaled", ...o });
 export const makeHeat = (o?: Partial<Heat>): Heat => ({ number: 1, start: "08:00", end: "08:08", lanes: [makeLane()], ...o });
 export const makeEvent = (o?: Partial<Event>): Event => ({ number: 1, title: "Test Event", format: "AMRAP 1", rx: "rx", scaled: "scaled", heats: [makeHeat()], ...o });
-export const makeSchedule = (o?: Partial<Schedule>): Schedule => ({ compDate: "2026-09-13", timeZone: "America/New_York", events: [makeEvent()], ...o });
-export const at = (hhmm: string, date = "2026-09-13"): Date => new Date(`${date}T${hhmm}:00-04:00`);
+export const makeSchedule = (o?: Partial<Schedule>): Schedule => ({ compDate: "2026-09-12", timeZone: "America/New_York", events: [makeEvent()], ...o });
+export const at = (hhmm: string, date = "2026-09-12"): Date => new Date(`${date}T${hhmm}:00-04:00`);
 ```
 
 - [ ] Commit `chore: schedule types and test factories`.
@@ -72,7 +72,7 @@ export const at = (hhmm: string, date = "2026-09-13"): Date => new Date(`${date}
 
 **Files:** `src/core/comp-time.ts`, `src/core/comp-time.test.ts`
 
-- [ ] Tests: `heatInstants(schedule, makeHeat({start:"09:10", end:"09:20"}))` → start equals `new Date("2026-09-13T13:10:00Z")`, end `13:20Z`. `compDayOf(new Date("2026-09-14T02:00:00Z"), "America/New_York")` → `"2026-09-13"` (10 PM Eastern on the 13th).
+- [ ] Tests: `heatInstants(schedule, makeHeat({start:"09:10", end:"09:20"}))` → start equals `new Date("2026-09-12T13:10:00Z")`, end `13:20Z`. `compDayOf(new Date("2026-09-14T02:00:00Z"), "America/New_York")` → `"2026-09-12"` (10 PM Eastern on the 13th).
 - [ ] Implement `zoneOffsetMinutes(instant, tz)` via `Intl.DateTimeFormat` parts, `localToInstant(date, hhmm, tz)`, `heatInstants`, `compDayOf` (uses `Intl` with `en-CA` to get `YYYY-MM-DD`).
 - [ ] Commit `feat: convert comp-local heat times to instants`.
 
@@ -107,7 +107,7 @@ export type HeatStatus =
 export type HeatPhase = "past" | "current" | "upcoming";
 ```
 
-- [ ] Tests against real `schedule`: 07:59 before/next E1H1; 08:00 during current E1H1 next E1H2; 08:08 during current undefined next E1H2; 08:34 during current undefined next E1H4; 10:20 between-events next E3H1; 12:59 during current E3H5 next undefined; 13:00 finished; `at("09:15","2026-09-12")` not-comp-day; UTC input `new Date("2026-09-13T13:15:00Z")` → current E2H1.
+- [ ] Tests against real `schedule`: 07:59 before/next E1H1; 08:00 during current E1H1 next E1H2; 08:08 during current undefined next E1H2; 08:34 during current undefined next E1H4; 10:20 between-events next E3H1; 12:59 during current E3H5 next undefined; 13:00 finished; `at("09:15","2026-09-12")` not-comp-day; UTC input `new Date("2026-09-12T13:15:00Z")` → current E2H1.
 - [ ] `heatPhase(schedule, heat, now)`: 08:07 for E1H1 → current; 08:08 → past; 07:59 → upcoming.
 - [ ] Implement: flatten all heats to `HeatRef[]` sorted by start; `current = find(start<=now<end)`; `next = find(start>now)`; phase: not comp day → `not-comp-day`; `now < first.start` → before; `!next && !current` → finished; no current and next belongs to a different event than the last-ended heat → between-events; else during.
 - [ ] Commit `feat: resolve current and next heat from clock time`.
@@ -152,7 +152,7 @@ export type TeamStatus =
   - at 08:03 banner contains `"NOW"`, `"Event 1"`, `"Heat 1"` and `"NEXT"`, `"Heat 2"`, `"in 10 min"`.
   - at 10:20 banner contains `"Event 3 starts 11:40"`, `"in 1 h 20 min"`.
   - at 13:00 banner contains `"Comp complete"`.
-  - Sept 12 banner contains `"Saturday, September 13"`.
+  - Sept 12 banner contains `"Saturday, September 12"`.
   - no team: `queryByTestId("my-heat")` null.
   - team "Fast but Questionable" at 08:30: my-heat contains `"Event 2"`, `"Heat 1"`, `"Lane 8"`, `"9:10"`, `"in 40 min"`; every row `[data-team="Fast but Questionable"]` has class `mine` (3 rows).
   - team at 09:15: my-heat contains `"ON THE FLOOR"`, `"Lane 8"`, `"ends 9:20"`.
@@ -168,7 +168,7 @@ export type TeamStatus =
 **Files:** `src/main.ts`
 
 - [ ] Read root, `loadTeam()`, `render` with `new Date()`; on `onTeamChange` save + re-render; `setInterval(15_000)` re-render; after first render `document.querySelector(".current, .upcoming")?.scrollIntoView({block:"start"})`, accounting for sticky header via `scroll-margin-top` in CSS.
-- [ ] `npm run build`, `npm run preview`, open on phone-width and eyeball at a fake time (temporarily override `now` via `?at=2026-09-13T08:30` query param — include this as a real feature: `readNowOverride(location.search)` with a test, useful for demoing).
+- [ ] `npm run build`, `npm run preview`, open on phone-width and eyeball at a fake time (temporarily override `now` via `?at=2026-09-12T08:30` query param — include this as a real feature: `readNowOverride(location.search)` with a test, useful for demoing).
 - [ ] Commit `feat: wire app, live refresh, ?at= preview override`.
 
 ### Task 12: Deploy

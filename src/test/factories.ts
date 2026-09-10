@@ -27,11 +27,11 @@ export const makeEvent = (overrides?: Partial<Event>): Event => ({
 });
 
 export const makeSchedule = (overrides?: Partial<Schedule>): Schedule => ({
-  compDate: "2026-09-13",
+  compDate: "2026-09-12",
   timeZone: "America/New_York",
   events: [makeEvent()],
   ...overrides,
 });
 
-export const at = (hhmm: string, date = "2026-09-13"): Date =>
+export const at = (hhmm: string, date = "2026-09-12"): Date =>
   new Date(`${date}T${hhmm}:00-04:00`);

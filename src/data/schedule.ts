@@ -15,7 +15,7 @@ const heat = (number: number, start: string, end: string, lanes: readonly Lane[]
 });
 
 export const schedule: Schedule = {
-  compDate: "2026-09-13",
+  compDate: "2026-09-12",
   timeZone: "America/New_York",
   events: [
     {

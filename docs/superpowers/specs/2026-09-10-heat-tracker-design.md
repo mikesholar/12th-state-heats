@@ -1,7 +1,7 @@
 # 12 Years of 12th State — Heat Tracker
 
 **Date:** 2026-09-10
-**Comp:** Saturday 2026-09-13, 12th State CrossFit, Eastern time
+**Comp:** Saturday 2026-09-12, 12th State CrossFit, Eastern time
 **Live target:** https://mikesholar.github.io/12th-state-heats/
 
 ## Purpose
@@ -58,7 +58,7 @@ type Event = {
 };
 
 type Schedule = {
-  readonly compDate: string;          // "2026-09-13"
+  readonly compDate: string;          // "2026-09-12"
   readonly timeZone: string;          // "America/New_York"
   readonly events: readonly Event[];
 };
@@ -113,7 +113,7 @@ card.
 **Up-next banner** — gym-wide. `NOW · Event 1 · Heat 3 · ends 8:34` stacked
 with `NEXT · Heat 4 · 8:39 · in 7 min`. In `before`: `First heat 8:00 AM`. In
 `between-events`: `Event 3 starts 11:40 · in 1 h 12 min`. In `finished`:
-`Comp complete`. In `not-comp-day`: `Saturday, September 13` with no countdown.
+`Comp complete`. In `not-comp-day`: `Saturday, September 12` with no countdown.
 On first render the page scrolls so the current (or next) heat card is at the
 top of the viewport, just below the sticky header.
 
