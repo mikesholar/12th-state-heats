@@ -18,7 +18,4 @@ const createMemoryStorage = (): Storage => {
   };
 };
 
-const hasWorkingStorage = typeof globalThis.localStorage?.clear === "function";
-if (!hasWorkingStorage) {
-  Object.defineProperty(globalThis, "localStorage", { value: createMemoryStorage(), configurable: true });
-}
+Object.defineProperty(globalThis, "localStorage", { value: createMemoryStorage(), configurable: true });
