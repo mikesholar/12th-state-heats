@@ -38,13 +38,30 @@ const compDateLabel = (schedule: Schedule): string =>
 const clockLabel = (schedule: Schedule, now: Date): string =>
   new Intl.DateTimeFormat("en-US", { timeZone: schedule.timeZone, hour: "numeric", minute: "2-digit" }).format(now);
 
-const headerHtml = (schedule: Schedule, now: Date, selectedTeam: string | undefined): string => `
+const stripHtml = (team: string, status: TeamStatus): string => {
+  const summary =
+    status.kind === "done"
+      ? "Done — nice work"
+      : status.kind === "on-floor"
+        ? `On the floor · Lane ${status.lane}`
+        : `E${status.ref.event.number} · H${status.ref.heat.number} · Lane ${status.lane} · ${formatCountdown(status.minutesUntilStart)}`;
+  return `<div class="my-strip ${status.kind}" data-testid="my-strip"><span class="strip-team">${esc(team)}</span><span class="strip-summary">${summary}</span></div>`;
+};
+
+type HeaderOptions = {
+  readonly schedule: Schedule;
+  readonly now: Date;
+  readonly selectedTeam: string | undefined;
+  readonly teamStatus: TeamStatus | undefined;
+};
+
+const headerHtml = ({ schedule, now, selectedTeam, teamStatus }: HeaderOptions): string => `
   <header class="header">
     <div class="header-row">
       <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">12 Years of 12th State</span></h1>
       <div class="clock" aria-label="Current time">${clockLabel(schedule, now)}</div>
     </div>
-    <label class="picker">
+    <label class="picker${selectedTeam ? " compact" : ""}">
       <span>I'm on…</span>
       <select id="team-picker">
         <option value="">— pick your team —</option>
@@ -53,6 +70,7 @@ const headerHtml = (schedule: Schedule, now: Date, selectedTeam: string | undefi
           .join("")}
       </select>
     </label>
+    ${selectedTeam && teamStatus ? stripHtml(selectedTeam, teamStatus) : ""}
   </header>`;
 
 const refLabel = (ref: HeatRef): string => `Event ${ref.event.number} · Heat ${ref.heat.number}`;
@@ -162,10 +180,11 @@ const eventHtml = (schedule: Schedule, event: Event, now: Date, status: HeatStat
 
 export const render = ({ root, schedule, now, selectedTeam, onTeamChange }: RenderOptions): void => {
   const status = resolveHeats(schedule, now);
-  const myHeat = selectedTeam ? myHeatHtml(selectedTeam, resolveTeam({ schedule, team: selectedTeam, now })) : "";
+  const teamStatus = selectedTeam ? resolveTeam({ schedule, team: selectedTeam, now }) : undefined;
+  const myHeat = selectedTeam && teamStatus ? myHeatHtml(selectedTeam, teamStatus) : "";
 
   root.innerHTML = `
-    ${headerHtml(schedule, now, selectedTeam)}
+    ${headerHtml({ schedule, now, selectedTeam, teamStatus })}
     <main class="main">
       ${myHeat}
       ${bannerHtml(schedule, status, now)}

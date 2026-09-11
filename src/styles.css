@@ -11,7 +11,7 @@
   --muted: #717271;
   --now: #f05423;
   --next: #102c52;
-  --header-h: 112px;
+  --header-h: 126px;
   color-scheme: light;
 }
 
@@ -199,3 +199,24 @@ tr.mine .lane-num { color: var(--orange); }
 @media (max-width: 480px) {
   .title-text { display: none; }
 }
+
+.picker.compact { margin-top: 6px; }
+.picker.compact span { display: none; }
+.picker.compact select { padding: 5px 8px; font-size: 0.85rem; background: transparent; border-color: transparent; color: var(--muted); }
+
+.my-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px -16px -12px;
+  padding: 7px 16px;
+  background: var(--navy);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.my-strip.on-floor { background: var(--orange); }
+.my-strip.done { background: var(--muted); }
+.strip-team { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 900; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strip-summary { white-space: nowrap; font-variant-numeric: tabular-nums; }

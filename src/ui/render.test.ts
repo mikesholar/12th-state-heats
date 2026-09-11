@@ -149,3 +149,32 @@ describe("the schedule", () => {
     expect(root.textContent).toContain("40 Wall Balls");
   });
 });
+
+describe("the sticky header strip", () => {
+  it("is absent until a team is chosen", () => {
+    const { root } = renderAt(at("08:30"));
+
+    expect(queryByTestId(root, "my-strip")).toBeNull();
+  });
+
+  it("keeps the team's lane and countdown visible while scrolled", () => {
+    const { root } = renderAt(at("08:30"), TEAM);
+
+    const text = getByTestId(root, "my-strip").textContent ?? "";
+    expect(text).toContain("E2 · H1");
+    expect(text).toContain("Lane 8");
+    expect(text).toContain("in 40 min");
+  });
+
+  it("says on the floor during the team's heat", () => {
+    const { root } = renderAt(at("09:15"), TEAM);
+
+    expect(getByTestId(root, "my-strip").textContent).toContain("On the floor");
+  });
+
+  it("says done after the team's last heat", () => {
+    const { root } = renderAt(at("13:00"), TEAM);
+
+    expect(getByTestId(root, "my-strip").textContent).toContain("Done");
+  });
+});
