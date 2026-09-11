@@ -41,7 +41,7 @@ const clockLabel = (schedule: Schedule, now: Date): string =>
 const headerHtml = (schedule: Schedule, now: Date, selectedTeam: string | undefined): string => `
   <header class="header">
     <div class="header-row">
-      <h1 class="title">12 Years of <span>12th State</span></h1>
+      <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">12 Years of 12th State</span></h1>
       <div class="clock" aria-label="Current time">${clockLabel(schedule, now)}</div>
     </div>
     <label class="picker">
