@@ -13,6 +13,14 @@ const poster = (...results: readonly PostResult[]) => {
   return post;
 };
 
+const deferred = <T,>() => {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+};
+
 describe("queueing and flushing submissions", () => {
   it("enqueue persists the record at the back of the queue", () => {
     enqueue(makeSubmission({ clientId: "a" }));
@@ -65,5 +73,36 @@ describe("queueing and flushing submissions", () => {
 
     expect(post).not.toHaveBeenCalled();
     expect(outcome).toEqual({ pending: 1, rejected: [] });
+  });
+
+  it("a submission enqueued while a flush is in flight is still posted", async () => {
+    enqueue(makeSubmission({ clientId: "a" }));
+    const first = deferred<PostResult>();
+    const post = vi
+      .fn<(s: { clientId: string }) => Promise<PostResult>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue({ kind: "accepted" });
+
+    const flushing = flush({ endpoint: ENDPOINT, post });
+    enqueue(makeSubmission({ clientId: "b" }));
+    first.resolve({ kind: "accepted" });
+    await flushing;
+
+    expect(post.mock.calls.map(([s]) => s.clientId)).toEqual(["a", "b"]);
+    expect(loadQueue()).toEqual([]);
+  });
+
+  it("an unreachable result keeps a submission enqueued mid-flight", async () => {
+    enqueue(makeSubmission({ clientId: "a" }));
+    const first = deferred<PostResult>();
+    const post = vi.fn<(s: { clientId: string }) => Promise<PostResult>>().mockReturnValueOnce(first.promise);
+
+    const flushing = flush({ endpoint: ENDPOINT, post });
+    enqueue(makeSubmission({ clientId: "b" }));
+    first.resolve({ kind: "unreachable" });
+    const outcome = await flushing;
+
+    expect(loadQueue().map((s) => s.clientId)).toEqual(["a", "b"]);
+    expect(outcome.pending).toBe(2);
   });
 });
