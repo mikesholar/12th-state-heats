@@ -227,6 +227,15 @@ describe("the score form", () => {
     expect(getByLabelText(root, "Rounds")).toHaveValue(3);
   });
 
+  it("keeps focus on the field being typed in across a re-render", () => {
+    const { root, options } = renderWith();
+    getByLabelText(root, "Reps").focus();
+
+    renderJudge(options);
+
+    expect(document.activeElement).toBe(getByLabelText(root, "Reps"));
+  });
+
   it("labels the button Update score once this heat has been sent", () => {
     expect(getByRole(renderWith({ sentHeats: [1] }).root, "button", { name: "Update score" })).toBeInTheDocument();
   });

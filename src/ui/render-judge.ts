@@ -180,12 +180,48 @@ const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: r
   });
 };
 
+type SavedFocus = { readonly id: string; readonly start: number | null; readonly end: number | null };
+
+const readSelection = (input: HTMLInputElement): Pick<SavedFocus, "start" | "end"> => {
+  try {
+    return { start: input.selectionStart, end: input.selectionEnd };
+  } catch {
+    return { start: null, end: null };
+  }
+};
+
+const captureFocus = (root: HTMLElement): SavedFocus | undefined => {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !root.contains(active) || active.id === "") return undefined;
+  const selection = active instanceof HTMLInputElement ? readSelection(active) : { start: null, end: null };
+  return { id: active.id, ...selection };
+};
+
+const restoreSelection = (input: HTMLInputElement, saved: SavedFocus): void => {
+  if (saved.start === null || saved.end === null) return;
+  try {
+    input.setSelectionRange(saved.start, saved.end);
+  } catch {
+    return;
+  }
+};
+
+const restoreFocus = (root: HTMLElement, saved: SavedFocus | undefined): void => {
+  if (!saved) return;
+  const target = root.querySelector<HTMLElement>(`#${CSS.escape(saved.id)}`);
+  if (!target) return;
+  target.focus();
+  if (target instanceof HTMLInputElement) restoreSelection(target, saved);
+};
+
 export const renderJudge = (options: RenderJudgeOptions): void => {
   const { root, schedule, event, lane, now, judgeName, sentHeats, manual, notice } = options;
+  const saved = captureFocus(root);
 
   if (!judgeName) {
     root.innerHTML = nameGateHtml();
     wireNameGate(root, options.onNameSubmit);
+    restoreFocus(root, saved);
     return;
   }
 
@@ -205,4 +241,5 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
     <footer class="footer"><a href="#" id="change-name">Not you? Change name</a></footer>`;
 
   wireMain(options, draft, heatNumbers, selected.index);
+  restoreFocus(root, saved);
 };
