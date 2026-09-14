@@ -13,6 +13,6 @@ type ResolveJudgeCodeOptions = {
 
 export const resolveJudgeCode = ({ table, code }: ResolveJudgeCodeOptions): JudgeResolution => {
   const normalised = code?.trim().toLowerCase();
-  if (!normalised) return { kind: "unknown" };
+  if (!normalised || !Object.hasOwn(table, normalised)) return { kind: "unknown" };
   return table[normalised] ?? { kind: "unknown" };
 };

@@ -25,4 +25,9 @@ describe("resolving a judge code", () => {
   it("treats a missing code as unknown", () => {
     expect(resolveJudgeCode({ table, code: undefined })).toEqual({ kind: "unknown" });
   });
+
+  it("does not resolve inherited object keys", () => {
+    expect(resolveJudgeCode({ table, code: "__proto__" })).toEqual({ kind: "unknown" });
+    expect(resolveJudgeCode({ table, code: "constructor" })).toEqual({ kind: "unknown" });
+  });
 });
