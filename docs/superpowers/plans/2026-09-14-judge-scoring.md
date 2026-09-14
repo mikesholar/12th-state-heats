@@ -2091,6 +2091,7 @@ Create `src/ui/judge-page.test.ts`:
 
 ```ts
 import { fireEvent, getByLabelText, getByRole, getByTestId, queryByTestId } from "@testing-library/dom";
+import type { Mock } from "vitest";
 import { startJudgePage } from "./judge-page";
 import { loadQueue } from "./judge-store";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
@@ -2123,7 +2124,7 @@ const capped = makeEvent({
 
 const replying = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-const start = (options?: { fetchFn?: typeof fetch; endpoint?: string; now?: Date; event?: Event }) => {
+const start = (options?: { fetchFn?: Mock<typeof fetch>; endpoint?: string; now?: () => Date; event?: Event }) => {
   const root = document.createElement("div");
   document.body.append(root);
   const fetchFn = options?.fetchFn ?? vi.fn<typeof fetch>().mockResolvedValue(replying({ ok: true }));
@@ -2133,7 +2134,7 @@ const start = (options?: { fetchFn?: typeof fetch; endpoint?: string; now?: Date
     event: options?.event ?? event,
     lane: 5,
     endpoint: options?.endpoint ?? ENDPOINT,
-    now: () => options?.now ?? at("09:12"),
+    now: options?.now ?? (() => at("09:12")),
     fetchFn,
     newClientId: () => "cid-1",
   });
@@ -2271,6 +2272,75 @@ describe("the clock tick", () => {
     expect(getByLabelText(root, "Rounds")).toHaveValue(3);
   });
 
+  it("does not redraw while the judge is typing", async () => {
+    const { root, page } = start();
+    enterName(root);
+    const rounds = getByLabelText(root, "Rounds");
+    rounds.focus();
+    fireEvent.input(rounds, { target: { value: "3" } });
+
+    await page.tick();
+
+    expect(getByLabelText(root, "Rounds")).toBe(rounds);
+    expect(rounds).toHaveValue(3);
+    expect(document.activeElement).toBe(rounds);
+  });
+
+  it("shows a rejection that arrived while the judge was typing", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("offline"))
+      .mockResolvedValue(replying({ ok: false, error: "Unknown scoreKind" }));
+    const { root, page } = start({ fetchFn });
+    enterName(root);
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+    expect(getByTestId(root, "notice")).toHaveTextContent("Saved on this phone — will retry");
+
+    getByLabelText(root, "Rounds").focus();
+    await page.tick();
+    getByLabelText(root, "Rounds").blur();
+    await page.tick();
+
+    expect(getByTestId(root, "notice")).toHaveTextContent("Unknown scoreKind");
+    expect(queryByTestId(root, "pending")).toBeNull();
+  });
+
+  it("clears the retry banner after a drain that happened while the judge was typing", async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockRejectedValueOnce(new TypeError("offline")).mockResolvedValue(replying({ ok: true }));
+    const { root, page } = start({ fetchFn });
+    enterName(root);
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+    expect(getByTestId(root, "notice")).toHaveTextContent("Saved on this phone — will retry");
+
+    getByLabelText(root, "Rounds").focus();
+    await page.tick();
+    getByLabelText(root, "Rounds").blur();
+    await page.tick();
+
+    expect(queryByTestId(root, "notice")).toBeNull();
+    expect(queryByTestId(root, "pending")).toBeNull();
+  });
+
+  it("attributes the score to the heat the judge was shown, not the heat the clock has moved on to", async () => {
+    const clock = { now: at("09:19") };
+    const { root, page, fetchFn } = start({ now: () => clock.now });
+    enterName(root);
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    getByLabelText(root, "Rounds").focus();
+
+    clock.now = at("09:24");
+    await page.tick();
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+
+    const body = JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body));
+    expect(body).toMatchObject({ heat: 1, team: "Rays of Glory" });
+    expect(getByTestId(root, "notice")).toHaveTextContent("Rays of Glory");
+  });
+
   it("clears the form when the judge moves to another heat", () => {
     const { root } = start();
     enterName(root);
@@ -2285,7 +2355,7 @@ describe("the clock tick", () => {
 
 describe("the Finished / Capped toggle", () => {
   it("switching to Capped and back keeps the typed time", () => {
-    const { root } = start({ event: capped, now: at("08:02") });
+    const { root } = start({ event: capped, now: () => at("08:02") });
     enterName(root);
     fireEvent.input(getByLabelText(root, "Minutes"), { target: { value: "7" } });
     fireEvent.input(getByLabelText(root, "Seconds"), { target: { value: "42" } });
@@ -2308,7 +2378,7 @@ Expected: FAIL — cannot resolve `./judge-page`.
 
 - [ ] **Step 3: Implement the controller**
 
-Create `src/ui/judge-page.ts`. The controller keeps one closure-local `let state` that is reassigned in exactly one place (`draw`) so that `tick()` and the callbacks always see the latest state. It is never exported or shared — the one permitted piece of local mutable state here.
+Create `src/ui/judge-page.ts`. The controller keeps one closure-local `let state` that is reassigned in exactly one place (`commit`) so that `tick()` and the callbacks always see the latest state. It is never exported or shared — the one permitted piece of local mutable state here.
 
 ```ts
 import { resolveJudgeHeat, type ManualPick } from "../core/resolve-judge-heat";
@@ -2339,6 +2409,8 @@ type PageState = {
   readonly notice: Notice | undefined;
 };
 
+type SubmitOptions = { readonly score: Score; readonly shownAt: Date };
+
 const INITIAL: PageState = { manual: undefined, draft: undefined, notice: undefined };
 
 const noticeAfterFlush = (outcome: FlushOutcome, current: Notice | undefined): Notice | undefined => {
@@ -2348,26 +2420,33 @@ const noticeAfterFlush = (outcome: FlushOutcome, current: Notice | undefined): N
   return current?.kind === "retrying" ? undefined : current;
 };
 
+const isTypingIn = (root: HTMLElement): boolean =>
+  document.activeElement instanceof HTMLInputElement && root.contains(document.activeElement);
+
 export const startJudgePage = (options: JudgePageOptions): JudgePage => {
   const { root, schedule, event, lane, endpoint, now, fetchFn, newClientId } = options;
   let state: PageState = INITIAL;
 
   const post = (submission: Submission) => postScore({ endpoint, submission, fetchFn });
 
-  const draw = (next: PageState): void => {
+  const commit = (next: PageState): void => {
     state = next;
+  };
+
+  const render = (): void => {
+    const shownAt = now();
     renderJudge({
       root,
       schedule,
       event,
       lane,
-      now: now(),
+      now: shownAt,
       judgeName: loadJudgeName(),
       sentHeats: loadSentHeats({ event: event.number, lane }),
-      manual: next.manual,
-      draft: next.draft,
+      manual: state.manual,
+      draft: state.draft,
       pending: loadQueue().length,
-      notice: next.notice,
+      notice: state.notice,
       endpointConfigured: endpoint !== "",
       onNameSubmit: (name) => {
         saveJudgeName(name);
@@ -2379,27 +2458,37 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       },
       onHeatChange: (heat) => draw({ manual: { heat, at: now() }, draft: undefined, notice: undefined }),
       onModeChange: (mode) => draw({ ...state, draft: { ...readDraft(root, state.draft ?? emptyDraft(event)), mode } }),
-      onSubmit: (score) => void submit(score),
+      onSubmit: (score) => void submit({ score, shownAt }),
     });
+  };
+
+  const draw = (next: PageState): void => {
+    commit(next);
+    render();
   };
 
   const currentDraft = (): ScoreDraft | undefined =>
     loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
 
-  const flushAndDraw = async (): Promise<void> => {
+  const stateAfterFlush = async (): Promise<PageState> => {
     const outcome = await flush({ endpoint, post });
-    draw({ ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) });
+    return { ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) };
   };
 
-  const submit = async (score: Score): Promise<void> => {
+  const present = (next: PageState): void => (isTypingIn(root) ? commit(next) : draw(next));
+
+  const submit = async ({ score, shownAt }: SubmitOptions): Promise<void> => {
     const validated = validateScore({ scoring: event.scoring, capSeconds: event.capSeconds, score });
-    const draft = readDraft(root, state.draft ?? emptyDraft(event));
     if (!validated.success) {
+      const draft = readDraft(root, state.draft ?? emptyDraft(event));
       draw({ ...state, draft, notice: { kind: "error", text: validated.error } });
       return;
     }
-    const selected = resolveJudgeHeat({ schedule, event, lane, now: now(), manual: state.manual });
-    if (!selected.lane) return;
+    const selected = resolveJudgeHeat({ schedule, event, lane, now: shownAt, manual: state.manual });
+    if (!selected.lane) {
+      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: "No team in this lane for this heat" } });
+      return;
+    }
 
     enqueue(
       buildSubmission({
@@ -2418,12 +2507,13 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       draft: undefined,
       notice: { kind: "recorded", text: `Recorded ✓ — ${selected.lane.team}: ${formatScore(validated.data)}` },
     });
-    await flushAndDraw();
+    present(await stateAfterFlush());
   };
 
   const tick = async (): Promise<void> => {
-    draw({ ...state, draft: currentDraft() });
-    if (loadQueue().length > 0) await flushAndDraw();
+    present({ ...state, draft: currentDraft() });
+    if (loadQueue().length === 0) return;
+    present(await stateAfterFlush());
   };
 
   draw(INITIAL);
@@ -2523,7 +2613,8 @@ Create `src/ui/render-head.ts`:
 ```ts
 import { toString as qrToString } from "qrcode";
 import type { JudgeCodeTable } from "../core/judge-codes";
-import type { Schedule } from "../core/types";
+import type { Event, Schedule } from "../core/types";
+import { esc } from "./html";
 
 type RenderHeadOptions = {
   readonly root: HTMLElement;
@@ -2532,12 +2623,17 @@ type RenderHeadOptions = {
   readonly siteUrl: string;
 };
 
+type LaneCardsOptions = {
+  readonly table: JudgeCodeTable;
+  readonly eventNumber: number;
+  readonly siteUrl: string;
+};
+
 type LaneCard = { readonly code: string; readonly lane: number; readonly url: string; readonly svg: string };
 
-const esc = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+type EventGroup = { readonly event: Event; readonly cards: readonly LaneCard[] };
 
-const laneCards = async (table: JudgeCodeTable, eventNumber: number, siteUrl: string): Promise<readonly LaneCard[]> => {
+const laneCards = async ({ table, eventNumber, siteUrl }: LaneCardsOptions): Promise<readonly LaneCard[]> => {
   const entries = Object.entries(table)
     .flatMap(([code, a]) => (a.kind === "lane" && a.event === eventNumber ? [{ code, lane: a.lane }] : []))
     .sort((a, b) => a.lane - b.lane);
@@ -2557,23 +2653,19 @@ const cardHtml = ({ code, lane, url, svg }: LaneCard): string => `
     <div class="judge-url">${esc(url)}</div>
   </article>`;
 
+const groupHtml = ({ event, cards }: EventGroup): string => `
+  <section class="event-group" data-testid="event-group">
+    <h2>Event ${event.number} · ${esc(event.title)}</h2>
+    <div class="judge-cards">${cards.map(cardHtml).join("")}</div>
+  </section>`;
+
 export const renderHead = async ({ root, schedule, table, siteUrl }: RenderHeadOptions): Promise<void> => {
   const groups = await Promise.all(
-    schedule.events.map(async (event) => ({ event, cards: await laneCards(table, event.number, siteUrl) })),
+    schedule.events.map(async (event) => ({ event, cards: await laneCards({ table, eventNumber: event.number, siteUrl }) })),
   );
   root.innerHTML = `
     <header class="header"><div class="header-row"><h1 class="title">Judge assignments</h1></div></header>
-    <main class="main head-main">
-      ${groups
-        .map(
-          ({ event, cards }) => `
-        <section class="event-group" data-testid="event-group">
-          <h2>Event ${event.number} · ${esc(event.title)}</h2>
-          <div class="judge-cards">${cards.map(cardHtml).join("")}</div>
-        </section>`,
-        )
-        .join("")}
-    </main>`;
+    <main class="main head-main">${groups.map(groupHtml).join("")}</main>`;
 };
 ```
 
@@ -2730,7 +2822,7 @@ button.primary:active { filter: brightness(0.9); }
 .judge-card .qr svg { width: 100%; max-width: 240px; height: auto; }
 .judge-code { margin-top: 8px; font-family: ui-monospace, monospace; font-size: 1.3rem; font-weight: 900; letter-spacing: 0.1em; color: var(--orange); }
 .judge-url { margin-top: 4px; font-size: 0.75rem; color: var(--muted); word-break: break-all; }
-@media print { .header { position: static; } .judge-cards { grid-template-columns: repeat(2, 1fr); } }
+@media print { .header { position: static; } .judge-cards { grid-template-columns: repeat(2, 1fr); } .event-group h2 { break-after: avoid; } }
 ```
 
 - [ ] **Step 3: Verify in the browser**
@@ -3095,6 +3187,7 @@ so the site does not need a rebuild.
 | Script asks to re-authorise | Google expires grants after a long idle period | Run `setup` once from the editor and accept |
 | `Results` shows `#ERROR` | Formulas edited by hand | Delete the `Results` and `Overall` tabs and run `setup` again |
 | Judge link says "This link isn't valid" | Code not in `src/data/judge-codes.ts` — regenerated after the link was shared | Re-run `npm run judge-links` and hand out the new link |
+| Submit does nothing on a phone pointed at a LAN dev server (http://192.168…) | `crypto.randomUUID` needs a secure context | Test against the deployed https site, or use `npm run dev -- --host` with `localhost` on the same machine |
 ````
 
 - [ ] **Step 2: Update the README**
@@ -3115,7 +3208,10 @@ And in **Development**, after the "Pure logic lives in…" paragraph:
 ```markdown
 `npm run judge-links` regenerates `src/data/judge-codes.ts` (keeping existing
 codes) and prints every judge URL. `apps-script/Code.gs` is the Sheet
-backend; it is pasted into Apps Script by hand, not built.
+backend; it is pasted into Apps Script by hand, not built. `flush` in
+`submit-queue.ts` is not serialised; concurrent flushes (tick, `online`,
+post-submit) can double-post, which is safe only because `Code.gs` dedups by
+`clientId` under `LockService`.
 ```
 
 - [ ] **Step 3: Run all checks**
