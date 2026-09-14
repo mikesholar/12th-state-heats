@@ -92,8 +92,15 @@ set to *Anyone* — redo 1d.
    so last year's links still work; add `-- --regenerate` to issue fresh
    ones (do this if a link was posted somewhere public).
 4. `npm test` — the suite fails if any event×lane lacks a code or the
-   scoring config is inconsistent.
-5. Commit and push.
+   scoring config is inconsistent. A few tests in
+   `src/data/schedule.test.ts` pin this year's facts (team count, a team
+   missing from an event, a specific lane correction, the last heat's end
+   time); update or delete those. The structural tests stay.
+5. Update the date in `README.md` (top line and the `?at=` examples) and in
+   the `<meta name="description">` in `index.html`.
+6. Create a fresh Sheet for the year and repeat section 1 (a new script
+   deployment gives a new `/exec` URL for `src/data/scoring-endpoint.ts`).
+7. Commit and push.
 
 ## 3. Comp day
 
