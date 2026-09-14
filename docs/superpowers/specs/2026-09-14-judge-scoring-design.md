@@ -248,8 +248,11 @@ team, division, scoreKind, seconds, rounds, reps, clientId`.
 
 ### `Results`
 
-One row per (event, team) — the latest `Log` row by `submittedAt`. Columns:
-`event, division, team, scoreKind, seconds, rounds, reps, display, placing`.
+One row per (event, team) — the latest `Log` row by `submittedAt`. Built with
+the sort-then-dedupe idiom (`SORTN(SORT(…, submittedAt desc), 9^9, 2, event,
+team)`), which keeps the first — latest — row per key. Columns:
+`event, division, team, scoreKind, seconds, rounds, reps, submittedAt,
+display, sortKey, placing`.
 
 Placing is within (event, division):
 
@@ -259,9 +262,11 @@ Placing is within (event, division):
 - Ties share a placing (competition ranking: 1, 1, 3).
 
 Implemented with a sort-key column (`time` → `seconds`; `rounds-reps` →
-`1_000_000 − rounds·10_000 − reps`, i.e. always larger than any time) and
-`RANK`-style formulas. Sort key semantics are documented in a note on the
-header cell.
+`1_000_000 − rounds·10_000 − reps`, i.e. always larger than any time) and a
+`COUNTIFS`-based rank, all as plain `ARRAYFORMULA`s. No `LAMBDA`/`MAP` and no
+per-row `FILTER`: a one-row `FILTER` collapses to a scalar in Sheets, which
+breaks `SORTN` sort-column arguments. Sort key semantics are documented in a
+note on the header cell.
 
 ### `Overall`
 

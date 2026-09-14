@@ -2890,6 +2890,7 @@ function doPost(e) {
   } catch (err) {
     return reply({ ok: false, error: "Body is not JSON" });
   }
+  if (record === null || typeof record !== "object" || Array.isArray(record)) return reply({ ok: false, error: "Body is not an object" });
   const missing = REQUIRED.filter((key) => record[key] === undefined || record[key] === "");
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   if (SCORE_KINDS.indexOf(record.scoreKind) === -1) return reply({ ok: false, error: "Unknown scoreKind" });
@@ -2956,46 +2957,45 @@ function setupLog(ss) {
   writeHeaders(sheetNamed(ss, LOG), LOG_HEADERS);
 }
 
-function latestField(column) {
-  return (
-    '=MAP(A2:A, C2:C, LAMBDA(ev, tm, IF(tm="", "", ' +
-    "INDEX(SORTN(FILTER(Log!I$2:L, Log!D$2:D=ev, Log!G$2:G=tm), 1, 0, " +
-    "FILTER(Log!B$2:B, Log!D$2:D=ev, Log!G$2:G=tm), FALSE), 1, " + column + "))))"
-  );
-}
-
 function setupResults(ss) {
   const sheet = sheetNamed(ss, RESULTS);
-  writeHeaders(sheet, ["event", "division", "team", "scoreKind", "seconds", "rounds", "reps", "display", "sortKey", "placing"]);
+  sheet.clear();
+  writeHeaders(sheet, [
+    "event", "division", "team", "scoreKind", "seconds", "rounds", "reps", "submittedAt", "display", "sortKey", "placing",
+  ]);
   const formulas = [
-    '=IFERROR(SORT(UNIQUE(FILTER({Log!D2:D, Log!H2:H, Log!G2:G}, Log!G2:G<>"")), 1, TRUE, 2, TRUE, 3, TRUE), "")',
+    "=IFERROR(SORTN(SORT(FILTER({Log!D2:D, Log!H2:H, Log!G2:G, Log!I2:I, Log!J2:J, Log!K2:K, Log!L2:L, Log!B2:B}, " +
+      'Log!G2:G<>""), 8, FALSE), 9^9, 2, 1, TRUE, 3, TRUE), "")',
     "",
     "",
-    latestField(1),
-    latestField(2),
-    latestField(3),
-    latestField(4),
-    '=MAP(D2:D, E2:E, F2:F, G2:G, LAMBDA(k, s, r, p, IF(k="", "", IF(k="time", INT(s/60)&":"&TEXT(MOD(s,60),"00"), r&" + "&p))))',
-    '=MAP(D2:D, E2:E, F2:F, G2:G, LAMBDA(k, s, r, p, IF(k="", "", IF(k="time", s, 1000000 - r*10000 - p))))',
-    '=MAP(A2:A, B2:B, I2:I, LAMBDA(ev, dv, key, IF(key="", "", COUNTIFS(A$2:A, ev, B$2:B, dv, I$2:I, "<"&key) + 1)))',
+    "",
+    "",
+    "",
+    "",
+    "",
+    '=ARRAYFORMULA(IF(C2:C="", "", IF(D2:D="time", INT(E2:E/60)&":"&TEXT(MOD(E2:E,60),"00"), F2:F&" + "&G2:G)))',
+    '=ARRAYFORMULA(IF(C2:C="", "", IF(D2:D="time", E2:E, 1000000 - F2:F*10000 - G2:G)))',
+    '=ARRAYFORMULA(IF(C2:C="", "", COUNTIFS(A2:A, A2:A, B2:B, B2:B, J2:J, "<"&J2:J) + 1))',
   ];
   sheet.getRange(2, 1, 1, formulas.length).setFormulas([formulas]);
-  sheet.getRange("I1").setNote("Lower is better. time → seconds; rounds-reps → 1,000,000 − rounds×10,000 − reps, so any finish beats any capped score.");
+  sheet.getRange("A1").setNote("Latest Log row per event + team (by submittedAt), sorted by event then team.");
+  sheet.getRange("J1").setNote("Lower is better. time → seconds; rounds-reps → 1,000,000 − rounds×10,000 − reps, so any finish beats any capped score.");
 }
 
 function eventPlacing(eventNumber) {
   return (
-    '=MAP(A2:A, B2:B, LAMBDA(dv, tm, IF(tm="", "", IFERROR(' +
-    "INDEX(FILTER(Results!J$2:J, Results!A$2:A=" + eventNumber + ", Results!C$2:C=tm), 1), " +
-    "COUNTIFS(Results!A$2:A, " + eventNumber + ", Results!B$2:B, dv) + 1))))"
+    '=ARRAYFORMULA(IF(B2:B="", "", IFERROR(' +
+    "VLOOKUP(" + eventNumber + '&"|"&B2:B, {Results!A2:A&"|"&Results!C2:C, Results!K2:K}, 2, FALSE), ' +
+    "COUNTIFS(Results!A2:A, " + eventNumber + ", Results!B2:B, A2:A) + 1)))"
   );
 }
 
 function setupOverall(ss) {
   const sheet = sheetNamed(ss, OVERALL);
+  sheet.clear();
   const eventHeaders = EVENTS.map((n) => "E" + n);
   writeHeaders(sheet, ["division", "team"].concat(eventHeaders, ["total", "place"]));
-  const totalColumns = EVENTS.map((_, i) => String.fromCharCode("C".charCodeAt(0) + i));
+  const eventColumns = EVENTS.map((_, i) => String.fromCharCode("C".charCodeAt(0) + i));
   const totalCol = String.fromCharCode("C".charCodeAt(0) + EVENTS.length);
   const formulas = [
     '=IFERROR(SORT(UNIQUE(FILTER({Results!B2:B, Results!C2:C}, Results!C2:C<>""))), "")',
@@ -3003,9 +3003,8 @@ function setupOverall(ss) {
   ]
     .concat(EVENTS.map(eventPlacing))
     .concat([
-      "=MAP(" + totalColumns.map((c) => c + "2:" + c).join(", ") + ", LAMBDA(" + totalColumns.map((c) => "v" + c).join(", ") +
-        ', IF(vC="", "", ' + totalColumns.map((c) => "v" + c).join("+") + ")))",
-      "=MAP(A2:A, " + totalCol + "2:" + totalCol + ', LAMBDA(dv, t, IF(t="", "", COUNTIFS(A$2:A, dv, ' + totalCol + '$2:' + totalCol + ', "<"&t) + 1)))',
+      '=ARRAYFORMULA(IF(B2:B="", "", ' + eventColumns.map((c) => c + "2:" + c).join(" + ") + "))",
+      '=ARRAYFORMULA(IF(B2:B="", "", COUNTIFS(A2:A, A2:A, ' + totalCol + "2:" + totalCol + ', "<"&' + totalCol + "2:" + totalCol + ") + 1))",
     ]);
   sheet.getRange(2, 1, 1, formulas.length).setFormulas([formulas]);
   sheet.getRange(totalCol + "1").setNote("Sum of event placings within division; lowest wins. A missing event counts as one worse than last.");
