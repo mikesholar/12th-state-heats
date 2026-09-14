@@ -1,6 +1,7 @@
 import { resolveJudgeHeat, type ManualPick } from "../core/resolve-judge-heat";
 import type { Score } from "../core/score";
 import type { Event, Lane, Schedule } from "../core/types";
+import { esc } from "./html";
 
 export type ScoreDraft = {
   readonly mode: Score["kind"];
@@ -35,9 +36,6 @@ export type RenderJudgeOptions = {
 };
 
 const SECONDS_PER_MINUTE = 60;
-
-const esc = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 export const emptyDraft = (event: Event): ScoreDraft => ({
   mode: event.scoring === "time-or-rounds" ? "time" : "rounds-reps",

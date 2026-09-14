@@ -2,6 +2,7 @@ import { formatClock, formatCountdown, formatRange } from "../core/format";
 import { heatPhase, resolveHeats, type HeatRef, type HeatStatus } from "../core/resolve-heats";
 import { resolveTeam, type TeamStatus } from "../core/resolve-team";
 import type { Event, Heat, Lane, Schedule } from "../core/types";
+import { esc } from "./html";
 
 export type RenderOptions = {
   readonly root: HTMLElement;
@@ -12,9 +13,6 @@ export type RenderOptions = {
 };
 
 const MINUTE_MS = 60_000;
-
-const esc = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const heatId = (ref: { readonly event: Event; readonly heat: Heat }): string =>
   `E${ref.event.number}H${ref.heat.number}`;

@@ -146,6 +146,17 @@ describe("the team card", () => {
     expect(getByTestId(root, "team-card")).toHaveTextContent("No team in lane 5 for this heat");
     expect(queryByRole(root, "button", { name: "Submit score" })).toBeNull();
   });
+
+  it("renders a hostile team name as text", () => {
+    const hostile = makeEvent({
+      ...amrap,
+      heats: [makeHeat({ number: 1, start: "09:10", end: "09:20", lanes: [makeLane({ lane: 5, team: "<img src=x onerror=alert(1)>" })] })],
+    });
+    const { root } = renderWith({ event: hostile });
+
+    expect(root.querySelector("img")).toBeNull();
+    expect(getByTestId(root, "team-card").textContent).toContain("<img src=x onerror=alert(1)>");
+  });
 });
 
 describe("the score form", () => {
