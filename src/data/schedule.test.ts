@@ -1,4 +1,5 @@
 import { schedule } from "./schedule";
+import { judgeCodes } from "./judge-codes";
 import { validateSchedule } from "../core/validate-schedule";
 
 const laneFor = (team: string) =>
@@ -40,5 +41,26 @@ describe("the shipped schedule", () => {
 
   it("ends the day at 1:00 PM", () => {
     expect(schedule.events[2]?.heats[4]?.end).toBe("13:00");
+  });
+});
+
+describe("the shipped judge codes", () => {
+  const laneAssignments = Object.values(judgeCodes).filter((a) => a.kind === "lane");
+
+  it("cover every event and lane in the schedule exactly once", () => {
+    const expected = schedule.events.flatMap((event) =>
+      [...new Set(event.heats.flatMap((h) => h.lanes.map((l) => l.lane)))].map((lane) => `e${event.number}l${lane}`),
+    );
+    const actual = laneAssignments.map((a) => (a.kind === "lane" ? `e${a.event}l${a.lane}` : ""));
+
+    expect([...actual].sort()).toEqual([...expected].sort());
+  });
+
+  it("have exactly one head judge code", () => {
+    expect(Object.values(judgeCodes).filter((a) => a.kind === "head")).toHaveLength(1);
+  });
+
+  it("are five lowercase alphanumerics", () => {
+    Object.keys(judgeCodes).forEach((code) => expect(code).toMatch(/^[a-z0-9]{5}$/));
   });
 });
