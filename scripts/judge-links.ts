@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
-import type { JudgeAssignment } from "../src/core/judge-codes";
+import { writeFileSync } from "node:fs";
+import type { JudgeAssignment, JudgeCodeTable } from "../src/core/judge-codes";
 import { schedule } from "../src/data/schedule";
 
 const OUTPUT = "src/data/judge-codes.ts";
@@ -25,37 +25,24 @@ const neededAssignments = (): readonly JudgeAssignment[] => [
   { kind: "head" },
 ];
 
-const existingEntries = (): readonly Entry[] => {
+const existingEntries = async (): Promise<readonly Entry[]> => {
   if (regenerate) return [];
-  const source = (() => {
-    try {
-      return readFileSync(OUTPUT, "utf8");
-    } catch {
-      return "";
-    }
-  })();
-  const lanePattern = /"(\w{5})": \{ kind: "lane", event: (\d+), lane: (\d+) \}/g;
-  const headPattern = /"(\w{5})": \{ kind: "head" \}/;
-  const lanes = [...source.matchAll(lanePattern)].map(
-    ([, code = "", event = "0", lane = "0"]): Entry => ({
-      code,
-      assignment: { kind: "lane", event: Number(event), lane: Number(lane) },
-    }),
-  );
-  const head = headPattern.exec(source);
-  return head?.[1] ? [...lanes, { code: head[1], assignment: { kind: "head" } }] : lanes;
+  const module = await import("../src/data/judge-codes").catch((): { judgeCodes: JudgeCodeTable } => ({ judgeCodes: {} }));
+  return Object.entries(module.judgeCodes).map(([code, assignment]) => ({ code, assignment }));
 };
 
-const withCodes = (assignments: readonly JudgeAssignment[], existing: readonly Entry[]): readonly Entry[] =>
-  assignments.reduce<readonly Entry[]>((entries, assignment) => {
+const withCodes = (assignments: readonly JudgeAssignment[], existing: readonly Entry[]): readonly Entry[] => {
+  const existingCodes = existing.map((e) => e.code);
+  return assignments.reduce<readonly Entry[]>((entries, assignment) => {
     const kept = existing.find((e) => assignmentKey(e.assignment) === assignmentKey(assignment));
-    const taken = new Set(entries.map((e) => e.code));
+    const taken = new Set([...existingCodes, ...entries.map((e) => e.code)]);
     const fresh = (): string => {
       const candidate = randomCode();
       return taken.has(candidate) ? fresh() : candidate;
     };
     return [...entries, kept ?? { code: fresh(), assignment }];
   }, []);
+};
 
 const entryLine = ({ code, assignment }: Entry): string =>
   assignment.kind === "head"
@@ -77,7 +64,7 @@ const linkLine = ({ code, assignment }: Entry): string =>
     ? `HEAD JUDGE            ${SITE}?j=${code}`
     : `Event ${assignment.event}  Lane ${assignment.lane}       ${SITE}?j=${code}`;
 
-const entries = withCodes(neededAssignments(), existingEntries());
+const entries = withCodes(neededAssignments(), await existingEntries());
 writeFileSync(OUTPUT, fileSource(entries));
 console.log(entries.map(linkLine).join("\n"));
 console.log(`\nWrote ${entries.length} codes to ${OUTPUT}`);
