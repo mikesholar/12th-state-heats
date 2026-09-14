@@ -1488,7 +1488,7 @@ git commit -m "feat: judge link routing, endpoint config, invalid-link page"
 
 ### Task 11: Judge page view — name gate and main layout
 
-The view is a pure function of its options: it writes `root.innerHTML` and attaches listeners that call back out. It holds no state. The controller (Task 13) owns state and re-renders.
+The view is a pure function of its options: it writes `root.innerHTML` and attaches listeners that call back out. It holds no state. The controller (Task 12) owns state and re-renders. The only DOM concern it keeps to itself is focus: `renderJudge` remembers which field was focused (and its selection) before replacing the tree and restores it afterwards, so the 15-second tick does not dismiss the phone keyboard.
 
 **Files:**
 - Create: `src/ui/render-judge.ts`
@@ -1499,9 +1499,13 @@ The view is a pure function of its options: it writes `root.innerHTML` and attac
 Create `src/ui/render-judge.test.ts`:
 
 ```ts
-import { fireEvent, getByLabelText, getByRole, getByTestId, getByText, queryByRole, queryByTestId } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByRole, getByTestId, queryByRole, queryByTestId } from "@testing-library/dom";
 import { renderJudge, type RenderJudgeOptions } from "./render-judge";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
 
 const amrap = makeEvent({
   number: 2,
@@ -1522,6 +1526,7 @@ const capped = makeEvent({
 
 const renderWith = (overrides?: Partial<RenderJudgeOptions>) => {
   const root = document.createElement("div");
+  document.body.append(root);
   const options: RenderJudgeOptions = {
     root,
     schedule: makeSchedule({ events: [capped, amrap] }),
@@ -1538,6 +1543,7 @@ const renderWith = (overrides?: Partial<RenderJudgeOptions>) => {
     onNameSubmit: vi.fn(),
     onNameClear: vi.fn(),
     onHeatChange: vi.fn(),
+    onModeChange: vi.fn(),
     onSubmit: vi.fn(),
     ...overrides,
   };
@@ -1573,7 +1579,7 @@ describe("the name gate", () => {
   it("offers to change the name from the footer", () => {
     const { root, options } = renderWith();
 
-    fireEvent.click(getByText(root, "Not you? Change name"));
+    fireEvent.click(getByRole(root, "button", { name: "Not you? Change name" }));
 
     expect(options.onNameClear).toHaveBeenCalled();
   });
@@ -1642,6 +1648,17 @@ describe("the team card", () => {
     expect(getByTestId(root, "team-card")).toHaveTextContent("No team in lane 5 for this heat");
     expect(queryByRole(root, "button", { name: "Submit score" })).toBeNull();
   });
+
+  it("renders a hostile team name as text", () => {
+    const hostile = makeEvent({
+      ...amrap,
+      heats: [makeHeat({ number: 1, start: "09:10", end: "09:20", lanes: [makeLane({ lane: 5, team: "<img src=x onerror=alert(1)>" })] })],
+    });
+    const { root } = renderWith({ event: hostile });
+
+    expect(root.querySelector("img")).toBeNull();
+    expect(getByTestId(root, "team-card").textContent).toContain("<img src=x onerror=alert(1)>");
+  });
 });
 
 describe("the score form", () => {
@@ -1671,6 +1688,14 @@ describe("the score form", () => {
     expect(getByRole(root, "button", { name: "Capped" })).toHaveAttribute("aria-pressed", "true");
     expect(getByLabelText(root, "Rounds")).toHaveValue(9);
     expect(getByLabelText(root, "Reps")).toHaveValue(14);
+  });
+
+  it("reports a switch to Capped", () => {
+    const { root, options } = renderWith({ event: capped, now: at("08:02") });
+
+    fireEvent.click(getByRole(root, "button", { name: "Capped" }));
+
+    expect(options.onModeChange).toHaveBeenCalledWith("rounds-reps");
   });
 
   it("submits rounds and reps as a score", () => {
@@ -1703,6 +1728,15 @@ describe("the score form", () => {
     expect(getByLabelText(root, "Rounds")).toHaveValue(3);
   });
 
+  it("keeps focus on the field being typed in across a re-render", () => {
+    const { root, options } = renderWith();
+    getByLabelText(root, "Reps").focus();
+
+    renderJudge(options);
+
+    expect(document.activeElement).toBe(getByLabelText(root, "Reps"));
+  });
+
   it("labels the button Update score once this heat has been sent", () => {
     expect(getByRole(renderWith({ sentHeats: [1] }).root, "button", { name: "Update score" })).toBeInTheDocument();
   });
@@ -1721,7 +1755,10 @@ describe("notices", () => {
   });
 
   it("shows an error banner", () => {
-    expect(getByTestId(renderWith({ notice: { kind: "error", text: "Enter a time" } }).root, "notice")).toHaveClass("error");
+    const { root } = renderWith({ notice: { kind: "error", text: "Enter a time" } });
+
+    expect(getByRole(root, "alert")).toHaveTextContent("Enter a time");
+    expect(getByTestId(root, "notice")).toHaveClass("error");
   });
 });
 ```
@@ -1739,6 +1776,7 @@ Create `src/ui/render-judge.ts`:
 import { resolveJudgeHeat, type ManualPick } from "../core/resolve-judge-heat";
 import type { Score } from "../core/score";
 import type { Event, Lane, Schedule } from "../core/types";
+import { esc } from "./html";
 
 export type ScoreDraft = {
   readonly mode: Score["kind"];
@@ -1769,13 +1807,11 @@ export type RenderJudgeOptions = {
   readonly onNameSubmit: (name: string) => void;
   readonly onNameClear: () => void;
   readonly onHeatChange: (heat: number) => void;
+  readonly onModeChange: (mode: Score["kind"]) => void;
   readonly onSubmit: (score: Score) => void;
 };
 
 const SECONDS_PER_MINUTE = 60;
-
-const esc = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 export const emptyDraft = (event: Event): ScoreDraft => ({
   mode: event.scoring === "time-or-rounds" ? "time" : "rounds-reps",
@@ -1794,7 +1830,15 @@ const nameGateHtml = (): string => `
     </form>
   </main>`;
 
-const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: RenderJudgeOptions): string => `
+type HeaderOptions = {
+  readonly event: Event;
+  readonly lane: number;
+  readonly judgeName: string;
+  readonly pending: number;
+  readonly endpointConfigured: boolean;
+};
+
+const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: HeaderOptions): string => `
   <header class="header judge-header" data-testid="judge-header">
     <div class="header-row">
       <div>
@@ -1802,7 +1846,7 @@ const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: Ren
         <h1 class="title judge-lane">Lane ${lane}</h1>
       </div>
       <div class="judge-meta">
-        <div class="judge-name">${esc(judgeName ?? "")}</div>
+        <div class="judge-name">${esc(judgeName)}</div>
         ${pending > 0 ? `<div class="pending" data-testid="pending">${pending} pending</div>` : ""}
       </div>
     </div>
@@ -1814,7 +1858,7 @@ const heatSelectorHtml = (options: RenderJudgeOptions, index: number, sent: bool
   return `
   <div class="heat-selector">
     <button type="button" id="prev-heat" aria-label="Previous heat" ${index === 0 ? "disabled" : ""}>◀</button>
-    <div class="heat-label" data-testid="heat-label">Heat ${options.event.heats[index]?.number ?? ""} of ${total}${sent ? " ✓" : ""}</div>
+    <div class="heat-label" data-testid="heat-label">Heat ${options.event.heats[index]?.number ?? ""} of ${total}${sent ? ' <span aria-label="score sent">✓</span>' : ""}</div>
     <button type="button" id="next-heat" aria-label="Next heat" ${index === total - 1 ? "disabled" : ""}>▶</button>
   </div>`;
 };
@@ -1865,7 +1909,8 @@ const scoreFormHtml = (event: Event, draft: ScoreDraft, sent: boolean): string =
 const noticeHtml = (notice: Notice | undefined): string => {
   if (!notice) return "";
   const text = notice.kind === "retrying" ? "Saved on this phone — will retry" : notice.text;
-  return `<div class="notice ${notice.kind}" data-testid="notice">${esc(text)}</div>`;
+  const role = notice.kind === "error" ? "alert" : "status";
+  return `<div class="notice ${notice.kind}" role="${role}" data-testid="notice">${esc(text)}</div>`;
 };
 
 const numberOr = (value: string, fallback: number): number => (value.trim() === "" ? fallback : Number(value));
@@ -1895,39 +1940,94 @@ const wireNameGate = (root: HTMLElement, onNameSubmit: (name: string) => void): 
   });
 };
 
-const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: readonly number[], index: number): void => {
-  const { root, onHeatChange, onSubmit, onNameClear } = options;
-  root.querySelector("#prev-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index - 1] ?? heatNumbers[0] ?? 1));
-  root.querySelector("#next-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index + 1] ?? heatNumbers.at(-1) ?? 1));
-  root.querySelector("#change-name")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    onNameClear();
-  });
-  root.querySelectorAll<HTMLButtonElement>(".mode").forEach((button) =>
-    button.addEventListener("click", () => {
-      const mode = button.dataset.mode === "time" ? "time" : "rounds-reps";
-      renderJudge({ ...options, draft: { ...readDraft(root, draft), mode } });
-    }),
-  );
+const stepValue = ({ current, delta }: { readonly current: number; readonly delta: number }): number => Math.max(0, current + delta);
+
+const stepTarget = (root: HTMLElement, button: HTMLButtonElement): HTMLInputElement | null => {
+  const id = button.dataset.target;
+  return id ? root.querySelector<HTMLInputElement>(`#${id}`) : null;
+};
+
+const wireSteppers = (root: HTMLElement): void => {
   root.querySelectorAll<HTMLButtonElement>(".step").forEach((button) =>
     button.addEventListener("click", () => {
-      const input = root.querySelector<HTMLInputElement>(`#${button.dataset.target ?? ""}`);
+      const input = stepTarget(root, button);
       if (!input) return;
-      input.value = String(Math.max(0, numberOr(input.value, 0) + Number(button.dataset.step ?? "0")));
+      input.value = String(stepValue({ current: numberOr(input.value, 0), delta: Number(button.dataset.step ?? "0") }));
     }),
   );
+};
+
+const wireModeToggle = (root: HTMLElement, onModeChange: (mode: Score["kind"]) => void): void => {
+  root.querySelectorAll<HTMLButtonElement>(".mode").forEach((button) =>
+    button.addEventListener("click", () => onModeChange(button.dataset.mode === "time" ? "time" : "rounds-reps")),
+  );
+};
+
+const wireHeatSelector = (root: HTMLElement, heatNumbers: readonly number[], index: number, onHeatChange: (heat: number) => void): void => {
+  root.querySelector("#prev-heat")?.addEventListener("click", () => {
+    const target = heatNumbers[index - 1];
+    if (target !== undefined) onHeatChange(target);
+  });
+  root.querySelector("#next-heat")?.addEventListener("click", () => {
+    const target = heatNumbers[index + 1];
+    if (target !== undefined) onHeatChange(target);
+  });
+};
+
+const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: readonly number[], index: number): void => {
+  const { root, onHeatChange, onModeChange, onSubmit, onNameClear } = options;
+  wireHeatSelector(root, heatNumbers, index, onHeatChange);
+  root.querySelector("#change-name")?.addEventListener("click", () => onNameClear());
+  wireModeToggle(root, onModeChange);
+  wireSteppers(root);
   root.querySelector("#score-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     onSubmit(scoreFromDraft(readDraft(root, draft)));
   });
 };
 
+type SavedFocus = { readonly id: string; readonly start: number | null; readonly end: number | null };
+
+const readSelection = (input: HTMLInputElement): Pick<SavedFocus, "start" | "end"> => {
+  try {
+    return { start: input.selectionStart, end: input.selectionEnd };
+  } catch {
+    return { start: null, end: null };
+  }
+};
+
+const captureFocus = (root: HTMLElement): SavedFocus | undefined => {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !root.contains(active) || active.id === "") return undefined;
+  const selection = active instanceof HTMLInputElement ? readSelection(active) : { start: null, end: null };
+  return { id: active.id, ...selection };
+};
+
+const restoreSelection = (input: HTMLInputElement, saved: SavedFocus): void => {
+  if (saved.start === null || saved.end === null) return;
+  try {
+    input.setSelectionRange(saved.start, saved.end);
+  } catch {
+    return;
+  }
+};
+
+const restoreFocus = (root: HTMLElement, saved: SavedFocus | undefined): void => {
+  if (!saved) return;
+  const target = root.querySelector<HTMLElement>(`#${CSS.escape(saved.id)}`);
+  if (!target) return;
+  target.focus();
+  if (target instanceof HTMLInputElement) restoreSelection(target, saved);
+};
+
 export const renderJudge = (options: RenderJudgeOptions): void => {
   const { root, schedule, event, lane, now, judgeName, sentHeats, manual, notice } = options;
+  const saved = captureFocus(root);
 
   if (!judgeName) {
     root.innerHTML = nameGateHtml();
     wireNameGate(root, options.onNameSubmit);
+    restoreFocus(root, saved);
     return;
   }
 
@@ -1937,16 +2037,17 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
   const heatNumbers = event.heats.map((h) => h.number);
 
   root.innerHTML = `
-    ${headerHtml(options)}
+    ${headerHtml({ event, lane, judgeName, pending: options.pending, endpointConfigured: options.endpointConfigured })}
     <main class="main judge-main">
       ${heatSelectorHtml(options, selected.index, sent)}
       ${teamCardHtml(selected.lane, lane)}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
     </main>
-    <footer class="footer"><a href="#" id="change-name">Not you? Change name</a></footer>`;
+    <footer class="footer"><button type="button" class="link" id="change-name">Not you? Change name</button></footer>`;
 
   wireMain(options, draft, heatNumbers, selected.index);
+  restoreFocus(root, saved);
 };
 ```
 
@@ -1981,8 +2082,12 @@ import { fireEvent, getByLabelText, getByRole, getByTestId, queryByTestId } from
 import { startJudgePage } from "./judge-page";
 import { loadQueue } from "./judge-store";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import type { Event } from "../core/types";
 
-afterEach(() => localStorage.clear());
+afterEach(() => {
+  localStorage.clear();
+  document.body.innerHTML = "";
+});
 
 const ENDPOINT = "https://script.google.com/macros/s/abc/exec";
 
@@ -1996,15 +2101,24 @@ const event = makeEvent({
   ],
 });
 
+const capped = makeEvent({
+  number: 1,
+  title: "12th Gear",
+  scoring: "time-or-rounds",
+  capSeconds: 480,
+  heats: [makeHeat({ number: 1, start: "08:00", end: "08:08", lanes: [makeLane({ lane: 5, team: "Glizzy Gals" })] })],
+});
+
 const replying = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-const start = (options?: { fetchFn?: typeof fetch; endpoint?: string; now?: Date }) => {
+const start = (options?: { fetchFn?: typeof fetch; endpoint?: string; now?: Date; event?: Event }) => {
   const root = document.createElement("div");
+  document.body.append(root);
   const fetchFn = options?.fetchFn ?? vi.fn<typeof fetch>().mockResolvedValue(replying({ ok: true }));
   const page = startJudgePage({
     root,
-    schedule: makeSchedule({ events: [event] }),
-    event,
+    schedule: makeSchedule({ events: [capped, event] }),
+    event: options?.event ?? event,
     lane: 5,
     endpoint: options?.endpoint ?? ENDPOINT,
     now: () => options?.now ?? at("09:12"),
@@ -2041,7 +2155,7 @@ describe("a judge opening their link", () => {
     const { root } = start();
     enterName(root);
 
-    fireEvent.click(getByRole(root, "link", { name: "Not you? Change name" }));
+    fireEvent.click(getByRole(root, "button", { name: "Not you? Change name" }));
 
     expect(getByLabelText(root, "Your name")).toBeInTheDocument();
   });
@@ -2156,6 +2270,23 @@ describe("the clock tick", () => {
     expect(getByLabelText(root, "Rounds")).toHaveValue(null);
   });
 });
+
+describe("the Finished / Capped toggle", () => {
+  it("switching to Capped and back keeps the typed time", () => {
+    const { root } = start({ event: capped, now: at("08:02") });
+    enterName(root);
+    fireEvent.input(getByLabelText(root, "Minutes"), { target: { value: "7" } });
+    fireEvent.input(getByLabelText(root, "Seconds"), { target: { value: "42" } });
+
+    fireEvent.click(getByRole(root, "button", { name: "Capped" }));
+    expect(getByLabelText(root, "Rounds")).toBeInTheDocument();
+
+    fireEvent.click(getByRole(root, "button", { name: "Finished" }));
+
+    expect(getByLabelText(root, "Minutes")).toHaveValue(7);
+    expect(getByLabelText(root, "Seconds")).toHaveValue(42);
+  });
+});
 ```
 
 - [ ] **Step 2: Run to verify failure**
@@ -2235,13 +2366,17 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
         draw({ ...state, draft: undefined, notice: undefined });
       },
       onHeatChange: (heat) => draw({ manual: { heat, at: now() }, draft: undefined, notice: undefined }),
+      onModeChange: (mode) => draw({ ...state, draft: { ...readDraft(root, state.draft ?? emptyDraft(event)), mode } }),
       onSubmit: (score) => void submit(score),
     });
   };
 
+  const currentDraft = (): ScoreDraft | undefined =>
+    loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
+
   const flushAndDraw = async (): Promise<void> => {
     const outcome = await flush({ endpoint, post });
-    draw({ ...state, notice: noticeAfterFlush(outcome, state.notice) });
+    draw({ ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) });
   };
 
   const submit = async (score: Score): Promise<void> => {
@@ -2275,8 +2410,7 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
   };
 
   const tick = async (): Promise<void> => {
-    const draft = loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
-    draw({ ...state, draft });
+    draw({ ...state, draft: currentDraft() });
     if (loadQueue().length > 0) await flushAndDraw();
   };
 
@@ -2284,6 +2418,11 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
   return { tick };
 };
 ```
+
+Two things the controller must do because the view no longer does them:
+
+- `onModeChange` re-reads the typed values from the DOM before switching `mode`, so toggling Finished → Capped → Finished brings the minutes and seconds back.
+- `flushAndDraw` re-reads the DOM draft before redrawing. The flush is async, so the judge may have started typing the next score while it was in flight; drawing with the stale `state.draft` would wipe that. Right after a successful submit the form has been reset, so the DOM reads back as empty strings — which equals `emptyDraft(event)` — so always re-reading is the simplest correct rule.
 
 - [ ] **Step 4: Run all checks**
 
@@ -2560,6 +2699,8 @@ button.primary:active { filter: brightness(0.9); }
 .step { font-size: 1.8rem; font-weight: 900; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--navy); }
 
 .submit { margin-top: 4px; }
+
+.link { font: inherit; background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; }
 
 .notice { padding: 12px 14px; border-radius: 8px; font-weight: 700; }
 .notice.recorded { background: #dcfce7; color: #166534; }
