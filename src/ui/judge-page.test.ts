@@ -32,7 +32,7 @@ const capped = makeEvent({
 
 const replying = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-const start = (options?: { fetchFn?: Mock<typeof fetch>; endpoint?: string; now?: Date; event?: Event }) => {
+const start = (options?: { fetchFn?: Mock<typeof fetch>; endpoint?: string; now?: () => Date; event?: Event }) => {
   const root = document.createElement("div");
   document.body.append(root);
   const fetchFn = options?.fetchFn ?? vi.fn<typeof fetch>().mockResolvedValue(replying({ ok: true }));
@@ -42,7 +42,7 @@ const start = (options?: { fetchFn?: Mock<typeof fetch>; endpoint?: string; now?
     event: options?.event ?? event,
     lane: 5,
     endpoint: options?.endpoint ?? ENDPOINT,
-    now: () => options?.now ?? at("09:12"),
+    now: options?.now ?? (() => at("09:12")),
     fetchFn,
     newClientId: () => "cid-1",
   });
@@ -231,6 +231,24 @@ describe("the clock tick", () => {
     expect(queryByTestId(root, "pending")).toBeNull();
   });
 
+  it("attributes the score to the heat the judge was shown, not the heat the clock has moved on to", async () => {
+    const clock = { now: at("09:19") };
+    const { root, page, fetchFn } = start({ now: () => clock.now });
+    enterName(root);
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    getByLabelText(root, "Rounds").focus();
+
+    clock.now = at("09:24");
+    await page.tick();
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+
+    const body = JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body));
+    expect(body).toMatchObject({ heat: 1, team: "Rays of Glory" });
+    expect(getByTestId(root, "notice")).toHaveTextContent("Rays of Glory");
+  });
+
   it("clears the form when the judge moves to another heat", () => {
     const { root } = start();
     enterName(root);
@@ -245,7 +263,7 @@ describe("the clock tick", () => {
 
 describe("the Finished / Capped toggle", () => {
   it("switching to Capped and back keeps the typed time", () => {
-    const { root } = start({ event: capped, now: at("08:02") });
+    const { root } = start({ event: capped, now: () => at("08:02") });
     enterName(root);
     fireEvent.input(getByLabelText(root, "Minutes"), { target: { value: "7" } });
     fireEvent.input(getByLabelText(root, "Seconds"), { target: { value: "42" } });

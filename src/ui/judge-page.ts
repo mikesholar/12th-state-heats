@@ -26,6 +26,8 @@ type PageState = {
   readonly notice: Notice | undefined;
 };
 
+type SubmitOptions = { readonly score: Score; readonly shownAt: Date };
+
 const INITIAL: PageState = { manual: undefined, draft: undefined, notice: undefined };
 
 const noticeAfterFlush = (outcome: FlushOutcome, current: Notice | undefined): Notice | undefined => {
@@ -48,13 +50,14 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     state = next;
   };
 
-  const render = (): void =>
+  const render = (): void => {
+    const shownAt = now();
     renderJudge({
       root,
       schedule,
       event,
       lane,
-      now: now(),
+      now: shownAt,
       judgeName: loadJudgeName(),
       sentHeats: loadSentHeats({ event: event.number, lane }),
       manual: state.manual,
@@ -72,8 +75,9 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       },
       onHeatChange: (heat) => draw({ manual: { heat, at: now() }, draft: undefined, notice: undefined }),
       onModeChange: (mode) => draw({ ...state, draft: { ...readDraft(root, state.draft ?? emptyDraft(event)), mode } }),
-      onSubmit: (score) => void submit(score),
+      onSubmit: (score) => void submit({ score, shownAt }),
     });
+  };
 
   const draw = (next: PageState): void => {
     commit(next);
@@ -90,15 +94,18 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
 
   const flushAndDraw = async (): Promise<void> => draw(await settled());
 
-  const submit = async (score: Score): Promise<void> => {
+  const submit = async ({ score, shownAt }: SubmitOptions): Promise<void> => {
     const validated = validateScore({ scoring: event.scoring, capSeconds: event.capSeconds, score });
     const draft = readDraft(root, state.draft ?? emptyDraft(event));
     if (!validated.success) {
       draw({ ...state, draft, notice: { kind: "error", text: validated.error } });
       return;
     }
-    const selected = resolveJudgeHeat({ schedule, event, lane, now: now(), manual: state.manual });
-    if (!selected.lane) return;
+    const selected = resolveJudgeHeat({ schedule, event, lane, now: shownAt, manual: state.manual });
+    if (!selected.lane) {
+      draw({ ...state, draft, notice: { kind: "error", text: "No team in this lane for this heat" } });
+      return;
+    }
 
     enqueue(
       buildSubmission({
