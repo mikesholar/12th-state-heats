@@ -194,6 +194,43 @@ describe("the clock tick", () => {
     expect(document.activeElement).toBe(rounds);
   });
 
+  it("shows a rejection that arrived while the judge was typing", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("offline"))
+      .mockResolvedValue(replying({ ok: false, error: "Unknown scoreKind" }));
+    const { root, page } = start({ fetchFn });
+    enterName(root);
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+    expect(getByTestId(root, "notice")).toHaveTextContent("Saved on this phone — will retry");
+
+    getByLabelText(root, "Rounds").focus();
+    await page.tick();
+    getByLabelText(root, "Rounds").blur();
+    await page.tick();
+
+    expect(getByTestId(root, "notice")).toHaveTextContent("Unknown scoreKind");
+    expect(queryByTestId(root, "pending")).toBeNull();
+  });
+
+  it("clears the retry banner after a drain that happened while the judge was typing", async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockRejectedValueOnce(new TypeError("offline")).mockResolvedValue(replying({ ok: true }));
+    const { root, page } = start({ fetchFn });
+    enterName(root);
+    enterRoundsReps(root, "4", "7");
+    await flushPromises();
+    expect(getByTestId(root, "notice")).toHaveTextContent("Saved on this phone — will retry");
+
+    getByLabelText(root, "Rounds").focus();
+    await page.tick();
+    getByLabelText(root, "Rounds").blur();
+    await page.tick();
+
+    expect(queryByTestId(root, "notice")).toBeNull();
+    expect(queryByTestId(root, "pending")).toBeNull();
+  });
+
   it("clears the form when the judge moves to another heat", () => {
     const { root } = start();
     enterName(root);

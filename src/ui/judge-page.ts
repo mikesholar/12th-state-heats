@@ -44,8 +44,11 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
 
   const post = (submission: Submission) => postScore({ endpoint, submission, fetchFn });
 
-  const draw = (next: PageState): void => {
+  const commit = (next: PageState): void => {
     state = next;
+  };
+
+  const render = (): void =>
     renderJudge({
       root,
       schedule,
@@ -54,10 +57,10 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       now: now(),
       judgeName: loadJudgeName(),
       sentHeats: loadSentHeats({ event: event.number, lane }),
-      manual: next.manual,
-      draft: next.draft,
+      manual: state.manual,
+      draft: state.draft,
       pending: loadQueue().length,
-      notice: next.notice,
+      notice: state.notice,
       endpointConfigured: endpoint !== "",
       onNameSubmit: (name) => {
         saveJudgeName(name);
@@ -71,15 +74,21 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       onModeChange: (mode) => draw({ ...state, draft: { ...readDraft(root, state.draft ?? emptyDraft(event)), mode } }),
       onSubmit: (score) => void submit(score),
     });
+
+  const draw = (next: PageState): void => {
+    commit(next);
+    render();
   };
 
   const currentDraft = (): ScoreDraft | undefined =>
     loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
 
-  const flushAndDraw = async (): Promise<void> => {
+  const settled = async (): Promise<PageState> => {
     const outcome = await flush({ endpoint, post });
-    draw({ ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) });
+    return { ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) };
   };
+
+  const flushAndDraw = async (): Promise<void> => draw(await settled());
 
   const submit = async (score: Score): Promise<void> => {
     const validated = validateScore({ scoring: event.scoring, capSeconds: event.capSeconds, score });
@@ -111,15 +120,12 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     await flushAndDraw();
   };
 
-  const flushQuietly = async (): Promise<void> => {
-    await flush({ endpoint, post });
-  };
-
   const tick = async (): Promise<void> => {
-    const typing = isTypingIn(root);
-    if (!typing) draw({ ...state, draft: currentDraft() });
+    if (!isTypingIn(root)) draw({ ...state, draft: currentDraft() });
     if (loadQueue().length === 0) return;
-    await (typing ? flushQuietly() : flushAndDraw());
+    const next = await settled();
+    if (isTypingIn(root)) commit(next);
+    else draw(next);
   };
 
   draw(INITIAL);
