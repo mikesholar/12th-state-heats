@@ -1218,6 +1218,14 @@ const poster = (...results: readonly PostResult[]) => {
   return post;
 };
 
+const deferred = <T,>() => {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+};
+
 describe("queueing and flushing submissions", () => {
   it("enqueue persists the record at the back of the queue", () => {
     enqueue(makeSubmission({ clientId: "a" }));
@@ -1271,6 +1279,37 @@ describe("queueing and flushing submissions", () => {
     expect(post).not.toHaveBeenCalled();
     expect(outcome).toEqual({ pending: 1, rejected: [] });
   });
+
+  it("a submission enqueued while a flush is in flight is still posted", async () => {
+    enqueue(makeSubmission({ clientId: "a" }));
+    const first = deferred<PostResult>();
+    const post = vi
+      .fn<(s: { clientId: string }) => Promise<PostResult>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue({ kind: "accepted" });
+
+    const flushing = flush({ endpoint: ENDPOINT, post });
+    enqueue(makeSubmission({ clientId: "b" }));
+    first.resolve({ kind: "accepted" });
+    await flushing;
+
+    expect(post.mock.calls.map(([s]) => s.clientId)).toEqual(["a", "b"]);
+    expect(loadQueue()).toEqual([]);
+  });
+
+  it("an unreachable result keeps a submission enqueued mid-flight", async () => {
+    enqueue(makeSubmission({ clientId: "a" }));
+    const first = deferred<PostResult>();
+    const post = vi.fn<(s: { clientId: string }) => Promise<PostResult>>().mockReturnValueOnce(first.promise);
+
+    const flushing = flush({ endpoint: ENDPOINT, post });
+    enqueue(makeSubmission({ clientId: "b" }));
+    first.resolve({ kind: "unreachable" });
+    const outcome = await flushing;
+
+    expect(loadQueue().map((s) => s.clientId)).toEqual(["a", "b"]);
+    expect(outcome.pending).toBe(2);
+  });
 });
 ```
 
@@ -1299,33 +1338,30 @@ type FlushOptions = {
   readonly post?: Poster;
 };
 
+type DrainOptions = { readonly post: Poster; readonly rejected: readonly Rejection[] };
+
 export const enqueue = (submission: Submission): void => saveQueue([...loadQueue(), submission]);
+
+const remove = (clientId: string): void => saveQueue(loadQueue().filter((s) => s.clientId !== clientId));
 
 const defaultPoster =
   (endpoint: string): Poster =>
   (submission) =>
     postScore({ endpoint, submission, fetchFn: fetch });
 
-const drain = async (queue: readonly Submission[], post: Poster, rejected: readonly Rejection[]): Promise<FlushOutcome> => {
-  const [head, ...rest] = queue;
-  if (!head) {
-    saveQueue([]);
-    return { pending: 0, rejected };
-  }
+const drain = async ({ post, rejected }: DrainOptions): Promise<FlushOutcome> => {
+  const [head] = loadQueue();
+  if (!head) return { pending: 0, rejected };
   const result = await post(head);
-  if (result.kind === "unreachable") {
-    saveQueue(queue);
-    return { pending: queue.length, rejected };
-  }
+  if (result.kind === "unreachable") return { pending: loadQueue().length, rejected };
+  remove(head.clientId);
   const nextRejected = result.kind === "rejected" ? [...rejected, { clientId: head.clientId, error: result.error }] : rejected;
-  saveQueue(rest);
-  return drain(rest, post, nextRejected);
+  return drain({ post, rejected: nextRejected });
 };
 
 export const flush = async ({ endpoint, post }: FlushOptions): Promise<FlushOutcome> => {
-  const queue = loadQueue();
-  if (!endpoint) return { pending: queue.length, rejected: [] };
-  return drain(queue, post ?? defaultPoster(endpoint), []);
+  if (!endpoint) return { pending: loadQueue().length, rejected: [] };
+  return drain({ post: post ?? defaultPoster(endpoint), rejected: [] });
 };
 ```
 
