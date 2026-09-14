@@ -42,6 +42,7 @@ const renderWith = (overrides?: Partial<RenderJudgeOptions>) => {
     onNameSubmit: vi.fn(),
     onNameClear: vi.fn(),
     onHeatChange: vi.fn(),
+    onModeChange: vi.fn(),
     onSubmit: vi.fn(),
     ...overrides,
   };
@@ -186,6 +187,14 @@ describe("the score form", () => {
     expect(getByRole(root, "button", { name: "Capped" })).toHaveAttribute("aria-pressed", "true");
     expect(getByLabelText(root, "Rounds")).toHaveValue(9);
     expect(getByLabelText(root, "Reps")).toHaveValue(14);
+  });
+
+  it("reports a switch to Capped", () => {
+    const { root, options } = renderWith({ event: capped, now: at("08:02") });
+
+    fireEvent.click(getByRole(root, "button", { name: "Capped" }));
+
+    expect(options.onModeChange).toHaveBeenCalledWith("rounds-reps");
   });
 
   it("submits rounds and reps as a score", () => {

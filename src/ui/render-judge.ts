@@ -32,6 +32,7 @@ export type RenderJudgeOptions = {
   readonly onNameSubmit: (name: string) => void;
   readonly onNameClear: () => void;
   readonly onHeatChange: (heat: number) => void;
+  readonly onModeChange: (mode: Score["kind"]) => void;
   readonly onSubmit: (score: Score) => void;
 };
 
@@ -156,7 +157,7 @@ const wireNameGate = (root: HTMLElement, onNameSubmit: (name: string) => void): 
 };
 
 const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: readonly number[], index: number): void => {
-  const { root, onHeatChange, onSubmit, onNameClear } = options;
+  const { root, onHeatChange, onModeChange, onSubmit, onNameClear } = options;
   root.querySelector("#prev-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index - 1] ?? heatNumbers[0] ?? 1));
   root.querySelector("#next-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index + 1] ?? heatNumbers.at(-1) ?? 1));
   root.querySelector("#change-name")?.addEventListener("click", (e) => {
@@ -164,10 +165,7 @@ const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: r
     onNameClear();
   });
   root.querySelectorAll<HTMLButtonElement>(".mode").forEach((button) =>
-    button.addEventListener("click", () => {
-      const mode = button.dataset.mode === "time" ? "time" : "rounds-reps";
-      renderJudge({ ...options, draft: { ...readDraft(root, draft), mode } });
-    }),
+    button.addEventListener("click", () => onModeChange(button.dataset.mode === "time" ? "time" : "rounds-reps")),
   );
   root.querySelectorAll<HTMLButtonElement>(".step").forEach((button) =>
     button.addEventListener("click", () => {
