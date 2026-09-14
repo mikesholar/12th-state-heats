@@ -1,4 +1,5 @@
 import type { Event, Heat, Lane, Schedule } from "../core/types";
+import type { Score } from "../core/score";
 
 export const makeLane = (overrides?: Partial<Lane>): Lane => ({
   lane: 1,
@@ -36,3 +37,10 @@ export const makeSchedule = (overrides?: Partial<Schedule>): Schedule => ({
 
 export const at = (hhmm: string, date = "2026-09-12"): Date =>
   new Date(`${date}T${hhmm}:00-04:00`);
+
+export const makeScore = (overrides?: Partial<Extract<Score, { kind: "rounds-reps" }>>): Score => ({
+  kind: "rounds-reps",
+  rounds: 4,
+  reps: 7,
+  ...overrides,
+});
