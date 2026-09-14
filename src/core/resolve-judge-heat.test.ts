@@ -1,4 +1,4 @@
-import { resolveJudgeHeat } from "./resolve-judge-heat";
+import { resolveJudgeHeat, type ManualPick } from "./resolve-judge-heat";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
 const event = makeEvent({
@@ -11,7 +11,7 @@ const event = makeEvent({
 });
 const schedule = makeSchedule({ events: [event] });
 
-const resolve = (now: Date, manual?: { heat: number; at: Date }) =>
+const resolve = (now: Date, manual?: ManualPick) =>
   resolveJudgeHeat({ schedule, event, lane: 5, now, manual });
 
 describe("choosing which heat a lane judge should be looking at", () => {
@@ -49,5 +49,10 @@ describe("choosing which heat a lane judge should be looking at", () => {
 
   it("ignores a manual pick for a heat that does not exist", () => {
     expect(resolve(at("09:42"), { heat: 9, at: at("09:41") }).heat.number).toBe(3);
+  });
+
+  it("throws for an event with no heats", () => {
+    const empty = makeEvent({ number: 9, heats: [] });
+    expect(() => resolveJudgeHeat({ schedule: makeSchedule({ events: [empty] }), event: empty, lane: 1, now: at("09:00"), manual: undefined })).toThrow("Event 9 has no heats");
   });
 });

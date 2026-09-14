@@ -64,6 +64,12 @@ describe("schedule validation", () => {
     expect(errors.some((e) => e.includes("Event 1 Heat 2") && e.includes("overlaps"))).toBe(true);
   });
 
+  it("rejects an event with no heats", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ number: 1, heats: [] })] });
+
+    expect(validateSchedule(schedule)).toContain("Event 1: has no heats");
+  });
+
   it("rejects a heat with fewer than seven or more than eight lanes", () => {
     const schedule = makeSchedule({
       events: [makeEvent({ heats: [makeHeat({ lanes: sevenLanes().slice(0, 6) })] })],

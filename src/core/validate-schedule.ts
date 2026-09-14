@@ -36,6 +36,9 @@ const missingTeamErrors = (schedule: Schedule): readonly string[] => {
   });
 };
 
+const noHeatErrors = (event: Event): readonly string[] =>
+  event.heats.length === 0 ? [`Event ${event.number}: has no heats`] : [];
+
 const scoringErrors = (event: Event): readonly string[] => {
   const hasCap = event.capSeconds !== undefined;
   if (event.scoring === "time-or-rounds" && !hasCap) {
@@ -54,4 +57,5 @@ export const validateSchedule = (schedule: Schedule): readonly string[] => [
   ...schedule.events.flatMap(overlapErrors),
   ...missingTeamErrors(schedule),
   ...schedule.events.flatMap(scoringErrors),
+  ...schedule.events.flatMap(noHeatErrors),
 ];
