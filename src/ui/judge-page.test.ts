@@ -249,6 +249,22 @@ describe("the clock tick", () => {
     expect(getByTestId(root, "notice")).toHaveTextContent("Rays of Glory");
   });
 
+  it("clears a half-entered score when the heat moves on", async () => {
+    const clock = { now: at("09:22") };
+    const { root, page } = start({ now: () => clock.now });
+    enterName(root);
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    fireEvent.click(getByRole(root, "button", { name: "More rounds" }));
+    fireEvent.click(getByRole(root, "button", { name: "More rounds" }));
+    expect(getByLabelText(root, "Rounds")).toHaveValue(2);
+
+    clock.now = at("09:24");
+    await page.tick();
+
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Browne");
+    expect(getByLabelText(root, "Rounds")).toHaveValue(null);
+  });
+
   it("clears the form when the judge moves to another heat", () => {
     const { root } = start();
     enterName(root);

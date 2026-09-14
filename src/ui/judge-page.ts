@@ -24,11 +24,16 @@ type PageState = {
   readonly manual: ManualPick | undefined;
   readonly draft: ScoreDraft | undefined;
   readonly notice: Notice | undefined;
+  readonly shownHeat: number | undefined;
 };
+
+type NextState = Omit<PageState, "shownHeat">;
+
+type HeatAtOptions = { readonly at: Date; readonly manual: ManualPick | undefined };
 
 type SubmitOptions = { readonly score: Score; readonly shownAt: Date };
 
-const INITIAL: PageState = { manual: undefined, draft: undefined, notice: undefined };
+const INITIAL: PageState = { manual: undefined, draft: undefined, notice: undefined, shownHeat: undefined };
 
 const noticeAfterFlush = (outcome: FlushOutcome, current: Notice | undefined): Notice | undefined => {
   const rejection = outcome.rejected[0];
@@ -50,8 +55,10 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     state = next;
   };
 
-  const render = (): void => {
-    const shownAt = now();
+  const heatNumberAt = ({ at, manual }: HeatAtOptions): number =>
+    resolveJudgeHeat({ schedule, event, lane, now: at, manual }).heat.number;
+
+  const render = (shownAt: Date): void => {
     renderJudge({
       root,
       schedule,
@@ -79,13 +86,17 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     });
   };
 
-  const draw = (next: PageState): void => {
-    commit(next);
-    render();
+  const draw = (next: NextState): void => {
+    const shownAt = now();
+    commit({ ...next, shownHeat: heatNumberAt({ at: shownAt, manual: next.manual }) });
+    render(shownAt);
   };
 
   const currentDraft = (): ScoreDraft | undefined =>
     loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
+
+  const draftForTick = (): ScoreDraft | undefined =>
+    heatNumberAt({ at: now(), manual: state.manual }) === state.shownHeat ? currentDraft() : undefined;
 
   const stateAfterFlush = async (): Promise<PageState> => {
     const outcome = await flush({ endpoint, post });
@@ -128,7 +139,7 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
   };
 
   const tick = async (): Promise<void> => {
-    present({ ...state, draft: currentDraft() });
+    present({ ...state, draft: draftForTick() });
     if (loadQueue().length === 0) return;
     present(await stateAfterFlush());
   };
