@@ -87,23 +87,23 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
   const currentDraft = (): ScoreDraft | undefined =>
     loadJudgeName() ? readDraft(root, state.draft ?? emptyDraft(event)) : undefined;
 
-  const settled = async (): Promise<PageState> => {
+  const stateAfterFlush = async (): Promise<PageState> => {
     const outcome = await flush({ endpoint, post });
     return { ...state, draft: currentDraft(), notice: noticeAfterFlush(outcome, state.notice) };
   };
 
-  const flushAndDraw = async (): Promise<void> => draw(await settled());
+  const present = (next: PageState): void => (isTypingIn(root) ? commit(next) : draw(next));
 
   const submit = async ({ score, shownAt }: SubmitOptions): Promise<void> => {
     const validated = validateScore({ scoring: event.scoring, capSeconds: event.capSeconds, score });
-    const draft = readDraft(root, state.draft ?? emptyDraft(event));
     if (!validated.success) {
+      const draft = readDraft(root, state.draft ?? emptyDraft(event));
       draw({ ...state, draft, notice: { kind: "error", text: validated.error } });
       return;
     }
     const selected = resolveJudgeHeat({ schedule, event, lane, now: shownAt, manual: state.manual });
     if (!selected.lane) {
-      draw({ ...state, draft, notice: { kind: "error", text: "No team in this lane for this heat" } });
+      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: "No team in this lane for this heat" } });
       return;
     }
 
@@ -124,15 +124,13 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
       draft: undefined,
       notice: { kind: "recorded", text: `Recorded ✓ — ${selected.lane.team}: ${formatScore(validated.data)}` },
     });
-    await flushAndDraw();
+    present(await stateAfterFlush());
   };
 
   const tick = async (): Promise<void> => {
-    if (!isTypingIn(root)) draw({ ...state, draft: currentDraft() });
+    present({ ...state, draft: currentDraft() });
     if (loadQueue().length === 0) return;
-    const next = await settled();
-    if (isTypingIn(root)) commit(next);
-    else draw(next);
+    present(await stateAfterFlush());
   };
 
   draw(INITIAL);
