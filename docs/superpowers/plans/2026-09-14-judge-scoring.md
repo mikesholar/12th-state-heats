@@ -613,7 +613,7 @@ git commit -m "feat: judge code table, lookup and link generator"
 Create `src/core/resolve-judge-heat.test.ts`:
 
 ```ts
-import { resolveJudgeHeat } from "./resolve-judge-heat";
+import { resolveJudgeHeat, type ManualPick } from "./resolve-judge-heat";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
 const event = makeEvent({
@@ -626,7 +626,7 @@ const event = makeEvent({
 });
 const schedule = makeSchedule({ events: [event] });
 
-const resolve = (now: Date, manual?: { heat: number; at: Date }) =>
+const resolve = (now: Date, manual?: ManualPick) =>
   resolveJudgeHeat({ schedule, event, lane: 5, now, manual });
 
 describe("choosing which heat a lane judge should be looking at", () => {
@@ -638,8 +638,12 @@ describe("choosing which heat a lane judge should be looking at", () => {
     expect(resolve(at("09:27")).heat.number).toBe(2);
   });
 
-  it("picks the next heat during the gap between heats", () => {
-    expect(resolve(at("09:22")).heat.number).toBe(2);
+  it("stays on the heat that just ended for three minutes", () => {
+    expect(resolve(at("09:22")).heat.number).toBe(1);
+  });
+
+  it("moves to the next heat once the grace period is over", () => {
+    expect(resolve(at("09:23")).heat.number).toBe(2);
   });
 
   it("stays on the last heat after the event is over", () => {
@@ -665,6 +669,11 @@ describe("choosing which heat a lane judge should be looking at", () => {
   it("ignores a manual pick for a heat that does not exist", () => {
     expect(resolve(at("09:42"), { heat: 9, at: at("09:41") }).heat.number).toBe(3);
   });
+
+  it("throws for an event with no heats", () => {
+    const empty = makeEvent({ number: 9, heats: [] });
+    expect(() => resolveJudgeHeat({ schedule: makeSchedule({ events: [empty] }), event: empty, lane: 1, now: at("09:00"), manual: undefined })).toThrow("Event 9 has no heats");
+  });
 });
 ```
 
@@ -678,7 +687,8 @@ Expected: FAIL — cannot resolve `./resolve-judge-heat`.
 Create `src/core/resolve-judge-heat.ts`:
 
 ```ts
-import { heatInstants } from "./comp-time";
+import { MINUTE_MS, heatInstants } from "./comp-time";
+import { isRunning } from "./resolve-heats";
 import type { Event, Heat, Lane, Schedule } from "./types";
 
 export type ManualPick = { readonly heat: number; readonly at: Date };
@@ -697,16 +707,18 @@ type ResolveJudgeHeatOptions = {
   readonly manual: ManualPick | undefined;
 };
 
-const MANUAL_PICK_TTL_MS = 10 * 60_000;
+const MANUAL_PICK_TTL_MS = 10 * MINUTE_MS;
+const SCORING_GRACE_MS = 3 * MINUTE_MS;
 
 const manualStillFresh = (manual: ManualPick | undefined, now: Date): manual is ManualPick =>
   manual !== undefined && now.getTime() - manual.at.getTime() < MANUAL_PICK_TTL_MS;
 
 const autoHeat = (schedule: Schedule, event: Event, now: Date): Heat | undefined => {
   const timed = event.heats.map((heat) => ({ heat, ...heatInstants(schedule, heat) }));
-  const running = timed.find(({ start, end }) => start <= now && now < end);
+  const running = timed.find((ref) => isRunning(ref, now));
+  const justEnded = [...timed].reverse().find(({ end }) => end <= now && now.getTime() - end.getTime() < SCORING_GRACE_MS);
   const next = timed.find(({ start }) => start > now);
-  return (running ?? next)?.heat ?? event.heats.at(-1);
+  return (running ?? justEnded ?? next)?.heat ?? event.heats.at(-1);
 };
 
 export const resolveJudgeHeat = ({ schedule, event, lane, now, manual }: ResolveJudgeHeatOptions): JudgeHeat => {

@@ -19,6 +19,7 @@ type ResolveJudgeHeatOptions = {
 };
 
 const MANUAL_PICK_TTL_MS = 10 * MINUTE_MS;
+const SCORING_GRACE_MS = 3 * MINUTE_MS;
 
 const manualStillFresh = (manual: ManualPick | undefined, now: Date): manual is ManualPick =>
   manual !== undefined && now.getTime() - manual.at.getTime() < MANUAL_PICK_TTL_MS;
@@ -26,8 +27,9 @@ const manualStillFresh = (manual: ManualPick | undefined, now: Date): manual is 
 const autoHeat = (schedule: Schedule, event: Event, now: Date): Heat | undefined => {
   const timed = event.heats.map((heat) => ({ heat, ...heatInstants(schedule, heat) }));
   const running = timed.find((ref) => isRunning(ref, now));
+  const justEnded = [...timed].reverse().find(({ end }) => end <= now && now.getTime() - end.getTime() < SCORING_GRACE_MS);
   const next = timed.find(({ start }) => start > now);
-  return (running ?? next)?.heat ?? event.heats.at(-1);
+  return (running ?? justEnded ?? next)?.heat ?? event.heats.at(-1);
 };
 
 export const resolveJudgeHeat = ({ schedule, event, lane, now, manual }: ResolveJudgeHeatOptions): JudgeHeat => {

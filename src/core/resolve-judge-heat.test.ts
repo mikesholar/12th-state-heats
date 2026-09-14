@@ -23,8 +23,12 @@ describe("choosing which heat a lane judge should be looking at", () => {
     expect(resolve(at("09:27")).heat.number).toBe(2);
   });
 
-  it("picks the next heat during the gap between heats", () => {
-    expect(resolve(at("09:22")).heat.number).toBe(2);
+  it("stays on the heat that just ended for three minutes", () => {
+    expect(resolve(at("09:22")).heat.number).toBe(1);
+  });
+
+  it("moves to the next heat once the grace period is over", () => {
+    expect(resolve(at("09:23")).heat.number).toBe(2);
   });
 
   it("stays on the last heat after the event is over", () => {

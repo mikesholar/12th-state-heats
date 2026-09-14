@@ -158,8 +158,11 @@ field and Continue. Stored under `judge:name` in `localStorage`. A small
 `manual` is `{ heat: number, at: Date } | undefined`:
 
 - If `manual` is set and `now - manual.at < 10 minutes` → `manual.heat`.
-- Otherwise: the heat running now; else the next heat to start; else the last
-  heat (event over); before the event starts, the first heat.
+- Otherwise: the heat running now; else the heat that ended less than three
+  minutes ago (judges enter the score just after the heat, so the page must not
+  flip to the next team the instant the clock passes the end); else the next
+  heat to start; else the last heat (event over); before the event starts, the
+  first heat.
 
 Prev/next taps set `manual`. The 10-minute window means a judge fixing an old
 score isn't yanked forward, but a phone left idle catches up.
