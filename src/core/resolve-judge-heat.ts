@@ -1,4 +1,5 @@
-import { heatInstants } from "./comp-time";
+import { MINUTE_MS, heatInstants } from "./comp-time";
+import { isRunning } from "./resolve-heats";
 import type { Event, Heat, Lane, Schedule } from "./types";
 
 export type ManualPick = { readonly heat: number; readonly at: Date };
@@ -17,14 +18,14 @@ type ResolveJudgeHeatOptions = {
   readonly manual: ManualPick | undefined;
 };
 
-const MANUAL_PICK_TTL_MS = 10 * 60_000;
+const MANUAL_PICK_TTL_MS = 10 * MINUTE_MS;
 
 const manualStillFresh = (manual: ManualPick | undefined, now: Date): manual is ManualPick =>
   manual !== undefined && now.getTime() - manual.at.getTime() < MANUAL_PICK_TTL_MS;
 
 const autoHeat = (schedule: Schedule, event: Event, now: Date): Heat | undefined => {
   const timed = event.heats.map((heat) => ({ heat, ...heatInstants(schedule, heat) }));
-  const running = timed.find(({ start, end }) => start <= now && now < end);
+  const running = timed.find((ref) => isRunning(ref, now));
   const next = timed.find(({ start }) => start > now);
   return (running ?? next)?.heat ?? event.heats.at(-1);
 };

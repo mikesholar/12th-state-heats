@@ -1,7 +1,6 @@
-import { allHeatRefs, type HeatRef } from "./resolve-heats";
+import { MINUTE_MS } from "./comp-time";
+import { allHeatRefs, isRunning, type HeatRef } from "./resolve-heats";
 import type { Schedule } from "./types";
-
-const MINUTE_MS = 60_000;
 
 export type TeamStatus =
   | { readonly kind: "on-floor"; readonly ref: HeatRef; readonly lane: number }
@@ -25,7 +24,7 @@ const teamHeats = (schedule: Schedule, team: string): readonly TeamHeat[] =>
 export const resolveTeam = ({ schedule, team, now }: ResolveTeamOptions): TeamStatus => {
   const heats = teamHeats(schedule, team);
 
-  const running = heats.find(({ ref }) => ref.start <= now && now < ref.end);
+  const running = heats.find(({ ref }) => isRunning(ref, now));
   if (running) return { kind: "on-floor", ...running };
 
   const upcoming = heats.find(({ ref }) => ref.start > now);

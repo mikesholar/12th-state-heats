@@ -22,7 +22,8 @@ export const allHeatRefs = (schedule: Schedule): readonly HeatRef[] =>
     .flatMap((event) => event.heats.map((heat) => ({ event, heat, ...heatInstants(schedule, heat) })))
     .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-const isRunning = (ref: HeatRef, now: Date): boolean => ref.start <= now && now < ref.end;
+export const isRunning = ({ start, end }: { readonly start: Date; readonly end: Date }, now: Date): boolean =>
+  start <= now && now < end;
 
 export const resolveHeats = (schedule: Schedule, now: Date): HeatStatus => {
   if (compDayOf(now, schedule.timeZone) !== schedule.compDate) return { phase: "not-comp-day" };

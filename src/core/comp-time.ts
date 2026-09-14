@@ -1,6 +1,6 @@
 import type { Heat, Schedule } from "./types";
 
-const MINUTE_MS = 60_000;
+export const MINUTE_MS = 60_000;
 
 const partValue = (parts: readonly Intl.DateTimeFormatPart[], type: string): number =>
   Number(parts.find((part) => part.type === type)?.value ?? "0");
