@@ -12,7 +12,11 @@ type PostScoreOptions = {
 };
 
 const isReply = (value: unknown): value is { readonly ok: boolean; readonly error?: string } =>
-  typeof value === "object" && value !== null && "ok" in value && typeof value.ok === "boolean";
+  typeof value === "object" &&
+  value !== null &&
+  "ok" in value &&
+  typeof value.ok === "boolean" &&
+  (!("error" in value) || typeof value.error === "string");
 
 const readReply = async (response: Response): Promise<PostResult> => {
   if (!response.ok) return { kind: "unreachable" };

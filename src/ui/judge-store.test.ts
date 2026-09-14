@@ -56,6 +56,14 @@ describe("the pending submission queue", () => {
 
     expect(loadQueue()).toEqual([]);
   });
+
+  it("treats storage of the wrong shape as empty", () => {
+    localStorage.setItem("judge:queue", JSON.stringify([{ clientId: 5 }]));
+    localStorage.setItem("judge:sent:1:1", '"abc"');
+
+    expect(loadQueue()).toEqual([]);
+    expect(loadSentHeats({ event: 1, lane: 1 })).toEqual([]);
+  });
 });
 
 describe("when storage is unavailable", () => {

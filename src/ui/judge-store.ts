@@ -39,7 +39,8 @@ const isNumberArray = (value: unknown): value is readonly number[] =>
   Array.isArray(value) && value.every((item) => typeof item === "number");
 
 const isSubmissionArray = (value: unknown): value is readonly Submission[] =>
-  Array.isArray(value) && value.every((item) => typeof item === "object" && item !== null && "clientId" in item);
+  Array.isArray(value) &&
+  value.every((item) => typeof item === "object" && item !== null && "clientId" in item && typeof item.clientId === "string");
 
 export const loadJudgeName = (): string | undefined => readRaw(NAME_KEY);
 

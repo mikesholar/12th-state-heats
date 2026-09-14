@@ -46,6 +46,16 @@ describe("posting a score to the sheet", () => {
     expect(result).toEqual({ kind: "rejected", error: "Unknown scoreKind" });
   });
 
+  it("reports a network failure when the rejection message is not text", async () => {
+    const result = await postScore({
+      endpoint: ENDPOINT,
+      submission: makeSubmission(),
+      fetchFn: fetchReplying(200, { ok: false, error: 42 }),
+    });
+
+    expect(result).toEqual({ kind: "unreachable" });
+  });
+
   it("reports a network failure when fetch throws", async () => {
     const fetchFn = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
 
