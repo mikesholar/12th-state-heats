@@ -59,9 +59,13 @@ does, in order. Budget 30 minutes the first time, 5 minutes in later years.
 From a terminal (substitute your URL):
 
 ```bash
-curl -sL -X POST 'https://script.google.com/macros/s/AKfyc.../exec' \
+curl -sL 'https://script.google.com/macros/s/AKfyc.../exec' \
   --data '{"clientId":"smoke-1","submittedAt":"2026-09-12T13:15:00.000Z","judge":"Smoke Test","event":2,"heat":1,"lane":7,"team":"Rays of Glory","division":"F/M Scaled","scoreKind":"rounds-reps","seconds":"","rounds":4,"reps":7}'
 ```
+
+Do not add `-X POST`: `--data` already makes this a POST, and with `-L` an
+explicit `-X POST` re-POSTs on the 302 that Apps Script answers with,
+whereas browsers (and curl without `-X`) switch to GET as the script expects.
 
 Expected output: `{"ok":true}`. Run it again: `{"ok":true,"duplicate":true}`.
 The `Log` tab has one new row; `Results` shows `Rays of Glory · 4 + 7 ·
@@ -142,6 +146,7 @@ so the site does not need a rebuild.
 | curl returns HTML | Same as above | Same |
 | `{"ok":false,"error":"Run setup() in the script editor first"}` | `Log` tab missing | Section 1c |
 | Script asks to re-authorise | Google expires grants after a long idle period | Run `setup` once from the editor and accept |
+| `Results` shows `#ERROR` right after `setup()` | Sheet locale is not United States; the formulas are written in en-US syntax | File → Settings → Locale → United States, then delete `Results` and `Overall` and run `setup` again |
 | `Results` shows `#ERROR` | Formulas edited by hand | Delete the `Results` and `Overall` tabs and run `setup` again |
 | Judge link says "This link isn't valid" | Code not in `src/data/judge-codes.ts` — regenerated after the link was shared | Re-run `npm run judge-links` and hand out the new link |
 | Submit does nothing on a phone pointed at a LAN dev server (http://192.168…) | `crypto.randomUUID` needs a secure context | Test against the deployed https site, or use `npm run dev -- --host` with `localhost` on the same machine |

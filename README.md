@@ -67,3 +67,14 @@ backend; it is pasted into Apps Script by hand, not built. `flush` in
 `submit-queue.ts` is not serialised; concurrent flushes (tick, `online`,
 post-submit) can double-post, which is safe only because `Code.gs` dedups by
 `clientId` under `LockService`.
+
+### Gotchas
+
+- `score-client.ts` posts a string body with **no** headers on purpose. A
+  `Content-Type: application/json` header triggers a CORS preflight that
+  Apps Script cannot answer, and every score sticks at "pending".
+- In jsdom tests, `toBeInTheDocument` needs the root attached
+  (`document.body.append(root)`); otherwise every such assertion fails with
+  an unhelpful message. See `render-judge.test.ts`.
+- Keys in `src/data/judge-codes.ts` are quoted because codes may start with
+  a digit. The generator writes them; don't hand-edit.

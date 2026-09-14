@@ -60,5 +60,6 @@ const laneEvent = assignment.kind === "lane" ? schedule.events.find((e) => e.num
 
 if (code === undefined) startSpectator();
 else if (assignment.kind === "lane" && laneEvent) startJudge(laneEvent, assignment.lane);
-else if (assignment.kind === "head") void renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` });
+else if (assignment.kind === "head")
+  void renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` }).catch(() => renderInvalid({ root }));
 else renderInvalid({ root });
