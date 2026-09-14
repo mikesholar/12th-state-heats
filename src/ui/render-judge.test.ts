@@ -1,4 +1,4 @@
-import { fireEvent, getByLabelText, getByRole, getByTestId, getByText, queryByRole, queryByTestId } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByRole, getByTestId, queryByRole, queryByTestId } from "@testing-library/dom";
 import { renderJudge, type RenderJudgeOptions } from "./render-judge";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
@@ -78,7 +78,7 @@ describe("the name gate", () => {
   it("offers to change the name from the footer", () => {
     const { root, options } = renderWith();
 
-    fireEvent.click(getByText(root, "Not you? Change name"));
+    fireEvent.click(getByRole(root, "button", { name: "Not you? Change name" }));
 
     expect(options.onNameClear).toHaveBeenCalled();
   });
@@ -254,6 +254,9 @@ describe("notices", () => {
   });
 
   it("shows an error banner", () => {
-    expect(getByTestId(renderWith({ notice: { kind: "error", text: "Enter a time" } }).root, "notice")).toHaveClass("error");
+    const { root } = renderWith({ notice: { kind: "error", text: "Enter a time" } });
+
+    expect(getByRole(root, "alert")).toHaveTextContent("Enter a time");
+    expect(getByTestId(root, "notice")).toHaveClass("error");
   });
 });

@@ -55,7 +55,15 @@ const nameGateHtml = (): string => `
     </form>
   </main>`;
 
-const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: RenderJudgeOptions): string => `
+type HeaderOptions = {
+  readonly event: Event;
+  readonly lane: number;
+  readonly judgeName: string;
+  readonly pending: number;
+  readonly endpointConfigured: boolean;
+};
+
+const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: HeaderOptions): string => `
   <header class="header judge-header" data-testid="judge-header">
     <div class="header-row">
       <div>
@@ -63,7 +71,7 @@ const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: Ren
         <h1 class="title judge-lane">Lane ${lane}</h1>
       </div>
       <div class="judge-meta">
-        <div class="judge-name">${esc(judgeName ?? "")}</div>
+        <div class="judge-name">${esc(judgeName)}</div>
         ${pending > 0 ? `<div class="pending" data-testid="pending">${pending} pending</div>` : ""}
       </div>
     </div>
@@ -75,7 +83,7 @@ const heatSelectorHtml = (options: RenderJudgeOptions, index: number, sent: bool
   return `
   <div class="heat-selector">
     <button type="button" id="prev-heat" aria-label="Previous heat" ${index === 0 ? "disabled" : ""}>◀</button>
-    <div class="heat-label" data-testid="heat-label">Heat ${options.event.heats[index]?.number ?? ""} of ${total}${sent ? " ✓" : ""}</div>
+    <div class="heat-label" data-testid="heat-label">Heat ${options.event.heats[index]?.number ?? ""} of ${total}${sent ? ' <span aria-label="score sent">✓</span>' : ""}</div>
     <button type="button" id="next-heat" aria-label="Next heat" ${index === total - 1 ? "disabled" : ""}>▶</button>
   </div>`;
 };
@@ -126,7 +134,8 @@ const scoreFormHtml = (event: Event, draft: ScoreDraft, sent: boolean): string =
 const noticeHtml = (notice: Notice | undefined): string => {
   if (!notice) return "";
   const text = notice.kind === "retrying" ? "Saved on this phone — will retry" : notice.text;
-  return `<div class="notice ${notice.kind}" data-testid="notice">${esc(text)}</div>`;
+  const role = notice.kind === "error" ? "alert" : "status";
+  return `<div class="notice ${notice.kind}" role="${role}" data-testid="notice">${esc(text)}</div>`;
 };
 
 const numberOr = (value: string, fallback: number): number => (value.trim() === "" ? fallback : Number(value));
@@ -156,24 +165,46 @@ const wireNameGate = (root: HTMLElement, onNameSubmit: (name: string) => void): 
   });
 };
 
-const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: readonly number[], index: number): void => {
-  const { root, onHeatChange, onModeChange, onSubmit, onNameClear } = options;
-  root.querySelector("#prev-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index - 1] ?? heatNumbers[0] ?? 1));
-  root.querySelector("#next-heat")?.addEventListener("click", () => onHeatChange(heatNumbers[index + 1] ?? heatNumbers.at(-1) ?? 1));
-  root.querySelector("#change-name")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    onNameClear();
-  });
+const stepValue = ({ current, delta }: { readonly current: number; readonly delta: number }): number => Math.max(0, current + delta);
+
+const stepTarget = (root: HTMLElement, button: HTMLButtonElement): HTMLInputElement | null => {
+  const id = button.dataset.target;
+  return id ? root.querySelector<HTMLInputElement>(`#${id}`) : null;
+};
+
+const wireSteppers = (root: HTMLElement): void => {
+  root.querySelectorAll<HTMLButtonElement>(".step").forEach((button) =>
+    button.addEventListener("click", () => {
+      const input = stepTarget(root, button);
+      if (!input) return;
+      input.value = String(stepValue({ current: numberOr(input.value, 0), delta: Number(button.dataset.step ?? "0") }));
+    }),
+  );
+};
+
+const wireModeToggle = (root: HTMLElement, onModeChange: (mode: Score["kind"]) => void): void => {
   root.querySelectorAll<HTMLButtonElement>(".mode").forEach((button) =>
     button.addEventListener("click", () => onModeChange(button.dataset.mode === "time" ? "time" : "rounds-reps")),
   );
-  root.querySelectorAll<HTMLButtonElement>(".step").forEach((button) =>
-    button.addEventListener("click", () => {
-      const input = root.querySelector<HTMLInputElement>(`#${button.dataset.target ?? ""}`);
-      if (!input) return;
-      input.value = String(Math.max(0, numberOr(input.value, 0) + Number(button.dataset.step ?? "0")));
-    }),
-  );
+};
+
+const wireHeatSelector = (root: HTMLElement, heatNumbers: readonly number[], index: number, onHeatChange: (heat: number) => void): void => {
+  root.querySelector("#prev-heat")?.addEventListener("click", () => {
+    const target = heatNumbers[index - 1];
+    if (target !== undefined) onHeatChange(target);
+  });
+  root.querySelector("#next-heat")?.addEventListener("click", () => {
+    const target = heatNumbers[index + 1];
+    if (target !== undefined) onHeatChange(target);
+  });
+};
+
+const wireMain = (options: RenderJudgeOptions, draft: ScoreDraft, heatNumbers: readonly number[], index: number): void => {
+  const { root, onHeatChange, onModeChange, onSubmit, onNameClear } = options;
+  wireHeatSelector(root, heatNumbers, index, onHeatChange);
+  root.querySelector("#change-name")?.addEventListener("click", () => onNameClear());
+  wireModeToggle(root, onModeChange);
+  wireSteppers(root);
   root.querySelector("#score-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     onSubmit(scoreFromDraft(readDraft(root, draft)));
@@ -231,14 +262,14 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
   const heatNumbers = event.heats.map((h) => h.number);
 
   root.innerHTML = `
-    ${headerHtml(options)}
+    ${headerHtml({ event, lane, judgeName, pending: options.pending, endpointConfigured: options.endpointConfigured })}
     <main class="main judge-main">
       ${heatSelectorHtml(options, selected.index, sent)}
       ${teamCardHtml(selected.lane, lane)}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
     </main>
-    <footer class="footer"><a href="#" id="change-name">Not you? Change name</a></footer>`;
+    <footer class="footer"><button type="button" class="link" id="change-name">Not you? Change name</button></footer>`;
 
   wireMain(options, draft, heatNumbers, selected.index);
   restoreFocus(root, saved);
