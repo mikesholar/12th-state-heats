@@ -74,3 +74,25 @@ describe("schedule validation", () => {
     expect(errors.some((e) => e.includes("Event 1 Heat 1") && e.includes("6 lanes"))).toBe(true);
   });
 });
+
+describe("scoring configuration", () => {
+  it("rejects a time-or-rounds event with no cap", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ number: 1, scoring: "time-or-rounds" })] });
+
+    expect(validateSchedule(schedule)).toContain("Event 1: scoring is time-or-rounds but capSeconds is missing");
+  });
+
+  it("rejects a rounds-reps event that has a cap", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ number: 2, scoring: "rounds-reps", capSeconds: 600 })] });
+
+    expect(validateSchedule(schedule)).toContain("Event 2: scoring is rounds-reps but capSeconds is set");
+  });
+
+  it("accepts a time-or-rounds event with a cap", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ scoring: "time-or-rounds", capSeconds: 480, heats: [fullHeat()] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([]);
+  });
+});

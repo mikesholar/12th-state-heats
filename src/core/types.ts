@@ -12,10 +12,14 @@ export type Heat = {
   readonly lanes: readonly Lane[];
 };
 
+export type ScoringFormat = "time-or-rounds" | "rounds-reps";
+
 export type Event = {
   readonly number: number;
   readonly title: string;
   readonly format: string;
+  readonly scoring: ScoringFormat;
+  readonly capSeconds?: number;
   readonly rx: string;
   readonly scaled: string;
   readonly heats: readonly Heat[];

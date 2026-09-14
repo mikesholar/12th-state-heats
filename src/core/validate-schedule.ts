@@ -36,10 +36,22 @@ const missingTeamErrors = (schedule: Schedule): readonly string[] => {
   });
 };
 
+const scoringErrors = (event: Event): readonly string[] => {
+  const hasCap = event.capSeconds !== undefined;
+  if (event.scoring === "time-or-rounds" && !hasCap) {
+    return [`Event ${event.number}: scoring is time-or-rounds but capSeconds is missing`];
+  }
+  if (event.scoring === "rounds-reps" && hasCap) {
+    return [`Event ${event.number}: scoring is rounds-reps but capSeconds is set`];
+  }
+  return [];
+};
+
 export const validateSchedule = (schedule: Schedule): readonly string[] => [
   ...schedule.events.flatMap((event) =>
     event.heats.flatMap((heat) => [...duplicateLaneErrors(event, heat), ...laneCountErrors(event, heat)]),
   ),
   ...schedule.events.flatMap(overlapErrors),
   ...missingTeamErrors(schedule),
+  ...schedule.events.flatMap(scoringErrors),
 ];
