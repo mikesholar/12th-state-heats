@@ -27,6 +27,7 @@ function doPost(e) {
   } catch (err) {
     return reply({ ok: false, error: "Body is not JSON" });
   }
+  if (record === null || typeof record !== "object" || Array.isArray(record)) return reply({ ok: false, error: "Body is not an object" });
   const missing = REQUIRED.filter((key) => record[key] === undefined || record[key] === "");
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   if (SCORE_KINDS.indexOf(record.scoreKind) === -1) return reply({ ok: false, error: "Unknown scoreKind" });
