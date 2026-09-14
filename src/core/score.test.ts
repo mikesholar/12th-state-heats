@@ -25,6 +25,14 @@ describe("validating a score for a time-or-rounds event", () => {
     expect(validateScore({ ...capped, score: time(0) })).toEqual({ success: false, error: "Enter a time" });
   });
 
+  it("rejects fractional seconds", () => {
+    expect(validateScore({ ...capped, score: time(462.5) })).toEqual({ success: false, error: "Time must be whole seconds" });
+  });
+
+  it("rejects a negative time", () => {
+    expect(validateScore({ ...capped, score: time(-5) })).toEqual({ success: false, error: "Enter a time" });
+  });
+
   it("accepts rounds and reps when capped", () => {
     expect(validateScore({ ...capped, score: makeScore({ rounds: 9, reps: 14 }) }).success).toBe(true);
   });
