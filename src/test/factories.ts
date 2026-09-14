@@ -1,5 +1,6 @@
 import type { Event, Heat, Lane, Schedule } from "../core/types";
 import type { Score } from "../core/score";
+import type { Submission } from "../core/submission";
 
 export const makeLane = (overrides?: Partial<Lane>): Lane => ({
   lane: 1,
@@ -40,6 +41,22 @@ export const at = (hhmm: string, date = "2026-09-12"): Date =>
 
 export const makeScore = (overrides?: Partial<Extract<Score, { kind: "rounds-reps" }>>): Score => ({
   kind: "rounds-reps",
+  rounds: 4,
+  reps: 7,
+  ...overrides,
+});
+
+export const makeSubmission = (overrides?: Partial<Submission>): Submission => ({
+  clientId: "sub-1",
+  submittedAt: "2026-09-12T13:45:00.000Z",
+  judge: "Kim",
+  event: 2,
+  heat: 3,
+  lane: 5,
+  team: "Rays of Glory",
+  division: "F/M Scaled",
+  scoreKind: "rounds-reps",
+  seconds: "",
   rounds: 4,
   reps: 7,
   ...overrides,
