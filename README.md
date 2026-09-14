@@ -10,6 +10,13 @@ once you pick your team from the **"I'm on…"** dropdown — your own next even
 heat and lane with a countdown. The pick is remembered on your phone. The page
 refreshes itself every 15 seconds; no reload needed.
 
+## Scoring
+
+Lane judges get a per-event link (`?j=<code>`) that shows the team in their
+lane for the heat on the floor and posts the score to a Google Sheet. The
+head judge's link shows a QR code for every lane. Setup, comp-day steps and
+troubleshooting: **[docs/scoring-deploy.md](docs/scoring-deploy.md)**.
+
 ## Editing the schedule
 
 Everything is in **`src/data/schedule.ts`**: three events, each with heats,
@@ -53,3 +60,10 @@ npm run build
 Pure logic lives in `src/core/` (all functions take `now: Date`; nothing reads
 the clock); DOM rendering in `src/ui/`. Design spec and plan are under
 `docs/superpowers/`.
+
+`npm run judge-links` regenerates `src/data/judge-codes.ts` (keeping existing
+codes) and prints every judge URL. `apps-script/Code.gs` is the Sheet
+backend; it is pasted into Apps Script by hand, not built. `flush` in
+`submit-queue.ts` is not serialised; concurrent flushes (tick, `online`,
+post-submit) can double-post, which is safe only because `Code.gs` dedups by
+`clientId` under `LockService`.
