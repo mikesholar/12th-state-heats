@@ -265,6 +265,24 @@ describe("the clock tick", () => {
     expect(getByLabelText(root, "Rounds")).toHaveValue(null);
   });
 
+  it("keeps an invalid score on the heat the judge was scoring after the grace has expired", async () => {
+    const clock = { now: at("09:22") };
+    const { root, page } = start({ now: () => clock.now });
+    enterName(root);
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    getByLabelText(root, "Rounds").focus();
+    fireEvent.input(getByLabelText(root, "Rounds"), { target: { value: "0" } });
+
+    clock.now = at("09:24");
+    await page.tick();
+    fireEvent.submit(getByTestId(root, "score-form"));
+    await flushPromises();
+
+    expect(getByTestId(root, "team-card")).toHaveTextContent("Rays of Glory");
+    expect(getByLabelText(root, "Rounds")).toHaveValue(0);
+    expect(getByTestId(root, "notice")).toHaveTextContent("Enter at least one rep");
+  });
+
   it("clears the form when the judge moves to another heat", () => {
     const { root } = start();
     enterName(root);

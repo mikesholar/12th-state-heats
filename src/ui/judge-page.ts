@@ -86,8 +86,7 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     });
   };
 
-  const draw = (next: NextState): void => {
-    const shownAt = now();
+  const draw = (next: NextState, shownAt: Date = now()): void => {
     commit({ ...next, shownHeat: heatNumberAt({ at: shownAt, manual: next.manual }) });
     render(shownAt);
   };
@@ -109,12 +108,12 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     const validated = validateScore({ scoring: event.scoring, capSeconds: event.capSeconds, score });
     if (!validated.success) {
       const draft = readDraft(root, state.draft ?? emptyDraft(event));
-      draw({ ...state, draft, notice: { kind: "error", text: validated.error } });
+      draw({ ...state, draft, notice: { kind: "error", text: validated.error } }, shownAt);
       return;
     }
     const selected = resolveJudgeHeat({ schedule, event, lane, now: shownAt, manual: state.manual });
     if (!selected.lane) {
-      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: "No team in this lane for this heat" } });
+      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: "No team in this lane for this heat" } }, shownAt);
       return;
     }
 
