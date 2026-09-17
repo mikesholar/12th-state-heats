@@ -56,14 +56,16 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
         saveSignupEmail(undefined);
         draw({ ...state, openForm: undefined, notice: undefined });
       },
-      onOpenForm: (slot) => draw({ ...state, openForm: slot, draft: undefined, notice: undefined }),
+      onOpenForm: (slot) => draw({ ...state, openForm: slot, notice: undefined }),
       onCloseForm: () => draw({ ...state, openForm: undefined, notice: undefined }),
       onClaim: (draft) => void claim(draft),
       onRelease: (slot) => void release(slot),
     });
   };
 
-  const settle = async (outcome: WriteOutcome, at: SlotKey, draft: ClaimDraft | undefined): Promise<void> => {
+  type SettleOptions = { readonly outcome: WriteOutcome; readonly at: SlotKey; readonly draft: ClaimDraft | undefined };
+
+  const settle = async ({ outcome, at, draft }: SettleOptions): Promise<void> => {
     if (outcome.kind === "accepted") {
       const loaded = outcome.schedule ? live(outcome.schedule) : await loadSchedule();
       draw({ loaded, openForm: undefined, draft, notice: undefined, busy: false });
@@ -90,7 +92,7 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
     draw({ ...state, draft, busy: true, notice: undefined });
     const outcome = await postClaim({ endpoint, claim: buildClaim({ slot, email, fields: validated.data }), fetchFn });
     if (outcome.kind === "accepted") saveLastClaim(draft);
-    await settle(outcome, slot, draft);
+    await settle({ outcome, at: slot, draft });
   };
 
   const release = async (slot: SlotKey): Promise<void> => {
@@ -98,12 +100,14 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
     if (!email) return;
     draw({ ...state, busy: true, notice: undefined });
     const outcome = await postRelease({ endpoint, release: buildRelease({ slot, email }), fetchFn });
-    await settle(outcome, slot, state.draft);
+    await settle({ outcome, at: slot, draft: state.draft });
   };
 
   const refresh = async (): Promise<void> => {
     if (state.openForm || state.busy) return;
+    const before = state.loaded;
     const loaded = await loadSchedule();
+    if (state.openForm || state.busy || state.loaded !== before) return;
     draw({ ...state, loaded });
   };
 

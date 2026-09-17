@@ -63,6 +63,12 @@ const fillForm = (root: HTMLElement) => {
 
 const openLane2 = (root: HTMLElement) => fireEvent.click(getByRole(root, "button", { name: /lane 2 · open/i }));
 
+const deferredLoad = () => {
+  let resolveLoad: (value: LoadedSchedule) => void = () => undefined;
+  const loadSchedule = vi.fn<() => Promise<LoadedSchedule>>(() => new Promise<LoadedSchedule>((resolve) => { resolveLoad = resolve; }));
+  return { loadSchedule, resolve: (value: LoadedSchedule) => resolveLoad(value) };
+};
+
 describe("identity", () => {
   it("remembers the email once entered", () => {
     const { root } = start();
@@ -160,6 +166,21 @@ describe("claiming", () => {
     expect(getByTestId(root, "notice")).toHaveTextContent("Lane 2 was just taken");
     expect(root.querySelector('[data-lane="2"]')).toHaveTextContent("Sniped");
     expect(queryByTestId(root, "claim-form")).toBeNull();
+    expect(loadLastClaim()).toBeUndefined();
+  });
+
+  it("pre-fills what was typed after the sheet refuses", async () => {
+    saveSignupEmail(ME);
+    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(replying({ ok: false, error: "Lane 2 was just taken" }));
+    const { root } = start({ fetchFn });
+
+    openLane2(root);
+    fillForm(root);
+    fireEvent.submit(getByTestId(root, "claim-form"));
+    await flush();
+    openLane2(root);
+
+    expect(getByLabelText<HTMLInputElement>(root, "Team name").value).toBe("Fast but Questionable");
   });
 
   it("says so when the sheet cannot be reached and keeps the form", async () => {
@@ -240,5 +261,50 @@ describe("refreshing", () => {
 
     expect(getByTestId(root, "source-notice")).toHaveTextContent("Offline");
     expect(queryByRole(root, "button", { name: /lane 2 · open/i })).toBeNull();
+  });
+
+  it("does not let a slow refresh undo an accepted claim", async () => {
+    saveSignupEmail(ME);
+    const { loadSchedule, resolve } = deferredLoad();
+    const { root, page } = start({ loadSchedule });
+
+    const pending = page.refresh();
+    openLane2(root);
+    fillForm(root);
+    fireEvent.submit(getByTestId(root, "claim-form"));
+    await flush();
+    expect(root.querySelector('[data-lane="2"]')).toHaveClass("mine");
+
+    resolve(makeLoadedSchedule({ schedule }));
+    await pending;
+
+    expect(root.querySelector('[data-lane="2"]')).toHaveClass("mine");
+  });
+
+  it("does not let a slow refresh wipe a form the member has opened", async () => {
+    saveSignupEmail(ME);
+    const { loadSchedule, resolve } = deferredLoad();
+    const { root, page } = start({ loadSchedule });
+
+    const pending = page.refresh();
+    openLane2(root);
+    fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "Half" } });
+    resolve(makeLoadedSchedule({ schedule }));
+    await pending;
+
+    expect(getByLabelText<HTMLInputElement>(root, "Team name").value).toBe("Half");
+  });
+
+  it("skips refresh while a write is in flight", async () => {
+    saveSignupEmail(ME);
+    const fetchFn = vi.fn<typeof fetch>().mockReturnValue(new Promise<Response>(() => undefined));
+    const { root, page, loadSchedule } = start({ fetchFn });
+
+    openLane2(root);
+    fillForm(root);
+    fireEvent.submit(getByTestId(root, "claim-form"));
+    await page.refresh();
+
+    expect(loadSchedule).not.toHaveBeenCalled();
   });
 });
