@@ -1,4 +1,5 @@
 import type { Submission } from "../core/submission";
+import { readJson, readRaw, writeRaw } from "./storage";
 
 const NAME_KEY = "judge:name";
 const QUEUE_KEY = "judge:queue";
@@ -6,34 +7,6 @@ const QUEUE_KEY = "judge:queue";
 type LaneKey = { readonly event: number; readonly lane: number };
 
 const sentKey = ({ event, lane }: LaneKey): string => `judge:sent:${event}:${lane}`;
-
-const readRaw = (key: string): string | undefined => {
-  try {
-    return localStorage.getItem(key) ?? undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-const writeRaw = (key: string, value: string | undefined): void => {
-  try {
-    if (value === undefined) localStorage.removeItem(key);
-    else localStorage.setItem(key, value);
-  } catch {
-    return;
-  }
-};
-
-const readJson = <T>(key: string, isValid: (value: unknown) => value is T): T | undefined => {
-  const raw = readRaw(key);
-  if (raw === undefined) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return isValid(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-};
 
 const isNumberArray = (value: unknown): value is readonly number[] =>
   Array.isArray(value) && value.every((item) => typeof item === "number");
