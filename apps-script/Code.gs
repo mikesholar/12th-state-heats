@@ -35,10 +35,19 @@ function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function missingTabs(ss) {
+  return [SETTINGS, EVENTS_TAB, HEATS, SLOTS].filter((name) => !ss.getSheetByName(name));
+}
+
+function setupError(ss) {
+  const missing = missingTabs(ss);
+  return missing.length > 0 ? "Run setup() in the script editor first (missing " + missing.join(", ") + ")" : "";
+}
+
 function doGet() {
   const ss = SpreadsheetApp.getActive();
-  const missing = [SETTINGS, EVENTS_TAB, HEATS, SLOTS].filter((name) => !ss.getSheetByName(name));
-  if (missing.length > 0) return reply({ ok: false, error: "Run setup() in the script editor first (missing " + missing.join(", ") + ")" });
+  const error = setupError(ss);
+  if (error) return reply({ ok: false, error: error });
   try {
     return reply({ ok: true, schedule: cachedSchedule(ss) });
   } catch (err) {
@@ -59,9 +68,13 @@ function clearScheduleCache() {
   CacheService.getScriptCache().remove(SCHEDULE_CACHE_KEY);
 }
 
+function headerRow(values) {
+  return (values[0] || []).map((h) => String(h).trim());
+}
+
 function readTable(sheet) {
   const values = sheet.getDataRange().getValues();
-  const headers = (values[0] || []).map((h) => String(h).trim());
+  const headers = headerRow(values);
   return values.slice(1)
     .filter((row) => row.some((cell) => cell !== "" && cell !== null))
     .map((row) => Object.fromEntries(headers.map((h, i) => [h, row[i]])));
@@ -143,7 +156,7 @@ function readHeat(row, eventNumber, laneCount, slots, sheetZone) {
   const lanes = slots
     .filter((s) => asNumberOrText(s.event) === eventNumber && asNumberOrText(s.heat) === number)
     .map((s) => readLane(s))
-    .filter((lane) => typeof lane.lane === "number" && lane.lane >= 1 && (typeof laneCount !== "number" || lane.lane <= laneCount))
+    .filter((lane) => Number.isInteger(lane.lane) && lane.lane >= 1 && (typeof laneCount !== "number" || lane.lane <= laneCount))
     .filter((lane, i, all) => all.findIndex((other) => other.lane === lane.lane) === i);
   return { number: number, start: asClock(row.start, sheetZone), end: asClock(row.end, sheetZone), lanes: lanes };
 }
@@ -208,6 +221,8 @@ function withLock(action) {
   lock.waitLock(LOCK_WAIT_MS);
   try {
     return action();
+  } catch (err) {
+    return reply({ ok: false, error: String((err && err.message) || err) });
   } finally {
     lock.releaseLock();
   }
@@ -238,24 +253,35 @@ function findTarget(ss, record) {
   const heatRow = readTable(ss.getSheetByName(HEATS)).find((r) => asNumberOrText(r.event) === event && asNumberOrText(r.heat) === heat);
   if (!heatRow) return { error: "Event " + event + " Heat " + heat + " does not exist" };
   const laneCount = asNumberOrText(eventRow.lanes);
-  if (typeof lane !== "number" || lane < 1 || lane > laneCount) return { error: "Lane " + lane + " is outside 1–" + laneCount };
+  if (!Number.isInteger(lane) || lane < 1 || lane > laneCount) return { error: "Lane " + lane + " is outside 1–" + laneCount };
   return { event: event, heat: heat, lane: lane };
+}
+
+function slotFromRow(headers, row, rowNumber) {
+  const cell = (name) => row[headers.indexOf(name)];
+  return {
+    row: rowNumber,
+    event: asNumberOrText(cell("event")),
+    heat: asNumberOrText(cell("heat")),
+    lane: asNumberOrText(cell("lane")),
+    email: normalisedEmail(cell("email")),
+    signedUpAt: cell("signedUpAt"),
+  };
+}
+
+function slotRowFor(headers, values) {
+  return headers.map((name) => (values[name] === undefined ? "" : values[name]));
 }
 
 function slotRows(ss) {
   const values = ss.getSheetByName(SLOTS).getDataRange().getValues();
-  const headers = (values[0] || []).map((h) => String(h).trim());
-  const cell = (row, name) => row[headers.indexOf(name)];
-  return values
+  const headers = headerRow(values);
+  const rows = values
     .slice(1)
-    .map((row, i) => ({
-      row: i + 2,
-      event: asNumberOrText(cell(row, "event")),
-      heat: asNumberOrText(cell(row, "heat")),
-      lane: asNumberOrText(cell(row, "lane")),
-      email: normalisedEmail(cell(row, "email")),
-    }))
-    .filter((s) => s.event !== "" || s.heat !== "" || s.lane !== "");
+    .map((row, i) => slotFromRow(headers, row, i + 2))
+    .filter((s) => s.event !== "" || s.heat !== "" || s.lane !== "")
+    .sort(bySignedUpAt);
+  return { headers: headers, rows: rows };
 }
 
 function holderOf(slots, target) {
@@ -264,6 +290,8 @@ function holderOf(slots, target) {
 
 function claimSlot(record) {
   const ss = SpreadsheetApp.getActive();
+  const setupErr = setupError(ss);
+  if (setupErr) return reply({ ok: false, error: setupErr });
   const missing = missingFields(record, CLAIM_REQUIRED);
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   const settings = readSettings(ss);
@@ -273,36 +301,44 @@ function claimSlot(record) {
   const divisions = divisionList(settings);
   if (divisions.indexOf(asText(record.division)) === -1) return reply({ ok: false, error: "Division must be one of " + divisions.join(", ") });
   const email = normalisedEmail(record.email);
-  const slots = slotRows(ss);
+  const { headers, rows: slots } = slotRows(ss);
   const holder = holderOf(slots, target);
   if (holder && holder.email === email) return withSchedule(ss, { ok: true, duplicate: true });
   if (holder) return withSchedule(ss, { ok: false, error: "Lane " + target.lane + " was just taken" });
   const elsewhere = slots.find((s) => s.event === target.event && s.email === email);
   if (elsewhere) return withSchedule(ss, { ok: false, error: "You're already in Heat " + elsewhere.heat + " of this event" });
-  ss.getSheetByName(SLOTS).appendRow([
-    target.event,
-    target.heat,
-    target.lane,
-    asText(record.email),
-    asText(record.team),
-    asText(record.athletes),
-    asText(record.division),
-    new Date().toISOString(),
-  ]);
+  ss.getSheetByName(SLOTS).appendRow(slotRowFor(headers, {
+    event: target.event,
+    heat: target.heat,
+    lane: target.lane,
+    email: asText(record.email),
+    team: asText(record.team),
+    athletes: asText(record.athletes),
+    division: asText(record.division),
+    signedUpAt: new Date().toISOString(),
+  }));
   clearScheduleCache();
   return withSchedule(ss, { ok: true });
 }
 
 function releaseSlot(record) {
   const ss = SpreadsheetApp.getActive();
+  const setupErr = setupError(ss);
+  if (setupErr) return reply({ ok: false, error: setupErr });
   const missing = missingFields(record, RELEASE_REQUIRED);
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   if (!asBoolean(readSettings(ss).signupsOpen)) return reply({ ok: false, error: "Sign-ups are closed" });
   const target = { event: asNumberOrText(record.event), heat: asNumberOrText(record.heat), lane: asNumberOrText(record.lane) };
-  const holder = holderOf(slotRows(ss), target);
+  const { headers, rows } = slotRows(ss);
+  const holder = holderOf(rows, target);
   if (!holder) return withSchedule(ss, { ok: true });
   if (holder.email !== normalisedEmail(record.email)) return withSchedule(ss, { ok: false, error: "That slot isn't yours" });
-  ss.getSheetByName(SLOTS).deleteRow(holder.row);
+  const sheet = ss.getSheetByName(SLOTS);
+  const currentRow = sheet.getRange(holder.row, 1, 1, headers.length).getValues()[0];
+  const current = slotFromRow(headers, currentRow, holder.row);
+  const unchanged = current.event === holder.event && current.heat === holder.heat && current.lane === holder.lane && current.email === holder.email;
+  if (!unchanged) return withSchedule(ss, { ok: false, error: "The slot changed — reload and try again" });
+  sheet.deleteRow(holder.row);
   clearScheduleCache();
   return withSchedule(ss, { ok: true });
 }
