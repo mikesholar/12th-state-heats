@@ -141,6 +141,13 @@ describe("lane chips", () => {
     expect(getByTestId(root, "source-notice")).toHaveTextContent("Offline");
   });
 
+  it("says it is saving while a write is in flight", () => {
+    const { root } = renderWith({ busy: true });
+
+    expect(getByTestId(root, "saving")).toHaveTextContent("Saving to the sheet…");
+    expect(queryByTestId(renderWith().root, "saving")).toBeNull();
+  });
+
   it("is read-only while busy", () => {
     const { root } = renderWith({ busy: true });
 
@@ -228,10 +235,13 @@ describe("the claim form", () => {
     expect(labels).toEqual(["— pick a division —", "Individual RX", ...DIVISION_NAMES]);
   });
 
-  it("disables the submit while busy", () => {
+  it("disables the submit and says so while the claim is in flight", () => {
     const { root } = renderWith({ openForm: open, draft: makeClaimDraft(), busy: true });
 
-    expect(getByRole(root, "button", { name: "Claim lane 1" })).toBeDisabled();
+    const submit = getByRole(root, "button", { name: "Claiming…" });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(getByRole(root, "button", { name: "Never mind" })).toBeDisabled();
   });
 });
 

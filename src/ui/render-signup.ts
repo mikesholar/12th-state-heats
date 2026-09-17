@@ -65,9 +65,9 @@ const noticeHtml = (notice: SignupNotice | undefined): string => {
   return `<div class="notice ${notice.kind}" role="${role}" data-testid="notice">${esc(notice.text)}</div>`;
 };
 
-type HeaderOptions = Pick<RenderSignupOptions, "schedule" | "email" | "sourceNotice" | "notice">;
+type HeaderOptions = Pick<RenderSignupOptions, "schedule" | "email" | "sourceNotice" | "notice" | "busy">;
 
-const headerHtml = ({ schedule, email, sourceNotice, notice }: HeaderOptions): string => `
+const headerHtml = ({ schedule, email, sourceNotice, notice, busy }: HeaderOptions): string => `
   <header class="header">
     <div class="header-row">
       <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">Sign up</span></h1>
@@ -77,6 +77,7 @@ const headerHtml = ({ schedule, email, sourceNotice, notice }: HeaderOptions): s
     ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     ${email ? identityHtml(email) : emailFormHtml()}
     ${notice && !notice.at ? noticeHtml(notice) : ""}
+    ${busy ? `<div class="notice info" role="status" aria-busy="true" data-testid="saving">Saving to the sheet…</div>` : ""}
   </header>`;
 
 type ChipOptions = { readonly label: string; readonly slot: SlotKey };
@@ -140,8 +141,8 @@ const claimFormHtml = ({ schedule, slot, draft, busy }: FormOptions): string => 
     ${teamSize > 1 ? `<label for="team">Team name</label><input id="team" name="team" type="text" value="${esc(draft.team)}" />` : ""}
     ${athleteFieldsHtml(draft, teamSize)}
     <div class="claim-actions">
-      <button type="submit" class="primary" ${busy ? "disabled" : ""}>Claim ${esc(schedule.laneLabel.toLowerCase())} ${slot.lane}</button>
-      <button type="button" class="link" id="dismiss-claim">Never mind</button>
+      <button type="submit" class="primary" ${busy ? 'disabled aria-busy="true"' : ""}>${busy ? "Claiming…" : `Claim ${esc(schedule.laneLabel.toLowerCase())} ${slot.lane}`}</button>
+      <button type="button" class="link" id="dismiss-claim" ${busy ? "disabled" : ""}>Never mind</button>
     </div>
   </form>`;
 };
