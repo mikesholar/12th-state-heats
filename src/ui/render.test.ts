@@ -1,6 +1,6 @@
 import { fireEvent, getByTestId, queryByTestId, getByLabelText } from "@testing-library/dom";
 import { render } from "./render";
-import { schedule } from "../data/schedule";
+import { snapshotSchedule as schedule } from "../data/snapshot";
 import { at } from "../test/factories";
 
 const TEAM = "Fast but Questionable";

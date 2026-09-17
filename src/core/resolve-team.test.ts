@@ -1,5 +1,5 @@
 import { resolveTeam } from "./resolve-team";
-import { schedule } from "../data/schedule";
+import { snapshotSchedule as schedule } from "../data/snapshot";
 import { at } from "../test/factories";
 
 const TEAM = "Fast but Questionable";

@@ -1,6 +1,5 @@
-import { schedule } from "./schedule";
+import { snapshotSchedule as schedule } from "./snapshot";
 import { judgeCodes } from "./judge-codes";
-import { validateSchedule } from "../core/validate-schedule";
 
 const laneFor = (team: string) =>
   schedule.events.map((event) => {
@@ -9,13 +8,16 @@ const laneFor = (team: string) =>
     return { event: event.number, heat: heat?.number, lane: lane?.lane };
   });
 
-describe("the shipped schedule", () => {
-  it("passes validation", () => {
-    expect(validateSchedule(schedule)).toEqual([]);
+describe("the committed snapshot", () => {
+  it("decodes (an invalid snapshot fails the build)", () => {
+    expect(schedule.compDate).toBe("2026-09-12");
+    expect(schedule.teamSize).toBe(2);
+    expect(schedule.signupsOpen).toBe(false);
   });
 
-  it("has three events of five heats each", () => {
+  it("has three events of five heats each, eight lanes wide", () => {
     expect(schedule.events.map((e) => e.heats.length)).toEqual([5, 5, 5]);
+    expect(schedule.events.map((e) => e.lanes)).toEqual([8, 8, 8]);
   });
 
   it("has 37 distinct teams, 36 of which appear in Event 3", () => {
