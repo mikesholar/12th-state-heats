@@ -93,8 +93,8 @@ describe("schedule validation", () => {
     expect(validateSchedule(makeSchedule({ teamSize: 0 }))).toEqual(["teamSize must be at least 1"]);
   });
 
-  it("rejects an empty division list", () => {
-    const schedule = makeSchedule({ divisions: [], events: [makeEvent({ heats: [makeHeat({ lanes: [] })] })] });
+  it("rejects an empty division list without also flagging every lane", () => {
+    const schedule = makeSchedule({ divisions: [], events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ lane: 1 })] })] })] });
 
     expect(validateSchedule(schedule)).toEqual(["divisions must list at least one division"]);
   });
