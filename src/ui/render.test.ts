@@ -108,7 +108,7 @@ describe("the whole schedule", () => {
     const { root } = renderAt(at("08:15"));
 
     expect(root.querySelectorAll(".event")).toHaveLength(3);
-    expect(root.querySelectorAll("tr[data-team]")).toHaveLength(110);
+    expect(root.querySelectorAll("tr[data-team]")).toHaveLength(schedule.events.flatMap((e) => e.heats.flatMap((h) => h.lanes)).length);
     expect(root.querySelector("#team-picker")).toBeNull();
   });
 });

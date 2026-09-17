@@ -59,7 +59,7 @@ const startSpectator = (initial: LoadedSchedule): void => {
 
   draw();
   root.querySelector(".heat.current, .heat.upcoming")?.scrollIntoView({ block: "start" });
-  setInterval(() => draw(), REFRESH_MS);
+  setInterval(draw, REFRESH_MS);
   reloadLater();
 };
 
