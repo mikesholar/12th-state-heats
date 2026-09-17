@@ -5,7 +5,9 @@ import { validateSchedule } from "./validate-schedule";
 type Raw = Readonly<Record<string, unknown>>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
+const HOURS_ON_CLOCK = 24;
+const MINUTES_PER_HOUR = 60;
 const INTEGER_PATTERN = /^-?\d+$/;
 
 const isRaw = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -66,10 +68,17 @@ const all = <T>(results: readonly Result<T>[]): Result<readonly T[]> => {
   return ok(results.flatMap((result) => (result.success ? [result.data] : [])));
 };
 
+const normalisedClock = (value: string): string | undefined => {
+  const [, hours = "", minutes = ""] = TIME_PATTERN.exec(value) ?? [];
+  if (hours === "" || Number(hours) >= HOURS_ON_CLOCK || Number(minutes) >= MINUTES_PER_HOUR) return undefined;
+  return `${hours.padStart(2, "0")}:${minutes}`;
+};
+
 const clock = (raw: Raw, key: string, where: string): Result<string> => {
   const value = text(raw, key, where);
   if (!value.success) return value;
-  return TIME_PATTERN.test(value.data) ? value : fail(`${where}: ${key} "${value.data}" must be HH:MM`);
+  const normalised = normalisedClock(value.data);
+  return normalised === undefined ? fail(`${where}: ${key} "${value.data}" must be HH:MM`) : ok(normalised);
 };
 
 const scoringFormat = (raw: Raw, where: string): Result<ScoringFormat> => {

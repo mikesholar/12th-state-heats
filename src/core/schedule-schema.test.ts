@@ -80,8 +80,11 @@ describe("decoding the schedule JSON", () => {
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: "x" })] })] }))).toBe(
       'Heats: Event 1: number "x" must be a whole number',
     );
-    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "8:21" })] })] }))).toBe(
-      'Heats: Event 1 Heat 3: end "8:21" must be HH:MM',
+    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "821" })] })] }))).toBe(
+      'Heats: Event 1 Heat 3: end "821" must be HH:MM',
+    );
+    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "24:00" })] })] }))).toBe(
+      'Heats: Event 1 Heat 3: end "24:00" must be HH:MM',
     );
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "08:60" })] })] }))).toBe(
       'Heats: Event 1 Heat 3: end "08:60" must be HH:MM',
@@ -89,6 +92,12 @@ describe("decoding the schedule JSON", () => {
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ lanes: "none" })] })] }))).toBe(
       "Heats: Event 1 Heat 1: lanes must be a list",
     );
+  });
+
+  it("pads a single-digit hour the way an organiser types it", () => {
+    const result = decodeSchedule(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ start: "8:00", end: "9:05" })] })] }));
+
+    expect(result.success && result.data.events[0]?.heats[0]).toMatchObject({ start: "08:00", end: "09:05" });
   });
 
   it("names the lane that is wrong", () => {
