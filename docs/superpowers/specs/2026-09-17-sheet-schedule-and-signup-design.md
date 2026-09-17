@@ -223,8 +223,10 @@ tick stays local. `?at=` preview keeps working.
 
 ### Snapshot — `scripts/snapshot.ts` (`npm run snapshot`)
 
-Fetches `doGet`, decodes and validates, writes the reply's `schedule`
-object to `src/data/schedule-snapshot.json` (fails loudly on any error).
+Fetches `doGet`, decodes and validates, strips every lane's `email` (the
+snapshot is committed to a public repo and shipped in the bundle), and
+writes the result to `src/data/schedule-snapshot.json` (fails loudly on any
+error).
 `src/data/snapshot.ts` decodes that file at import time and exports
 `snapshotSchedule`; the app, the tests and the link script all use it, and
 the test suite decodes the committed snapshot, so a bad one fails the build.

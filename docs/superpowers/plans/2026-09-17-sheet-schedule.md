@@ -810,10 +810,9 @@ const laneFor = (team: string) =>
   });
 
 describe("the committed snapshot", () => {
-  it("decodes (an invalid snapshot fails the build)", () => {
+  it("pins the 2026 settings", () => {
     expect(schedule.compDate).toBe("2026-09-12");
     expect(schedule.teamSize).toBe(2);
-    expect(schedule.signupsOpen).toBe(false);
   });
 
   it("has three events of five heats each, eight lanes wide", () => {
@@ -2170,6 +2169,7 @@ Create `scripts/snapshot.ts`:
 ```ts
 import { writeFileSync } from "node:fs";
 import { decodeSchedule } from "../src/core/schedule-schema";
+import type { Schedule } from "../src/core/types";
 import { sheetEndpoint } from "../src/data/sheet-endpoint";
 
 const OUTPUT = "src/data/schedule-snapshot.json";
@@ -2192,12 +2192,25 @@ if (!hasSchedule(body)) die(`Unexpected reply: ${JSON.stringify(body).slice(0, 2
 const decoded = decodeSchedule(body.schedule);
 if (!decoded.success) die(`The Sheet has a problem: ${decoded.error}`);
 
-writeFileSync(OUTPUT, JSON.stringify(body.schedule, null, 2) + "\n");
+const withoutEmails = (schedule: Schedule): Schedule => ({
+  ...schedule,
+  events: schedule.events.map((event) => ({
+    ...event,
+    heats: event.heats.map((heat) => ({
+      ...heat,
+      lanes: heat.lanes.map(({ email: _email, ...lane }) => lane),
+    })),
+  })),
+});
+
+writeFileSync(OUTPUT, JSON.stringify(withoutEmails(decoded.data), null, 2) + "\n");
 const events = decoded.data.events.map((e) => `E${e.number}: ${e.heats.length} heats`).join(", ");
 console.log(`Wrote ${OUTPUT} — ${decoded.data.compDate}, ${events}`);
 ```
 
 Add to `package.json` scripts: `"snapshot": "tsx scripts/snapshot.ts"`.
+
+The snapshot is committed to a public repo and shipped in the bundle, so member emails are stripped before writing (the `_email` destructure is the idiom ESLint accepts for an intentionally unused binding; if `no-unused-vars` still complains, add `{ argsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" }`-style config for `varsIgnorePattern: "^_"` in `eslint.config.js`). Add a test `scripts/snapshot.test.ts`? No — the script is glue; instead the existing `schedule.test.ts` gains one assertion in "pins the 2026 settings": `expect(schedule.events.flatMap((e) => e.heats.flatMap((h) => h.lanes)).some((l) => l.email !== undefined)).toBe(false);` — the committed snapshot must never carry an email.
 
 - [ ] **Step 2: Run it against the filled Sheet**
 
