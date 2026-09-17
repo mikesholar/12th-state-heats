@@ -46,17 +46,28 @@ describe("decoding the schedule JSON", () => {
     expect(errorOf([])).toBe("Schedule is not an object");
   });
 
-  it("names the setting that is wrong", () => {
-    expect(errorOf(makeRawSchedule({ compDate: "9/11/27" }))).toBe('Settings: compDate "9/11/27" must be YYYY-MM-DD');
-    expect(errorOf(makeRawSchedule({ timeZone: "" }))).toBe("Settings: timeZone is missing");
-    expect(errorOf(makeRawSchedule({ teamSize: "two" }))).toBe('Settings: teamSize "two" must be a whole number');
-    expect(errorOf(makeRawSchedule({ divisions: "RX" }))).toBe("Settings: divisions must be a list");
-    expect(errorOf(makeRawSchedule({ signupsOpen: "yes" }))).toBe("Settings: signupsOpen must be TRUE or FALSE");
-    expect(errorOf(makeRawSchedule({ events: {} }))).toBe("Events: must be a list");
+  it.each([
+    [{ compDate: "9/11/27" }, 'Settings: compDate "9/11/27" must be YYYY-MM-DD'],
+    [{ compDate: "2026-13-45" }, 'Settings: compDate "2026-13-45" is not a real date'],
+    [{ timeZone: "" }, "Settings: timeZone is missing"],
+    [{ timeZone: "Eastern" }, 'Settings: timeZone "Eastern" is not a known time zone (e.g. America/New_York)'],
+    [{ teamSize: "two" }, 'Settings: teamSize "two" must be a whole number'],
+    [{ teamSize: "" }, "Settings: teamSize is missing"],
+    [{ teamSize: "1e3" }, 'Settings: teamSize "1e3" must be a whole number'],
+    [{ divisions: "RX" }, "Settings: divisions must be a list"],
+    [{ signupsOpen: "yes" }, 'Settings: signupsOpen "yes" must be TRUE or FALSE'],
+    [{ events: {} }, "Events: must be a list"],
+  ])("names the setting that is wrong: %j", (override, message) => {
+    expect(errorOf(makeRawSchedule(override))).toBe(message);
+  });
+
+  it("reads TRUE and FALSE written as text", () => {
+    expect(decodeSchedule(makeRawSchedule({ signupsOpen: "FALSE" }))).toMatchObject({ success: true, data: { signupsOpen: false } });
+    expect(decodeSchedule(makeRawSchedule({ signupsOpen: "true" }))).toMatchObject({ success: true, data: { signupsOpen: true } });
   });
 
   it("names the event that is wrong", () => {
-    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ number: "" })] }))).toBe('Events: number "" must be a whole number');
+    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ number: "" })] }))).toBe("Events: number is missing");
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ title: " " })] }))).toBe("Events: Event 1: title is missing");
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ number: 2, scoring: "amrap" })] }))).toBe(
       'Events: Event 2: scoring "amrap" must be time-or-rounds or rounds-reps',
@@ -71,6 +82,12 @@ describe("decoding the schedule JSON", () => {
     );
     expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "8:21" })] })] }))).toBe(
       'Heats: Event 1 Heat 3: end "8:21" must be HH:MM',
+    );
+    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, end: "08:60" })] })] }))).toBe(
+      'Heats: Event 1 Heat 3: end "08:60" must be HH:MM',
+    );
+    expect(errorOf(makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ lanes: "none" })] })] }))).toBe(
+      "Heats: Event 1 Heat 1: lanes must be a list",
     );
   });
 

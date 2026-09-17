@@ -5,13 +5,31 @@ import { validateSchedule } from "./validate-schedule";
 type Raw = Readonly<Record<string, unknown>>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_PATTERN = /^\d{2}:\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const INTEGER_PATTERN = /^-?\d+$/;
 
 const isRaw = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
-const shown = (value: unknown): string => (typeof value === "string" ? value : value === undefined || value === null ? "" : String(value));
+const shown = (value: unknown): string => (value === undefined || value === null ? "" : String(value));
 
-const trimmed = (value: unknown): string => (typeof value === "string" ? value.trim() : shown(value));
+const trimmed = (value: unknown): string => shown(value).trim();
+
+const isRealDate = (value: string): boolean => {
+  try {
+    return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
+  } catch {
+    return false;
+  }
+};
+
+const isTimeZone = (name: string): boolean => {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: name });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const text = (raw: Raw, key: string, where: string): Result<string> => {
   const value = trimmed(raw[key]);
@@ -22,8 +40,9 @@ const optionalText = (raw: Raw, key: string): string => trimmed(raw[key]);
 
 const integer = (raw: Raw, key: string, where: string): Result<number> => {
   const value = trimmed(raw[key]);
-  const parsed = value === "" ? NaN : Number(value);
-  return Number.isInteger(parsed) ? ok(parsed) : fail(`${where}: ${key} "${shown(raw[key])}" must be a whole number`);
+  if (value === "") return fail(`${where}: ${key} is missing`);
+  if (!INTEGER_PATTERN.test(value)) return fail(`${where}: ${key} "${shown(raw[key])}" must be a whole number`);
+  return ok(Number(value));
 };
 
 const optionalInteger = (raw: Raw, key: string, where: string): Result<number | undefined> =>
@@ -35,7 +54,7 @@ const boolean = (raw: Raw, key: string, where: string): Result<boolean> => {
   const upper = trimmed(value).toUpperCase();
   if (upper === "TRUE") return ok(true);
   if (upper === "FALSE") return ok(false);
-  return fail(`${where}: ${key} must be TRUE or FALSE`);
+  return fail(`${where}: ${key} "${shown(value)}" must be TRUE or FALSE`);
 };
 
 const list = (raw: Raw, key: string, where: string): Result<readonly unknown[]> =>
@@ -43,7 +62,7 @@ const list = (raw: Raw, key: string, where: string): Result<readonly unknown[]> 
 
 const all = <T>(results: readonly Result<T>[]): Result<readonly T[]> => {
   const failure = results.find((result) => !result.success);
-  if (failure && !failure.success) return fail(failure.error);
+  if (failure && !failure.success) return failure;
   return ok(results.flatMap((result) => (result.success ? [result.data] : [])));
 };
 
@@ -62,14 +81,14 @@ const scoringFormat = (raw: Raw, where: string): Result<ScoringFormat> => {
 const decodeLane = (where: string) => (value: unknown): Result<Lane> => {
   if (!isRaw(value)) return fail(`Slots: ${where}: a lane entry is not an object`);
   const lane = integer(value, "lane", `Slots: ${where}`);
-  if (!lane.success) return fail(lane.error);
+  if (!lane.success) return lane;
   const laneWhere = `Slots: ${where} lane ${lane.data}`;
   const team = text(value, "team", laneWhere);
-  if (!team.success) return fail(team.error);
+  if (!team.success) return team;
   const athletes = text(value, "athletes", laneWhere);
-  if (!athletes.success) return fail(athletes.error);
+  if (!athletes.success) return athletes;
   const division = text(value, "division", laneWhere);
-  if (!division.success) return fail(division.error);
+  if (!division.success) return division;
   const email = optionalText(value, "email");
   return ok({
     lane: lane.data,
@@ -83,36 +102,36 @@ const decodeLane = (where: string) => (value: unknown): Result<Lane> => {
 const decodeHeat = (eventNumber: number) => (value: unknown): Result<Heat> => {
   if (!isRaw(value)) return fail(`Heats: Event ${eventNumber}: a heat entry is not an object`);
   const number = integer(value, "number", `Heats: Event ${eventNumber}`);
-  if (!number.success) return fail(number.error);
+  if (!number.success) return number;
   const where = `Event ${eventNumber} Heat ${number.data}`;
   const start = clock(value, "start", `Heats: ${where}`);
-  if (!start.success) return fail(start.error);
+  if (!start.success) return start;
   const end = clock(value, "end", `Heats: ${where}`);
-  if (!end.success) return fail(end.error);
+  if (!end.success) return end;
   const lanes = list(value, "lanes", `Heats: ${where}`);
-  if (!lanes.success) return fail(lanes.error);
+  if (!lanes.success) return lanes;
   const decodedLanes = all(lanes.data.map(decodeLane(where)));
-  if (!decodedLanes.success) return fail(decodedLanes.error);
+  if (!decodedLanes.success) return decodedLanes;
   return ok({ number: number.data, start: start.data, end: end.data, lanes: decodedLanes.data });
 };
 
 const decodeEvent = (value: unknown): Result<Event> => {
   if (!isRaw(value)) return fail("Events: an event entry is not an object");
   const number = integer(value, "number", "Events");
-  if (!number.success) return fail(number.error);
+  if (!number.success) return number;
   const where = `Events: Event ${number.data}`;
   const title = text(value, "title", where);
-  if (!title.success) return fail(title.error);
+  if (!title.success) return title;
   const scoring = scoringFormat(value, where);
-  if (!scoring.success) return fail(scoring.error);
+  if (!scoring.success) return scoring;
   const capSeconds = optionalInteger(value, "capSeconds", where);
-  if (!capSeconds.success) return fail(capSeconds.error);
+  if (!capSeconds.success) return capSeconds;
   const lanes = integer(value, "lanes", where);
-  if (!lanes.success) return fail(lanes.error);
+  if (!lanes.success) return lanes;
   const heats = list(value, "heats", where);
-  if (!heats.success) return fail(heats.error);
+  if (!heats.success) return heats;
   const decodedHeats = all(heats.data.map(decodeHeat(number.data)));
-  if (!decodedHeats.success) return fail(decodedHeats.error);
+  if (!decodedHeats.success) return decodedHeats;
   return ok({
     number: number.data,
     title: title.data,
@@ -128,25 +147,27 @@ const decodeEvent = (value: unknown): Result<Event> => {
 
 const decodeDivisions = (raw: Raw): Result<readonly string[]> => {
   const value = list(raw, "divisions", "Settings");
-  if (!value.success) return fail(value.error);
+  if (!value.success) return value;
   return ok(value.data.map(trimmed).filter((division) => division !== ""));
 };
 
 const decodeShape = (raw: Raw): Result<Schedule> => {
   const compDate = text(raw, "compDate", "Settings");
-  if (!compDate.success) return fail(compDate.error);
+  if (!compDate.success) return compDate;
   if (!DATE_PATTERN.test(compDate.data)) return fail(`Settings: compDate "${compDate.data}" must be YYYY-MM-DD`);
+  if (!isRealDate(compDate.data)) return fail(`Settings: compDate "${compDate.data}" is not a real date`);
   const timeZone = text(raw, "timeZone", "Settings");
-  if (!timeZone.success) return fail(timeZone.error);
+  if (!timeZone.success) return timeZone;
+  if (!isTimeZone(timeZone.data)) return fail(`Settings: timeZone "${timeZone.data}" is not a known time zone (e.g. America/New_York)`);
   const teamSize = integer(raw, "teamSize", "Settings");
-  if (!teamSize.success) return fail(teamSize.error);
+  if (!teamSize.success) return teamSize;
   const divisions = decodeDivisions(raw);
-  if (!divisions.success) return fail(divisions.error);
+  if (!divisions.success) return divisions;
   const signupsOpen = boolean(raw, "signupsOpen", "Settings");
-  if (!signupsOpen.success) return fail(signupsOpen.error);
+  if (!signupsOpen.success) return signupsOpen;
   if (!Array.isArray(raw.events)) return fail("Events: must be a list");
   const decodedEvents = all(raw.events.map(decodeEvent));
-  if (!decodedEvents.success) return fail(decodedEvents.error);
+  if (!decodedEvents.success) return decodedEvents;
   return ok({
     compDate: compDate.data,
     timeZone: timeZone.data,
