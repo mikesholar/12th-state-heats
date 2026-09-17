@@ -218,3 +218,23 @@ button.primary:active { filter: brightness(0.9); }
 .judge-url { margin-top: 4px; font-size: 0.75rem; color: var(--muted); word-break: break-all; }
 @media print { .header { position: static; } .judge-cards { grid-template-columns: repeat(2, 1fr); } .event-group h2 { break-after: avoid; } }
 .loading { padding: 32px 16px; text-align: center; color: var(--muted); font-weight: 700; }
+
+.pill { padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.pill.open { background: #dcfce7; color: #166534; }
+.pill.closed { background: var(--surface-2); color: var(--muted); }
+.signup-date { margin-top: 4px; color: var(--muted); font-size: 0.85rem; }
+.signup-identity { margin-top: 8px; font-size: 0.9rem; color: var(--text); }
+.signup-main .heat { padding-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px 0; }
+.chip { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); font: inherit; font-size: 0.9rem; background: var(--surface); color: var(--text); }
+button.chip.open { border-color: var(--navy); color: var(--navy); font-weight: 700; cursor: pointer; }
+.chip.open.dim { opacity: 0.45; }
+.chip.taken { background: var(--surface-2); color: var(--muted); }
+.chip.mine { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); font-weight: 700; }
+.your-slot { margin-top: 6px; font-weight: 700; color: var(--orange); }
+.claim-form { display: grid; gap: 6px; padding: 10px 12px 4px; }
+.claim-form label { font-weight: 700; color: var(--navy); font-size: 0.85rem; }
+.claim-form input, .claim-form select { font: inherit; font-size: 1rem; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.claim-actions { display: flex; align-items: center; gap: 16px; margin-top: 6px; }
+.signup-main .notice { margin: 8px 12px 0; }
+.notice.info { background: #dbeafe; color: #1e3a8a; }
