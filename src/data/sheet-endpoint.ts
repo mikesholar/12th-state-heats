@@ -1,1 +1,1 @@
-export const sheetEndpoint = "https://script.google.com/macros/s/AKfycbxJtIUu3E_WZ-j42uyv0-IsNIMcbnrHvgA1WpS99OUJ99klLnD8jGbiFZRLpxxW-jrYAQ/exec";
+export const sheetEndpoint = "https://script.google.com/macros/s/AKfycbzmkdi52WpqYX3tAE_mdLUTrisN8d1JU5pKsI81u5EoaFdS7qpIkWG9ieSxfQxCFqPwUg/exec";
