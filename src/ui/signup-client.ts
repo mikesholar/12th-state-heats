@@ -1,6 +1,7 @@
 import { decodeSchedule } from "../core/schedule-schema";
 import type { ClaimRequest, ReleaseRequest } from "../core/signup";
 import type { Schedule } from "../core/types";
+import { callSheet } from "./sheet-fetch";
 import { isSheetReply, scheduleOf, type SheetReply } from "./sheet-reply";
 
 export type WriteOutcome =
@@ -32,14 +33,8 @@ const outcomeOf = (body: unknown): WriteOutcome => {
 };
 
 const post = async ({ endpoint, body, fetchFn }: PostOptions): Promise<WriteOutcome> => {
-  if (endpoint === "") return { kind: "unreachable" };
-  try {
-    const response = await fetchFn(endpoint, { method: "POST", body: JSON.stringify(body), signal: AbortSignal.timeout(WRITE_TIMEOUT_MS) });
-    if (!response.ok) return { kind: "unreachable" };
-    return outcomeOf(await response.json());
-  } catch {
-    return { kind: "unreachable" };
-  }
+  const call = await callSheet({ endpoint, fetchFn, timeoutMs: WRITE_TIMEOUT_MS, body: JSON.stringify(body) });
+  return call === undefined ? { kind: "unreachable" } : outcomeOf(call.body);
 };
 
 type PostClaimOptions = { readonly endpoint: string; readonly claim: ClaimRequest; readonly fetchFn: typeof fetch };

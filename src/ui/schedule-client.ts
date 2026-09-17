@@ -1,5 +1,6 @@
 import type { FetchOutcome } from "../core/load-schedule";
 import { decodeSchedule } from "../core/schedule-schema";
+import { callSheet } from "./sheet-fetch";
 import { isSheetReply, scheduleOf } from "./sheet-reply";
 
 type FetchScheduleOptions = {
@@ -18,18 +19,7 @@ const outcomeOf = (body: unknown): FetchOutcome => {
   return decoded.success ? { kind: "loaded", schedule: decoded.data } : { kind: "invalid", reason: decoded.error };
 };
 
-const readBody = async ({ endpoint, fetchFn }: FetchScheduleOptions): Promise<{ readonly body: unknown } | undefined> => {
-  try {
-    const response = await fetchFn(endpoint, { cache: "no-store", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-    if (!response.ok) return undefined;
-    return { body: await response.json() };
-  } catch {
-    return undefined;
-  }
-};
-
-export const fetchSchedule = async (options: FetchScheduleOptions): Promise<FetchOutcome> => {
-  if (options.endpoint === "") return { kind: "unreachable" };
-  const read = await readBody(options);
-  return read === undefined ? { kind: "unreachable" } : outcomeOf(read.body);
+export const fetchSchedule = async ({ endpoint, fetchFn }: FetchScheduleOptions): Promise<FetchOutcome> => {
+  const call = await callSheet({ endpoint, fetchFn, timeoutMs: FETCH_TIMEOUT_MS });
+  return call === undefined ? { kind: "unreachable" } : outcomeOf(call.body);
 };
