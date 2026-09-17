@@ -4,7 +4,7 @@ import { makeRawSchedule, makeSchedule, makeEvent, makeHeat, makeLane } from "..
 const ENDPOINT = "https://script.example/exec";
 
 const replying = (status: number, body: unknown): typeof fetch =>
-  vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
+  vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
 
 describe("fetching the schedule from the sheet", () => {
   it("decodes a good reply", async () => {
@@ -16,7 +16,7 @@ describe("fetching the schedule from the sheet", () => {
       kind: "loaded",
       schedule: makeSchedule({ events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ email: "a@example.com" })] })] })] }),
     });
-    expect(fetchFn).toHaveBeenCalledWith(ENDPOINT);
+    expect(fetchFn).toHaveBeenCalledWith(ENDPOINT, { cache: "no-store" });
   });
 
   it("is unreachable when the endpoint is not configured, without fetching", async () => {
@@ -34,9 +34,11 @@ describe("fetching the schedule from the sheet", () => {
     expect(await fetchSchedule({ endpoint: ENDPOINT, fetchFn })).toEqual({ kind: "unreachable" });
   });
 
-  it("is unreachable on a non-2xx status or a non-JSON body", async () => {
+  it("is unreachable on a non-2xx status", async () => {
     expect(await fetchSchedule({ endpoint: ENDPOINT, fetchFn: replying(500, { ok: true }) })).toEqual({ kind: "unreachable" });
+  });
 
+  it("is unreachable on a non-JSON body", async () => {
     const html: typeof fetch = vi.fn(async () => new Response("<html>login</html>", { status: 200 }));
     expect(await fetchSchedule({ endpoint: ENDPOINT, fetchFn: html })).toEqual({ kind: "unreachable" });
   });

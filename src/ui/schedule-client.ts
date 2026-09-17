@@ -23,13 +23,18 @@ const outcomeOf = (body: unknown): FetchOutcome => {
   return decoded.success ? { kind: "loaded", schedule: decoded.data } : { kind: "invalid", reason: decoded.error };
 };
 
-export const fetchSchedule = async ({ endpoint, fetchFn }: FetchScheduleOptions): Promise<FetchOutcome> => {
-  if (endpoint === "") return { kind: "unreachable" };
+const readBody = async ({ endpoint, fetchFn }: FetchScheduleOptions): Promise<{ readonly body: unknown } | undefined> => {
   try {
-    const response = await fetchFn(endpoint);
-    if (!response.ok) return { kind: "unreachable" };
-    return outcomeOf(await response.json());
+    const response = await fetchFn(endpoint, { cache: "no-store" });
+    if (!response.ok) return undefined;
+    return { body: await response.json() };
   } catch {
-    return { kind: "unreachable" };
+    return undefined;
   }
+};
+
+export const fetchSchedule = async (options: FetchScheduleOptions): Promise<FetchOutcome> => {
+  if (options.endpoint === "") return { kind: "unreachable" };
+  const read = await readBody(options);
+  return read === undefined ? { kind: "unreachable" } : outcomeOf(read.body);
 };
