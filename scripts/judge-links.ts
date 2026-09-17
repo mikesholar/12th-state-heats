@@ -43,12 +43,14 @@ const freshCode = (taken: ReadonlySet<string>): string => {
   return taken.has(candidate) ? freshCode(taken) : candidate;
 };
 
-const withCodes = (assignments: readonly JudgeAssignment[], kept: readonly Entry[], reserved: readonly string[]): readonly Entry[] =>
-  assignments.reduce<readonly Entry[]>((entries, assignment) => {
+const withCodes = (assignments: readonly JudgeAssignment[], kept: readonly Entry[], reserved: readonly string[]): readonly Entry[] => {
+  const reservedCodes = [...reserved, ...kept.map((e) => e.code)];
+  return assignments.reduce<readonly Entry[]>((entries, assignment) => {
     const existingEntry = kept.find((e) => assignmentKey(e.assignment) === assignmentKey(assignment));
-    const taken = new Set([...reserved, ...kept.map((e) => e.code), ...entries.map((e) => e.code)]);
+    const taken = new Set([...reservedCodes, ...entries.map((e) => e.code)]);
     return [...entries, existingEntry ?? { code: freshCode(taken), assignment }];
   }, []);
+};
 
 const entryLine = ({ code, assignment }: Entry): string =>
   assignment.kind === "head"
@@ -77,7 +79,7 @@ const linkLine = ({ code, assignment }: Entry): string =>
     : `Event ${assignment.event}  Lane ${String(assignment.lane).padStart(2)}      ${SITE}?j=${code}`;
 
 const previous = await existing();
-const signupCode = previous.signupCode || freshCode(new Set(previous.entries.map((e) => e.code)));
+const signupCode = previous.signupCode ?? freshCode(new Set(previous.entries.map((e) => e.code)));
 const entries = withCodes(neededAssignments(), previous.entries, [signupCode]);
 writeFileSync(OUTPUT, fileSource(entries, signupCode));
 
