@@ -14,6 +14,8 @@ const LOG_HEADERS = [
 const CLIENT_ID_COLUMN = LOG_HEADERS.indexOf("clientId") + 1;
 const REQUIRED = ["clientId", "submittedAt", "judge", "event", "heat", "lane", "team", "division", "scoreKind"];
 const SCORE_KINDS = ["time", "rounds-reps"];
+const CLAIM_REQUIRED = ["event", "heat", "lane", "email", "team", "athletes", "division"];
+const RELEASE_REQUIRED = ["event", "heat", "lane", "email"];
 
 const SETTINGS_ROWS = [
   ["compDate", "2027-09-11"],
@@ -164,7 +166,7 @@ function readSchedule(ss) {
     compDate: asDateString(settings.compDate, sheetZone),
     timeZone: asText(settings.timeZone),
     teamSize: asNumberOrText(settings.teamSize),
-    divisions: asText(settings.divisions).split(",").map((d) => d.trim()).filter((d) => d !== ""),
+    divisions: divisionList(settings),
     signupsOpen: asBoolean(settings.signupsOpen),
     events: readEvents(ss, sheetZone),
   };
@@ -178,6 +180,12 @@ function doPost(e) {
     return reply({ ok: false, error: "Body is not JSON" });
   }
   if (record === null || typeof record !== "object" || Array.isArray(record)) return reply({ ok: false, error: "Body is not an object" });
+  if (record.action === "claim") return withLock(() => claimSlot(record));
+  if (record.action === "release") return withLock(() => releaseSlot(record));
+  return logScore(record);
+}
+
+function logScore(record) {
   const missing = REQUIRED.filter((key) => record[key] === undefined || record[key] === "");
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   if (SCORE_KINDS.indexOf(record.scoreKind) === -1) return reply({ ok: false, error: "Unknown scoreKind" });
@@ -193,6 +201,110 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function withLock(action) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(LOCK_WAIT_MS);
+  try {
+    return action();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function missingFields(record, required) {
+  return required.filter((key) => record[key] === undefined || asText(record[key]) === "");
+}
+
+function normalisedEmail(value) {
+  return asText(value).toLowerCase();
+}
+
+function divisionList(settings) {
+  return asText(settings.divisions).split(",").map((d) => d.trim()).filter((d) => d !== "");
+}
+
+function withSchedule(ss, body) {
+  return reply({ ...body, schedule: readSchedule(ss) });
+}
+
+function findTarget(ss, record) {
+  const event = asNumberOrText(record.event);
+  const heat = asNumberOrText(record.heat);
+  const lane = asNumberOrText(record.lane);
+  const eventRow = readTable(ss.getSheetByName(EVENTS_TAB)).find((r) => asNumberOrText(r.event) === event);
+  if (!eventRow) return { error: "Event " + event + " does not exist" };
+  const heatRow = readTable(ss.getSheetByName(HEATS)).find((r) => asNumberOrText(r.event) === event && asNumberOrText(r.heat) === heat);
+  if (!heatRow) return { error: "Event " + event + " Heat " + heat + " does not exist" };
+  const laneCount = asNumberOrText(eventRow.lanes);
+  if (typeof lane !== "number" || lane < 1 || lane > laneCount) return { error: "Lane " + lane + " is outside 1–" + laneCount };
+  return { event: event, heat: heat, lane: lane };
+}
+
+function slotRows(ss) {
+  const values = ss.getSheetByName(SLOTS).getDataRange().getValues();
+  const headers = (values[0] || []).map((h) => String(h).trim());
+  const cell = (row, name) => row[headers.indexOf(name)];
+  return values
+    .slice(1)
+    .map((row, i) => ({
+      row: i + 2,
+      event: asNumberOrText(cell(row, "event")),
+      heat: asNumberOrText(cell(row, "heat")),
+      lane: asNumberOrText(cell(row, "lane")),
+      email: normalisedEmail(cell(row, "email")),
+    }))
+    .filter((s) => s.event !== "" || s.heat !== "" || s.lane !== "");
+}
+
+function holderOf(slots, target) {
+  return slots.find((s) => s.event === target.event && s.heat === target.heat && s.lane === target.lane);
+}
+
+function claimSlot(record) {
+  const ss = SpreadsheetApp.getActive();
+  const missing = missingFields(record, CLAIM_REQUIRED);
+  if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
+  const settings = readSettings(ss);
+  if (!asBoolean(settings.signupsOpen)) return reply({ ok: false, error: "Sign-ups are closed" });
+  const target = findTarget(ss, record);
+  if (target.error) return reply({ ok: false, error: target.error });
+  const divisions = divisionList(settings);
+  if (divisions.indexOf(asText(record.division)) === -1) return reply({ ok: false, error: "Division must be one of " + divisions.join(", ") });
+  const email = normalisedEmail(record.email);
+  const slots = slotRows(ss);
+  const holder = holderOf(slots, target);
+  if (holder && holder.email === email) return withSchedule(ss, { ok: true, duplicate: true });
+  if (holder) return withSchedule(ss, { ok: false, error: "Lane " + target.lane + " was just taken" });
+  const elsewhere = slots.find((s) => s.event === target.event && s.email === email);
+  if (elsewhere) return withSchedule(ss, { ok: false, error: "You're already in Heat " + elsewhere.heat + " of this event" });
+  ss.getSheetByName(SLOTS).appendRow([
+    target.event,
+    target.heat,
+    target.lane,
+    asText(record.email),
+    asText(record.team),
+    asText(record.athletes),
+    asText(record.division),
+    new Date().toISOString(),
+  ]);
+  clearScheduleCache();
+  return withSchedule(ss, { ok: true });
+}
+
+function releaseSlot(record) {
+  const ss = SpreadsheetApp.getActive();
+  const missing = missingFields(record, RELEASE_REQUIRED);
+  if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
+  if (!asBoolean(readSettings(ss).signupsOpen)) return reply({ ok: false, error: "Sign-ups are closed" });
+  const target = { event: asNumberOrText(record.event), heat: asNumberOrText(record.heat), lane: asNumberOrText(record.lane) };
+  const holder = holderOf(slotRows(ss), target);
+  if (!holder) return withSchedule(ss, { ok: true });
+  if (holder.email !== normalisedEmail(record.email)) return withSchedule(ss, { ok: false, error: "That slot isn't yours" });
+  ss.getSheetByName(SLOTS).deleteRow(holder.row);
+  clearScheduleCache();
+  return withSchedule(ss, { ok: true });
 }
 
 function alreadyLogged(sheet, clientId) {
