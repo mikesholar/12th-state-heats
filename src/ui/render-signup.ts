@@ -175,6 +175,8 @@ const eventHtml = (options: EventOptions): string => {
       <div class="event-kicker">Event ${event.number}</div>
       <h2>${esc(event.title)}</h2>
       <div class="event-format">${esc(event.format)}</div>
+      <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
+      <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
       ${mine ? `<div class="your-slot" data-testid="your-slot-${event.number}">You're in Heat ${mine.heat}, ${esc(schedule.laneLabel.toLowerCase())} ${mine.lane}</div>` : ""}
     </header>
     ${event.heats.map((heat) => heatHtml({ ...options, heat, alreadyIn: mine !== undefined })).join("")}

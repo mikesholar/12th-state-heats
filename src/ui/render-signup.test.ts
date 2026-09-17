@@ -67,6 +67,18 @@ describe("the comp name", () => {
   });
 });
 
+describe("the workout", () => {
+  it("shows each event's RX and Scaled versions so members can pick a division", () => {
+    const withWod = { ...schedule, events: [makeEvent({ number: 1, title: "12th Gear", format: "12 Rounds", rx: "12 Slam Balls (25/20)", scaled: "12 Slam Balls (15/10)" })] };
+    const { root } = renderWith({ schedule: withWod });
+
+    const header = root.querySelector(".event-header");
+    expect(header).toHaveTextContent("12 Rounds");
+    expect(header).toHaveTextContent("RX 12 Slam Balls (25/20)");
+    expect(header).toHaveTextContent("Scaled 12 Slam Balls (15/10)");
+  });
+});
+
 describe("the email gate", () => {
   it("asks for an email and reports it", () => {
     const { root, options } = renderWith({ email: undefined });
