@@ -19,12 +19,14 @@ const CLAIM_REQUIRED = ["event", "heat", "lane", "email", "team", "athletes", "d
 const RELEASE_REQUIRED = ["event", "heat", "lane", "email"];
 
 const SETTINGS_ROWS = [
+  ["compName", "12 Years of 12th State"],
   ["compDate", "2027-09-11"],
   ["timeZone", "America/New_York"],
   ["laneLabel", "Lane"],
   ["signupsOpen", false],
 ];
 const DEFAULT_LANE_LABEL = "Lane";
+const DEFAULT_COMP_NAME = "12 Years of 12th State";
 const RETIRED_SETTINGS = ["teamSize", "divisions"];
 const DIVISION_HEADERS = ["division", "teamSize"];
 const DIVISION_ROWS = [
@@ -194,6 +196,7 @@ function readSchedule(ss) {
   const settings = readSettings(ss);
   const sheetZone = ss.getSpreadsheetTimeZone();
   return {
+    compName: asText(settings.compName) || DEFAULT_COMP_NAME,
     compDate: asDateString(settings.compDate, sheetZone),
     timeZone: asText(settings.timeZone),
     divisions: readDivisions(ss),
@@ -417,7 +420,7 @@ function createIfMissing(ss, name, headers, fill) {
 
 function setupSettings(ss) {
   createIfMissing(ss, SETTINGS, ["key", "value"], (sheet) => {
-    sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · laneLabel the word for a lane (Lane, Position, Spot) · signupsOpen checkbox");
+    sheet.getRange("A1").setNote("compName the comp title shown on the site · compDate YYYY-MM-DD · timeZone IANA name · laneLabel the word for a lane (Lane, Position, Spot) · signupsOpen checkbox");
   });
   reconcileSettings(ss.getSheetByName(SETTINGS));
 }

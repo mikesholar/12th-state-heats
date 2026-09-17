@@ -113,6 +113,15 @@ describe("the whole schedule", () => {
   });
 });
 
+describe("the comp name", () => {
+  it("is the page heading and the tab title", () => {
+    const root = renderSchedule(makeSchedule({ compName: "2027 Throwdown" }));
+
+    expect(root.querySelector("h1")).toHaveTextContent("2027 Throwdown");
+    expect(document.title).toBe("2027 Throwdown — Heats");
+  });
+});
+
 describe("what a lane is called", () => {
   it("heads the table with the sheet's word for a lane", () => {
     const root = renderSchedule(makeSchedule({ laneLabel: "Position" }));

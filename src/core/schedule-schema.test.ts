@@ -40,6 +40,13 @@ describe("decoding the schedule JSON", () => {
     expect(result.success && result.data.events[0]?.title).toBe("12th Gear");
   });
 
+  it("names the comp from the sheet, with the 2026 name as the fallback", () => {
+    const { compName: _compName, ...withoutName } = makeRawSchedule();
+
+    expect(decodeSchedule(withoutName)).toMatchObject({ success: true, data: { compName: "12 Years of 12th State" } });
+    expect(decodeSchedule(makeRawSchedule({ compName: " 2027 Throwdown " }))).toMatchObject({ success: true, data: { compName: "2027 Throwdown" } });
+  });
+
   it("calls a lane a Lane unless the sheet says otherwise", () => {
     const { laneLabel: _laneLabel, ...withoutLabel } = makeRawSchedule();
 

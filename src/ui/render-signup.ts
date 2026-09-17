@@ -70,10 +70,10 @@ type HeaderOptions = Pick<RenderSignupOptions, "schedule" | "email" | "sourceNot
 const headerHtml = ({ schedule, email, sourceNotice, notice, busy }: HeaderOptions): string => `
   <header class="header">
     <div class="header-row">
-      <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">Sign up</span></h1>
+      <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">${esc(schedule.compName)}</span></h1>
       <span class="pill ${schedule.signupsOpen ? "open" : "closed"}" data-testid="signups-pill">${schedule.signupsOpen ? "Sign-ups open" : "Sign-ups closed"}</span>
     </div>
-    <div class="signup-date">${compDateLabel(schedule)}</div>
+    <div class="signup-date">Sign-up · ${compDateLabel(schedule)}</div>
     ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     ${email ? identityHtml(email) : emailFormHtml()}
     ${notice && !notice.at ? noticeHtml(notice) : ""}
@@ -224,6 +224,7 @@ const wire = (options: RenderSignupOptions): void => {
 };
 
 export const renderSignup = (options: RenderSignupOptions): void => {
+  document.title = `${options.schedule.compName} — Sign up`;
   const { root, schedule, email, openForm, draft, notice, busy, live } = options;
   const canWrite = email !== undefined && schedule.signupsOpen && live && !busy;
   const view: SignupViewState = { schedule, openForm, draft, notice, busy, email, canWrite };

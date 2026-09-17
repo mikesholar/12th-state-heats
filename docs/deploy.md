@@ -111,8 +111,9 @@ Expected `{"ok":true,…}`; the row is gone.
 
 ## 2. Each year: define the comp in the Sheet
 
-1. **Settings** — set `compDate` (`YYYY-MM-DD`) and `timeZone` (an IANA
-   name, e.g. `America/New_York`). `laneLabel` is the word the site uses
+1. **Settings** — set `compName` (the title shown on every page and in the
+   browser tab), `compDate` (`YYYY-MM-DD`) and `timeZone` (an IANA name,
+   e.g. `America/New_York`). `laneLabel` is the word the site uses
    for a lane — `Lane`, `Position`, `Spot` — everywhere it is shown
    (blank means `Lane`). Tick `signupsOpen` when you're ready to share the
    sign-up link; untick it to freeze the field — members can still see the

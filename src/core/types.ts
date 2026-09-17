@@ -33,6 +33,7 @@ export type Division = {
 };
 
 export type Schedule = {
+  readonly compName: string;
   readonly compDate: string;
   readonly timeZone: string;
   readonly divisions: readonly Division[];

@@ -43,6 +43,7 @@ organiser-edited tab; it still rebuilds the formula tabs `Results` and
 
 | key | example | notes |
 |---|---|---|
+| `compName` | `12 Years of 12th State` | page title; blank → the 2026 name |
 | `compDate` | `2027-09-11` | ISO date |
 | `timeZone` | `America/New_York` | IANA name |
 | `laneLabel` | `Lane` | the word shown for a lane (`Position`, `Spot`…); blank → `Lane` |

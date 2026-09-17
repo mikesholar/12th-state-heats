@@ -58,6 +58,15 @@ const renderWith = (overrides?: Partial<RenderSignupOptions>) => {
 
 const chip = (root: HTMLElement, heat: string, lane: number) => root.querySelector(`[data-heat="${heat}"] [data-lane="${lane}"]`);
 
+describe("the comp name", () => {
+  it("heads the page and the tab", () => {
+    const { root } = renderWith({ schedule: { ...schedule, compName: "2027 Throwdown" } });
+
+    expect(root.querySelector("h1")).toHaveTextContent("2027 Throwdown");
+    expect(document.title).toBe("2027 Throwdown — Sign up");
+  });
+});
+
 describe("the email gate", () => {
   it("asks for an email and reports it", () => {
     const { root, options } = renderWith({ email: undefined });

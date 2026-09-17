@@ -6,6 +6,7 @@ type Raw = Readonly<Record<string, unknown>>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_LANE_LABEL = "Lane";
+const DEFAULT_COMP_NAME = "12 Years of 12th State";
 const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
 const HOURS_ON_CLOCK = 24;
 const MINUTES_PER_HOUR = 60;
@@ -179,6 +180,7 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   if (!isTimeZone(timeZone.data)) return fail(`Settings: timeZone "${timeZone.data}" is not a known time zone (e.g. America/New_York)`);
   const divisions = decodeDivisions(raw);
   if (!divisions.success) return divisions;
+  const compName = optionalText(raw, "compName") || DEFAULT_COMP_NAME;
   const laneLabel = optionalText(raw, "laneLabel") || DEFAULT_LANE_LABEL;
   const signupsOpen = boolean(raw, "signupsOpen", "Settings");
   if (!signupsOpen.success) return signupsOpen;
@@ -186,6 +188,7 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   const decodedEvents = all(raw.events.map(decodeEvent));
   if (!decodedEvents.success) return decodedEvents;
   return ok({
+    compName,
     compDate: compDate.data,
     timeZone: timeZone.data,
     divisions: divisions.data,

@@ -26,7 +26,8 @@ good copy, and `src/data/schedule-snapshot.json` (refreshed with
 site. Everything the organiser does is in **[docs/deploy.md](docs/deploy.md)**.
 
 A lane nobody has claimed shows as *— open —*. `laneLabel` in `Settings`
-renames "Lane" everywhere the site shows it (`Position`, `Spot`…). The 2026 snapshot keeps two
+renames "Lane" everywhere the site shows it (`Position`, `Spot`…), and
+`compName` is the title on every page. The 2026 snapshot keeps two
 transcription corrections from the source PDFs: Event 1 Heat 2 lane 5 is
 12th State Dumpys, and Jointly Unstable has no Event 3 lane.
 
