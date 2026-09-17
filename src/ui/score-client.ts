@@ -1,4 +1,5 @@
 import type { Submission } from "../core/submission";
+import { isSheetReply } from "./sheet-reply";
 
 export type PostResult =
   | { readonly kind: "accepted" }
@@ -11,17 +12,10 @@ type PostScoreOptions = {
   readonly fetchFn: typeof fetch;
 };
 
-const isReply = (value: unknown): value is { readonly ok: boolean; readonly error?: string } =>
-  typeof value === "object" &&
-  value !== null &&
-  "ok" in value &&
-  typeof value.ok === "boolean" &&
-  (!("error" in value) || typeof value.error === "string");
-
 const readReply = async (response: Response): Promise<PostResult> => {
   if (!response.ok) return { kind: "unreachable" };
   const body: unknown = await response.json();
-  if (!isReply(body)) return { kind: "unreachable" };
+  if (!isSheetReply(body)) return { kind: "unreachable" };
   return body.ok ? { kind: "accepted" } : { kind: "rejected", error: body.error ?? "Rejected by the sheet" };
 };
 
