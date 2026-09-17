@@ -184,7 +184,7 @@ export const readClaimDraft = ({ root, fallback }: ReadClaimDraftOptions): Claim
   const typed = [...root.querySelectorAll<HTMLInputElement>('[id^="athlete-"]')].map((input) => input.value);
   return {
     team: inputValue(root, "team") ?? fallback.team,
-    athletes: typed.length > 0 ? typed : fallback.athletes,
+    athletes: Array.from({ length: Math.max(typed.length, fallback.athletes.length) }, (_, i) => typed[i] ?? fallback.athletes[i] ?? ""),
     division: inputValue(root, "division") ?? fallback.division,
   };
 };

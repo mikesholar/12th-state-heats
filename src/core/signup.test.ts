@@ -44,7 +44,7 @@ describe("validating a claim", () => {
 });
 
 describe("team size of a division", () => {
-  it("looks the division up by name, defaulting to one field when none is chosen", () => {
+  it("looks the division up by name, with no fields when none is chosen", () => {
     expect(teamSizeOf({ divisions, name: "F/M Scaled" })).toBe(2);
     expect(teamSizeOf({ divisions, name: "" })).toBe(0);
   });

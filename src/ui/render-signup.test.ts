@@ -255,6 +255,14 @@ describe("reading the draft back", () => {
     expect(readClaimDraft({ root, fallback: emptyDraft() })).toEqual(makeClaimDraft());
   });
 
+  it("keeps names beyond the visible fields so switching division and back loses nothing", () => {
+    const { root } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 }, draft: makeClaimDraft({ division: "Individual RX", athletes: ["Caroline Ortiz"] }) });
+
+    const fallback = makeClaimDraft({ athletes: ["Old", "Mike Sholar"] });
+
+    expect(readClaimDraft({ root, fallback }).athletes).toEqual(["Caroline Ortiz", "Mike Sholar"]);
+  });
+
   it("falls back when the form is not on the page", () => {
     const { root } = renderWith();
 
