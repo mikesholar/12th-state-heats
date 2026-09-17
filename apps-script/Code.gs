@@ -218,7 +218,7 @@ function logScore(record) {
 
 function withLock(action) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_MS);
+  if (!lock.tryLock(LOCK_WAIT_MS)) return reply({ ok: false, error: "The sheet is busy — try again" });
   try {
     return action();
   } catch (err) {
