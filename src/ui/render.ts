@@ -122,7 +122,7 @@ const heatCardHtml = ({ schedule, event, heat, now, status }: HeatCardOptions): 
       ${heatTag(id, status)}
     </header>
     <table class="lanes">
-      <thead><tr><th>Lane</th><th>Team</th><th>Div</th></tr></thead>
+      <thead><tr><th>${esc(schedule.laneLabel)}</th><th>Team</th><th>Div</th></tr></thead>
       <tbody>${laneRowsHtml(event, heat)}</tbody>
     </table>
   </article>`;

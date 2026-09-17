@@ -112,9 +112,11 @@ Expected `{"ok":true,…}`; the row is gone.
 ## 2. Each year: define the comp in the Sheet
 
 1. **Settings** — set `compDate` (`YYYY-MM-DD`) and `timeZone` (an IANA
-   name, e.g. `America/New_York`). Tick `signupsOpen` when you're ready to
-   share the sign-up link; untick it to freeze the field — members can
-   still see the heats but not change anything.
+   name, e.g. `America/New_York`). `laneLabel` is the word the site uses
+   for a lane — `Lane`, `Position`, `Spot` — everywhere it is shown
+   (blank means `Lane`). Tick `signupsOpen` when you're ready to share the
+   sign-up link; untick it to freeze the field — members can still see the
+   heats but not change anything.
 2. **Divisions** — one row per division, in the order you want them
    displayed: `division` (the name) and `teamSize` — `1` for individuals,
    `2` for pairs, and so on. Mixed sizes are fine in the same heat (an

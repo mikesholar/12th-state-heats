@@ -58,17 +58,18 @@ const nameGateHtml = (): string => `
 type HeaderOptions = {
   readonly event: Event;
   readonly lane: number;
+  readonly laneLabel: string;
   readonly judgeName: string;
   readonly pending: number;
   readonly endpointConfigured: boolean;
 };
 
-const headerHtml = ({ event, lane, judgeName, pending, endpointConfigured }: HeaderOptions): string => `
+const headerHtml = ({ event, lane, laneLabel, judgeName, pending, endpointConfigured }: HeaderOptions): string => `
   <header class="header judge-header" data-testid="judge-header">
     <div class="header-row">
       <div>
         <div class="event-kicker">Event ${event.number} · ${esc(event.title)}</div>
-        <h1 class="title judge-lane">Lane ${lane}</h1>
+        <h1 class="title judge-lane">${esc(laneLabel)} ${lane}</h1>
       </div>
       <div class="judge-meta">
         <div class="judge-name">${esc(judgeName)}</div>
@@ -88,14 +89,16 @@ const heatSelectorHtml = (options: RenderJudgeOptions, index: number, sent: bool
   </div>`;
 };
 
-const teamCardHtml = (lane: Lane | undefined, laneNumber: number): string =>
+type TeamCardOptions = { readonly lane: Lane | undefined; readonly laneNumber: number; readonly laneLabel: string };
+
+const teamCardHtml = ({ lane, laneNumber, laneLabel }: TeamCardOptions): string =>
   lane
     ? `<section class="team-card" data-testid="team-card">
         <div class="team-card-name">${esc(lane.team)}</div>
         <div class="team-card-athletes">${esc(lane.athletes)}</div>
         <div class="team-card-division">${esc(lane.division)}</div>
       </section>`
-    : `<section class="team-card empty" data-testid="team-card">No team in lane ${laneNumber} for this heat</section>`;
+    : `<section class="team-card empty" data-testid="team-card">No team in ${esc(laneLabel.toLowerCase())} ${laneNumber} for this heat</section>`;
 
 const stepperHtml = (id: string, label: string, value: string): string => `
   <div class="stepper">
@@ -262,10 +265,10 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
   const heatNumbers = event.heats.map((h) => h.number);
 
   root.innerHTML = `
-    ${headerHtml({ event, lane, judgeName, pending: options.pending, endpointConfigured: options.endpointConfigured })}
+    ${headerHtml({ event, lane, laneLabel: schedule.laneLabel, judgeName, pending: options.pending, endpointConfigured: options.endpointConfigured })}
     <main class="main judge-main">
       ${heatSelectorHtml(options, selected.index, sent)}
-      ${teamCardHtml(selected.lane, lane)}
+      ${teamCardHtml({ lane: selected.lane, laneNumber: lane, laneLabel: schedule.laneLabel })}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
     </main>

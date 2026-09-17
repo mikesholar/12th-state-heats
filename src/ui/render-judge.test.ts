@@ -141,6 +141,14 @@ describe("the team card", () => {
     expect(card).toContain("F/M Scaled");
   });
 
+  it("uses the sheet's word for a lane", () => {
+    const positions = makeSchedule({ events: [capped, amrap], laneLabel: "Position" });
+    const { root } = renderWith({ schedule: positions, manual: { heat: 2, at: at("09:12") } });
+
+    expect(getByTestId(root, "judge-header")).toHaveTextContent("Position 5");
+    expect(getByTestId(root, "team-card")).toHaveTextContent("No team in position 5 for this heat");
+  });
+
   it("says when the lane is empty and disables the form", () => {
     const { root } = renderWith({ manual: { heat: 2, at: at("09:12") } });
 

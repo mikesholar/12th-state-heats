@@ -5,6 +5,7 @@ import { validateSchedule } from "./validate-schedule";
 type Raw = Readonly<Record<string, unknown>>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DEFAULT_LANE_LABEL = "Lane";
 const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
 const HOURS_ON_CLOCK = 24;
 const MINUTES_PER_HOUR = 60;
@@ -178,6 +179,7 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   if (!isTimeZone(timeZone.data)) return fail(`Settings: timeZone "${timeZone.data}" is not a known time zone (e.g. America/New_York)`);
   const divisions = decodeDivisions(raw);
   if (!divisions.success) return divisions;
+  const laneLabel = optionalText(raw, "laneLabel") || DEFAULT_LANE_LABEL;
   const signupsOpen = boolean(raw, "signupsOpen", "Settings");
   if (!signupsOpen.success) return signupsOpen;
   if (!Array.isArray(raw.events)) return fail("Events: must be a list");
@@ -187,6 +189,7 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
     compDate: compDate.data,
     timeZone: timeZone.data,
     divisions: divisions.data,
+    laneLabel,
     signupsOpen: signupsOpen.data,
     events: decodedEvents.data,
   });

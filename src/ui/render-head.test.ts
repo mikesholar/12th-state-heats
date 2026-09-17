@@ -46,6 +46,15 @@ describe("the head judge assignment page", () => {
     expect(card?.querySelector("svg")).not.toBeNull();
   });
 
+  it("labels cards with the sheet's word for a lane", async () => {
+    const root = document.createElement("div");
+    const positions = makeSchedule({ events: [makeEvent({ number: 1, lanes: 2 })], laneLabel: "Position" });
+
+    await renderHead({ root, schedule: positions, table, siteUrl: "https://example.test/heats/" });
+
+    expect(getByText(root, "Position 2").tagName).toBe("H3");
+  });
+
   it("skips codes for lanes the event does not have", async () => {
     const root = document.createElement("div");
     const narrow = makeSchedule({ events: [makeEvent({ number: 1, lanes: 1 })] });

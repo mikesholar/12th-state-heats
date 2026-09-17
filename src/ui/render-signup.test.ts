@@ -149,6 +149,20 @@ describe("lane chips", () => {
   });
 });
 
+describe("what a lane is called", () => {
+  it("uses the sheet's word on chips, the claim button and the cancel name", () => {
+    const positions = { ...schedule, laneLabel: "Position" };
+    const { root } = renderWith({ schedule: positions, openForm: { event: 1, heat: 2, lane: 1 }, draft: makeClaimDraft() });
+
+    expect(chip(root, "E1H1", 2)).toHaveTextContent("Position 2 · open");
+    expect(chip(root, "E1H1", 1)).toHaveTextContent("Position 1 ·");
+    expect(getByTestId(root, "your-slot-2")).toHaveTextContent("You're in Heat 1, position 2");
+    expect(getByRole(root, "button", { name: "Claim position 1" })).toBeInTheDocument();
+    expect(getByRole(root, "button", { name: /^cancel position 2/i })).toBeInTheDocument();
+    expect(root.textContent).not.toMatch(/\bLane\b/);
+  });
+});
+
 describe("the claim form", () => {
   const open = { event: 1, heat: 2, lane: 1 };
 

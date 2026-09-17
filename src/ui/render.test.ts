@@ -113,6 +113,15 @@ describe("the whole schedule", () => {
   });
 });
 
+describe("what a lane is called", () => {
+  it("heads the table with the sheet's word for a lane", () => {
+    const root = renderSchedule(makeSchedule({ laneLabel: "Position" }));
+
+    expect(root.querySelector(".lanes thead")).toHaveTextContent("Position");
+    expect(root.querySelector(".lanes thead")).not.toHaveTextContent("Lane");
+  });
+});
+
 describe("the source notice", () => {
   it("is absent when the schedule is live", () => {
     expect(queryByTestId(renderSchedule(makeSchedule()), "source-notice")).toBeNull();

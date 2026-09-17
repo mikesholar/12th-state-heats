@@ -32,18 +32,18 @@ const laneCards = async ({ table, event, siteUrl }: LaneCardsOptions): Promise<r
   );
 };
 
-const cardHtml = ({ code, lane, url, svg }: LaneCard): string => `
+const cardHtml = (laneLabel: string, { code, lane, url, svg }: LaneCard): string => `
   <article class="judge-card" data-testid="judge-card">
-    <h3>Lane ${lane}</h3>
+    <h3>${esc(laneLabel)} ${lane}</h3>
     <div class="qr">${svg}</div>
     <div class="judge-code">${esc(code)}</div>
     <div class="judge-url">${esc(url)}</div>
   </article>`;
 
-const groupHtml = ({ event, cards }: EventGroup): string => `
+const groupHtml = (laneLabel: string, { event, cards }: EventGroup): string => `
   <section class="event-group" data-testid="event-group">
     <h2>Event ${event.number} · ${esc(event.title)}</h2>
-    <div class="judge-cards">${cards.map(cardHtml).join("")}</div>
+    <div class="judge-cards">${cards.map((card) => cardHtml(laneLabel, card)).join("")}</div>
   </section>`;
 
 export const renderHead = async ({ root, schedule, table, siteUrl }: RenderHeadOptions): Promise<void> => {
@@ -52,5 +52,5 @@ export const renderHead = async ({ root, schedule, table, siteUrl }: RenderHeadO
   );
   root.innerHTML = `
     <header class="header"><div class="header-row"><h1 class="title">Judge assignments</h1></div></header>
-    <main class="main head-main">${groups.map(groupHtml).join("")}</main>`;
+    <main class="main head-main">${groups.map((group) => groupHtml(schedule.laneLabel, group)).join("")}</main>`;
 };

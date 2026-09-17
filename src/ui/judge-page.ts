@@ -113,7 +113,7 @@ export const startJudgePage = (options: JudgePageOptions): JudgePage => {
     }
     const selected = resolveJudgeHeat({ schedule, event, lane, now: shownAt, manual: state.manual });
     if (!selected.lane) {
-      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: "No team in this lane for this heat" } }, shownAt);
+      draw({ ...state, draft: currentDraft(), notice: { kind: "error", text: `No team in this ${schedule.laneLabel.toLowerCase()} for this heat` } }, shownAt);
       return;
     }
 

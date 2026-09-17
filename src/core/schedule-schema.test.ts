@@ -40,6 +40,14 @@ describe("decoding the schedule JSON", () => {
     expect(result.success && result.data.events[0]?.title).toBe("12th Gear");
   });
 
+  it("calls a lane a Lane unless the sheet says otherwise", () => {
+    const { laneLabel: _laneLabel, ...withoutLabel } = makeRawSchedule();
+
+    expect(decodeSchedule(withoutLabel)).toMatchObject({ success: true, data: { laneLabel: "Lane" } });
+    expect(decodeSchedule(makeRawSchedule({ laneLabel: "  " }))).toMatchObject({ success: true, data: { laneLabel: "Lane" } });
+    expect(decodeSchedule(makeRawSchedule({ laneLabel: " Position " }))).toMatchObject({ success: true, data: { laneLabel: "Position" } });
+  });
+
   it("rejects anything that is not an object", () => {
     expect(errorOf(null)).toBe("Schedule is not an object");
     expect(errorOf([])).toBe("Schedule is not an object");

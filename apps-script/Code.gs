@@ -21,8 +21,10 @@ const RELEASE_REQUIRED = ["event", "heat", "lane", "email"];
 const SETTINGS_ROWS = [
   ["compDate", "2027-09-11"],
   ["timeZone", "America/New_York"],
+  ["laneLabel", "Lane"],
   ["signupsOpen", false],
 ];
+const DEFAULT_LANE_LABEL = "Lane";
 const DIVISION_HEADERS = ["division", "teamSize"];
 const DIVISION_ROWS = [
   ["F/F RX", 2],
@@ -194,6 +196,7 @@ function readSchedule(ss) {
     compDate: asDateString(settings.compDate, sheetZone),
     timeZone: asText(settings.timeZone),
     divisions: readDivisions(ss),
+    laneLabel: laneLabelOf(settings),
     signupsOpen: asBoolean(settings.signupsOpen),
     events: readEvents(ss, sheetZone),
   };
@@ -258,7 +261,11 @@ function withSchedule(ss, body) {
   return reply({ ...body, schedule: readSchedule(ss) });
 }
 
-function findTarget(ss, record) {
+function laneLabelOf(settings) {
+  return asText(settings.laneLabel) || DEFAULT_LANE_LABEL;
+}
+
+function findTarget(ss, record, laneLabel) {
   const event = asNumberOrText(record.event);
   const heat = asNumberOrText(record.heat);
   const lane = asNumberOrText(record.lane);
@@ -267,7 +274,7 @@ function findTarget(ss, record) {
   const heatRow = readTable(ss.getSheetByName(HEATS)).find((r) => asNumberOrText(r.event) === event && asNumberOrText(r.heat) === heat);
   if (!heatRow) return { error: "Event " + event + " Heat " + heat + " does not exist" };
   const laneCount = asNumberOrText(eventRow.lanes);
-  if (!Number.isInteger(lane) || lane < 1 || lane > laneCount) return { error: "Lane " + lane + " is outside 1–" + laneCount };
+  if (!Number.isInteger(lane) || lane < 1 || lane > laneCount) return { error: laneLabel + " " + lane + " is outside 1–" + laneCount };
   return { event: event, heat: heat, lane: lane };
 }
 
@@ -310,7 +317,8 @@ function claimSlot(record) {
   if (missing.length > 0) return reply({ ok: false, error: "Missing " + missing.join(", ") });
   const settings = readSettings(ss);
   if (!asBoolean(settings.signupsOpen)) return reply({ ok: false, error: "Sign-ups are closed" });
-  const target = findTarget(ss, record);
+  const laneLabel = laneLabelOf(settings);
+  const target = findTarget(ss, record, laneLabel);
   if (target.error) return reply({ ok: false, error: target.error });
   const divisions = divisionNames(ss);
   if (divisions.indexOf(asText(record.division)) === -1) return reply({ ok: false, error: "Division must be one of " + divisions.join(", ") });
@@ -318,7 +326,7 @@ function claimSlot(record) {
   const { headers, rows: slots } = slotRows(ss);
   const holder = holderOf(slots, target);
   if (holder && holder.email === email) return withSchedule(ss, { ok: true, duplicate: true });
-  if (holder) return withSchedule(ss, { ok: false, error: "Lane " + target.lane + " was just taken" });
+  if (holder) return withSchedule(ss, { ok: false, error: laneLabel + " " + target.lane + " was just taken" });
   const elsewhere = slots.find((s) => s.event === target.event && s.email === email);
   if (elsewhere) return withSchedule(ss, { ok: false, error: "You're already in Heat " + elsewhere.heat + " of this event" });
   ss.getSheetByName(SLOTS).appendRow(slotRowFor(headers, {
@@ -411,7 +419,7 @@ function setupSettings(ss) {
     sheet.getRange(2, 2, SETTINGS_ROWS.length - 1, 1).setNumberFormat("@");
     sheet.getRange(2, 1, SETTINGS_ROWS.length, 2).setValues(SETTINGS_ROWS);
     sheet.getRange(2 + SETTINGS_ROWS.length - 1, 2).insertCheckboxes();
-    sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · signupsOpen checkbox");
+    sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · laneLabel the word for a lane (Lane, Position, Spot) · signupsOpen checkbox");
   });
 }
 

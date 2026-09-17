@@ -36,6 +36,7 @@ export type Schedule = {
   readonly compDate: string;
   readonly timeZone: string;
   readonly divisions: readonly Division[];
+  readonly laneLabel: string;
   readonly signupsOpen: boolean;
   readonly events: readonly Event[];
 };

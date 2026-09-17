@@ -79,20 +79,25 @@ const headerHtml = ({ schedule, email, sourceNotice, notice }: HeaderOptions): s
     ${notice && !notice.at ? noticeHtml(notice) : ""}
   </header>`;
 
-const openChipHtml = (slot: SlotKey, interactive: boolean): string =>
+type ChipOptions = { readonly label: string; readonly slot: SlotKey };
+
+const openChipHtml = ({ label, slot }: ChipOptions, interactive: boolean): string =>
   interactive
-    ? `<button type="button" class="chip open" data-lane="${slot.lane}" data-claim="${slotAttr(slot)}">Lane ${slot.lane} · open</button>`
-    : `<div class="chip open dim" data-lane="${slot.lane}" aria-disabled="true">Lane ${slot.lane} · open</div>`;
+    ? `<button type="button" class="chip open" data-lane="${slot.lane}" data-claim="${slotAttr(slot)}">${esc(label)} ${slot.lane} · open</button>`
+    : `<div class="chip open dim" data-lane="${slot.lane}" aria-disabled="true">${esc(label)} ${slot.lane} · open</div>`;
 
-const takenChipHtml = (lane: Lane): string =>
-  `<div class="chip taken" data-lane="${lane.lane}">Lane ${lane.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}</div>`;
+const takenChipHtml = ({ label, slot }: ChipOptions, lane: Lane): string =>
+  `<div class="chip taken" data-lane="${slot.lane}">${esc(label)} ${slot.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}</div>`;
 
-const mineChipHtml = (slot: SlotKey, lane: Lane, canRelease: boolean): string =>
-  `<div class="chip mine" data-lane="${lane.lane}">Lane ${lane.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}${
-    canRelease ? ` <button type="button" class="link" data-release="${slotAttr(slot)}" aria-label="Cancel lane ${lane.lane}, heat ${slot.heat}">Cancel</button>` : ""
+const mineChipHtml = ({ label, slot }: ChipOptions, lane: Lane, canRelease: boolean): string =>
+  `<div class="chip mine" data-lane="${slot.lane}">${esc(label)} ${slot.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}${
+    canRelease
+      ? ` <button type="button" class="link" data-release="${slotAttr(slot)}" aria-label="Cancel ${esc(label.toLowerCase())} ${slot.lane}, heat ${slot.heat}">Cancel</button>`
+      : ""
   }</div>`;
 
 type ChipsOptions = {
+  readonly label: string;
   readonly event: Event;
   readonly heat: Heat;
   readonly email: string | undefined;
@@ -100,14 +105,14 @@ type ChipsOptions = {
   readonly canWrite: boolean;
 };
 
-const chipsHtml = ({ event, heat, email, alreadyIn, canWrite }: ChipsOptions): string =>
+const chipsHtml = ({ label, event, heat, email, alreadyIn, canWrite }: ChipsOptions): string =>
   Array.from({ length: event.lanes }, (_, i) => i + 1)
     .map((laneNumber) => {
-      const slot = { event: event.number, heat: heat.number, lane: laneNumber };
+      const chip = { label, slot: { event: event.number, heat: heat.number, lane: laneNumber } };
       const lane = heat.lanes.find((l) => l.lane === laneNumber);
-      if (!lane) return openChipHtml(slot, canWrite && !alreadyIn);
-      if (email !== undefined && isMine({ lane, email })) return mineChipHtml(slot, lane, canWrite);
-      return takenChipHtml(lane);
+      if (!lane) return openChipHtml(chip, canWrite && !alreadyIn);
+      if (email !== undefined && isMine({ lane, email })) return mineChipHtml(chip, lane, canWrite);
+      return takenChipHtml(chip, lane);
     })
     .join("");
 
@@ -135,7 +140,7 @@ const claimFormHtml = ({ schedule, slot, draft, busy }: FormOptions): string => 
     ${teamSize > 1 ? `<label for="team">Team name</label><input id="team" name="team" type="text" value="${esc(draft.team)}" />` : ""}
     ${athleteFieldsHtml(draft, teamSize)}
     <div class="claim-actions">
-      <button type="submit" class="primary" ${busy ? "disabled" : ""}>Claim lane ${slot.lane}</button>
+      <button type="submit" class="primary" ${busy ? "disabled" : ""}>Claim ${esc(schedule.laneLabel.toLowerCase())} ${slot.lane}</button>
       <button type="button" class="link" id="dismiss-claim">Never mind</button>
     </div>
   </form>`;
@@ -152,7 +157,7 @@ const heatHtml = (options: HeatOptions): string => {
       <h3>Heat ${heat.number}</h3>
       <span class="heat-time">${formatRange(heat.start, heat.end)}</span>
     </header>
-    <div class="chips">${chipsHtml({ event, heat, email, alreadyIn, canWrite })}</div>
+    <div class="chips">${chipsHtml({ label: schedule.laneLabel, event, heat, email, alreadyIn, canWrite })}</div>
     ${formSlot ? claimFormHtml({ schedule, slot: formSlot, draft, busy }) : ""}
     ${notice && sameHeat(notice.at, event, heat) ? noticeHtml(notice) : ""}
   </article>`;
@@ -161,7 +166,7 @@ const heatHtml = (options: HeatOptions): string => {
 type EventOptions = SignupViewState & { readonly event: Event };
 
 const eventHtml = (options: EventOptions): string => {
-  const { event, email } = options;
+  const { event, email, schedule } = options;
   const mine = email === undefined ? undefined : mySlotIn({ event, email });
   return `
   <section class="event" id="event-${event.number}">
@@ -169,7 +174,7 @@ const eventHtml = (options: EventOptions): string => {
       <div class="event-kicker">Event ${event.number}</div>
       <h2>${esc(event.title)}</h2>
       <div class="event-format">${esc(event.format)}</div>
-      ${mine ? `<div class="your-slot" data-testid="your-slot-${event.number}">You're in Heat ${mine.heat}, lane ${mine.lane}</div>` : ""}
+      ${mine ? `<div class="your-slot" data-testid="your-slot-${event.number}">You're in Heat ${mine.heat}, ${esc(schedule.laneLabel.toLowerCase())} ${mine.lane}</div>` : ""}
     </header>
     ${event.heats.map((heat) => heatHtml({ ...options, heat, alreadyIn: mine !== undefined })).join("")}
   </section>`;
