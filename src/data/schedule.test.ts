@@ -12,6 +12,9 @@ describe("the committed snapshot", () => {
   it("pins the 2026 settings", () => {
     expect(schedule.compDate).toBe("2026-09-12");
     expect(schedule.teamSize).toBe(2);
+  });
+
+  it("carries no member emails (it is committed to a public repo)", () => {
     expect(schedule.events.flatMap((e) => e.heats.flatMap((h) => h.lanes)).some((l) => l.email !== undefined)).toBe(false);
   });
 

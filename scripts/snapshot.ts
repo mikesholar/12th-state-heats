@@ -13,6 +13,9 @@ function die(message: string): never {
 const hasSchedule = (value: unknown): value is { readonly ok: true; readonly schedule: unknown } =>
   typeof value === "object" && value !== null && "ok" in value && value.ok === true && "schedule" in value;
 
+const hasError = (value: unknown): value is { readonly ok: false; readonly error: string } =>
+  typeof value === "object" && value !== null && "ok" in value && value.ok === false && "error" in value && typeof value.error === "string";
+
 const withoutEmails = (schedule: Schedule): Schedule => ({
   ...schedule,
   events: schedule.events.map((event) => ({
@@ -30,10 +33,12 @@ if (endpoint === "") die("sheetEndpoint is empty — see docs/deploy.md");
 const response = await fetch(endpoint);
 if (!response.ok) die(`Sheet endpoint answered ${response.status}`);
 const body: unknown = await response.json();
+if (hasError(body)) die(`The Sheet script says: ${body.error}`);
 if (!hasSchedule(body)) die(`Unexpected reply: ${JSON.stringify(body).slice(0, 200)}`);
 
 const decoded = decodeSchedule(body.schedule);
 if (!decoded.success) die(`The Sheet has a problem: ${decoded.error}`);
+if (decoded.data.events.length === 0) die("Refusing to write an empty schedule — the Events tab has no rows");
 
 writeFileSync(OUTPUT, JSON.stringify(withoutEmails(decoded.data), null, 2) + "\n");
 const events = decoded.data.events.map((e) => `E${e.number}: ${e.heats.length} heats`).join(", ");
