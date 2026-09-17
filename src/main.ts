@@ -2,7 +2,7 @@ import "./styles.css";
 import { resolveJudgeCode } from "./core/judge-codes";
 import { chooseSchedule, sourceNotice, type LoadedSchedule } from "./core/load-schedule";
 import type { Event, Schedule } from "./core/types";
-import { judgeCodes } from "./data/judge-codes";
+import { judgeCodes, signupCode } from "./data/judge-codes";
 import { sheetEndpoint } from "./data/sheet-endpoint";
 import { snapshotSchedule } from "./data/snapshot";
 import { startJudgePage } from "./ui/judge-page";
@@ -13,9 +13,12 @@ import { renderHead } from "./ui/render-head";
 import { renderInvalid } from "./ui/render-invalid";
 import { fetchSchedule } from "./ui/schedule-client";
 import { loadCachedSchedule, saveCachedSchedule } from "./ui/schedule-store";
+import { startSignupPage } from "./ui/signup-page";
+import { readSignupCode } from "./ui/signup-route";
 
 const REFRESH_MS = 15_000;
 const RELOAD_SCHEDULE_MS = 60_000;
+const SIGNUP_REFRESH_MS = 30_000;
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
@@ -84,8 +87,19 @@ const startJudge = ({ schedule, event, lane }: StartJudgeOptions): void => {
   window.addEventListener("online", () => void page.tick());
 };
 
+const startSignup = (initial: LoadedSchedule): void => {
+  const page = startSignupPage({ root, initial, loadSchedule, endpoint: sheetEndpoint, fetchFn: fetch });
+  setInterval(() => void page.refresh(), SIGNUP_REFRESH_MS);
+};
+
 const route = (loaded: LoadedSchedule): void => {
   const { schedule } = loaded;
+  const signup = readSignupCode(location.search);
+  if (signup !== undefined) {
+    if (signup === signupCode) startSignup(loaded);
+    else renderInvalid({ root, hint: "Ask the organisers for the sign-up link." });
+    return;
+  }
   const code = readJudgeCode(location.search);
   const assignment = resolveJudgeCode({ table: judgeCodes, code });
   const laneEvent = assignment.kind === "lane" ? schedule.events.find((e) => e.number === assignment.event) : undefined;
