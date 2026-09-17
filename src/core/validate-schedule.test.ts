@@ -1,83 +1,111 @@
 import { validateSchedule } from "./validate-schedule";
 import { makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
-const sevenLanes = (teamPrefix = "Team"): ReturnType<typeof makeLane>[] =>
-  [1, 2, 3, 4, 5, 6, 7].map((lane) => makeLane({ lane, team: `${teamPrefix} ${lane}` }));
-
-const fullHeat = (overrides?: Partial<ReturnType<typeof makeHeat>>) =>
-  makeHeat({ lanes: sevenLanes(), ...overrides });
+const lanes = (count: number) => Array.from({ length: count }, (_, i) => makeLane({ lane: i + 1, team: `Team ${i + 1}` }));
 
 describe("schedule validation", () => {
   it("accepts a well-formed schedule", () => {
     const schedule = makeSchedule({
       events: [
-        makeEvent({ number: 1, heats: [fullHeat()] }),
-        makeEvent({ number: 2, heats: [fullHeat({ start: "09:10", end: "09:20" })] }),
+        makeEvent({ number: 1, heats: [makeHeat({ lanes: lanes(7) })] }),
+        makeEvent({ number: 2, heats: [makeHeat({ start: "09:10", end: "09:20", lanes: lanes(8) })] }),
       ],
     });
 
     expect(validateSchedule(schedule)).toEqual([]);
   });
 
-  it("rejects two teams sharing a lane in the same heat", () => {
-    const lanes = [...sevenLanes().slice(0, 6), makeLane({ lane: 3, team: "Team 7" })];
-    const schedule = makeSchedule({ events: [makeEvent({ heats: [makeHeat({ lanes })] })] });
+  it("accepts a heat with no lanes claimed yet", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ heats: [makeHeat({ lanes: [] })] })] });
 
-    const errors = validateSchedule(schedule);
-
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("Event 1 Heat 1");
-    expect(errors[0]).toContain("lane 3");
+    expect(validateSchedule(schedule)).toEqual([]);
   });
 
-  it("rejects a team that is missing from one of the events", () => {
+  it("rejects two teams sharing a lane in the same heat", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ heats: [makeHeat({ lanes: [...lanes(6), makeLane({ lane: 3, team: "Team 7" })] })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 1 Heat 1: lane 3 is assigned to more than one team"]);
+  });
+
+  it("rejects a lane number outside the event's lane count", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ lanes: 8, heats: [makeHeat({ lanes: [makeLane({ lane: 9 }), makeLane({ lane: 0, team: "Zero" })] })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([
+      "Event 1 Heat 1: lane 9 is outside 1–8",
+      "Event 1 Heat 1: lane 0 is outside 1–8",
+    ]);
+  });
+
+  it("allows a team to skip an event", () => {
     const schedule = makeSchedule({
       events: [
-        makeEvent({ number: 1, heats: [fullHeat()] }),
-        makeEvent({
-          number: 2,
-          heats: [fullHeat({ lanes: [...sevenLanes().slice(0, 6), makeLane({ lane: 7, team: "Team Seven" })] })],
-        }),
+        makeEvent({ number: 1, heats: [makeHeat({ lanes: lanes(2) })] }),
+        makeEvent({ number: 2, heats: [makeHeat({ lanes: [makeLane({ lane: 1, team: "Team 1" })] })] }),
       ],
     });
 
-    const errors = validateSchedule(schedule);
-
-    expect(errors.some((e) => e.includes('"Team 7"') && e.includes("Event 2"))).toBe(true);
-    expect(errors.some((e) => e.includes('"Team Seven"') && e.includes("Event 1"))).toBe(true);
+    expect(validateSchedule(schedule)).toEqual([]);
   });
 
   it("rejects overlapping heats within an event", () => {
     const schedule = makeSchedule({
       events: [
         makeEvent({
-          heats: [
-            fullHeat({ number: 1, start: "08:00", end: "08:08" }),
-            fullHeat({ number: 2, start: "08:05", end: "08:13", lanes: sevenLanes() }),
-          ],
+          heats: [makeHeat({ number: 1, start: "08:00", end: "08:08" }), makeHeat({ number: 2, start: "08:05", end: "08:13" })],
         }),
       ],
     });
 
-    const errors = validateSchedule(schedule);
+    expect(validateSchedule(schedule)).toEqual(["Event 1 Heat 2: starts 08:05, overlaps Heat 1 ending 08:08"]);
+  });
 
-    expect(errors.some((e) => e.includes("Event 1 Heat 2") && e.includes("overlaps"))).toBe(true);
+  it("rejects a heat that ends before it starts", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ heats: [makeHeat({ number: 3, start: "08:26", end: "08:21" })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 1 Heat 3: end 08:21 is not after start 08:26"]);
   });
 
   it("rejects an event with no heats", () => {
     const schedule = makeSchedule({ events: [makeEvent({ number: 1, heats: [] })] });
 
-    expect(validateSchedule(schedule)).toContain("Event 1: has no heats");
+    expect(validateSchedule(schedule)).toEqual(["Event 1: has no heats"]);
   });
 
-  it("rejects a heat with fewer than seven or more than eight lanes", () => {
+  it("rejects duplicate heat numbers within an event", () => {
     const schedule = makeSchedule({
-      events: [makeEvent({ heats: [makeHeat({ lanes: sevenLanes().slice(0, 6) })] })],
+      events: [makeEvent({ heats: [makeHeat({ number: 2, start: "08:00", end: "08:08" }), makeHeat({ number: 2, start: "08:13", end: "08:21" })] })],
     });
 
-    const errors = validateSchedule(schedule);
+    expect(validateSchedule(schedule)).toEqual(["Event 1: Heat 2 appears more than once"]);
+  });
 
-    expect(errors.some((e) => e.includes("Event 1 Heat 1") && e.includes("6 lanes"))).toBe(true);
+  it("rejects duplicate event numbers", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ number: 2 }), makeEvent({ number: 2 })] });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 2 appears more than once"]);
+  });
+
+  it("rejects a team size below one", () => {
+    expect(validateSchedule(makeSchedule({ teamSize: 0 }))).toEqual(["teamSize must be at least 1"]);
+  });
+
+  it("rejects an empty division list", () => {
+    const schedule = makeSchedule({ divisions: [], events: [makeEvent({ heats: [makeHeat({ lanes: [] })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(["divisions must list at least one division"]);
+  });
+
+  it("rejects a lane whose division is not in the list", () => {
+    const schedule = makeSchedule({
+      divisions: ["RX", "Scaled"],
+      events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ lane: 3, division: "Open" })] })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual(['Event 1 Heat 1: lane 3 division "Open" is not one of RX, Scaled']);
   });
 });
 
@@ -95,9 +123,7 @@ describe("scoring configuration", () => {
   });
 
   it("accepts a time-or-rounds event with a cap", () => {
-    const schedule = makeSchedule({
-      events: [makeEvent({ scoring: "time-or-rounds", capSeconds: 480, heats: [fullHeat()] })],
-    });
+    const schedule = makeSchedule({ events: [makeEvent({ scoring: "time-or-rounds", capSeconds: 480 })] });
 
     expect(validateSchedule(schedule)).toEqual([]);
   });

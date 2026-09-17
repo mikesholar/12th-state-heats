@@ -3,6 +3,7 @@ export type Lane = {
   readonly team: string;
   readonly athletes: string;
   readonly division: string;
+  readonly email?: string;
 };
 
 export type Heat = {
@@ -22,11 +23,15 @@ export type Event = {
   readonly capSeconds?: number;
   readonly rx: string;
   readonly scaled: string;
+  readonly lanes: number;
   readonly heats: readonly Heat[];
 };
 
 export type Schedule = {
   readonly compDate: string;
   readonly timeZone: string;
+  readonly teamSize: number;
+  readonly divisions: readonly string[];
+  readonly signupsOpen: boolean;
   readonly events: readonly Event[];
 };

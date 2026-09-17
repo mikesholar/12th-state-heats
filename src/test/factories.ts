@@ -25,13 +25,19 @@ export const makeEvent = (overrides?: Partial<Event>): Event => ({
   scoring: "rounds-reps",
   rx: "rx",
   scaled: "scaled",
+  lanes: 8,
   heats: [makeHeat()],
   ...overrides,
 });
 
+export const DIVISIONS = ["F/F RX", "F/F Scaled", "F/M RX", "F/M Scaled", "M/M RX", "M/M Scaled"];
+
 export const makeSchedule = (overrides?: Partial<Schedule>): Schedule => ({
   compDate: "2026-09-12",
   timeZone: "America/New_York",
+  teamSize: 2,
+  divisions: DIVISIONS,
+  signupsOpen: true,
   events: [makeEvent()],
   ...overrides,
 });

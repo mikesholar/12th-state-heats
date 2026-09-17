@@ -10,8 +10,8 @@ const laneFor = (team: string) =>
   });
 
 describe("the shipped schedule", () => {
-  it("passes validation except for the one gap present in the source PDFs", () => {
-    expect(validateSchedule(schedule)).toEqual(['"Jointly Unstable" is missing from Event 3']);
+  it("passes validation", () => {
+    expect(validateSchedule(schedule)).toEqual([]);
   });
 
   it("has three events of five heats each", () => {

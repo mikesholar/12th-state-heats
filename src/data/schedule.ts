@@ -17,6 +17,9 @@ const heat = (number: number, start: string, end: string, lanes: readonly Lane[]
 export const schedule: Schedule = {
   compDate: "2026-09-12",
   timeZone: "America/New_York",
+  teamSize: 2,
+  divisions: ["F/F RX", "F/F Scaled", "F/M RX", "F/M Scaled", "M/M RX", "M/M Scaled"],
+  signupsOpen: false,
   events: [
     {
       number: 1,
@@ -26,6 +29,7 @@ export const schedule: Schedule = {
       capSeconds: 480,
       rx: "ABA style · 12 Slam Balls (25/20) · 12 Box Jump Overs (24/20) · 1 Shuttle Run",
       scaled: "ABA style · 12 Slam Balls (15/10) · 12 Box Step Overs (20\") · 1 Shuttle Run",
+      lanes: 8,
       heats: [
         heat(1, "08:00", "08:08", [
           lane(1, "Resting WOD Face", "Nicole Duncan + Cindy Sholar", "F/F Scaled"),
@@ -83,6 +87,7 @@ export const schedule: Schedule = {
       scoring: "rounds-reps",
       rx: "40 Wall Balls (20/14) · 30 Calorie Bike · 20 Pull Ups · 10 Power Cleans (185/135)",
       scaled: "40 Wall Balls (14/10) · 30 Calorie Bike · 20 Ring Rows · 10 Power Cleans (95/65)",
+      lanes: 8,
       heats: [
         heat(1, "09:10", "09:20", [
           lane(1, "Resting WOD Face", "Nicole Duncan + Cindy Sholar", "F/F Scaled"),
@@ -141,6 +146,7 @@ export const schedule: Schedule = {
       capSeconds: 720,
       rx: "24 Synchro DB Deadlifts · 24 Burpees over DB · 24 Synchro DB Push Press · 24 DB Reverse Lunges · 24 Synchro Sit Ups · DB (50/35)",
       scaled: "Same movements · DB (35/20) · Movements not marked synchro may be split as needed",
+      lanes: 8,
       heats: [
         heat(1, "11:40", "11:52", [
           lane(1, "Resting WOD Face", "Nicole Duncan + Cindy Sholar", "F/F Scaled"),

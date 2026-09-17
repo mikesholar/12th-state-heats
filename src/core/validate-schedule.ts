@@ -1,8 +1,5 @@
 import type { Event, Heat, Schedule } from "./types";
 
-const MIN_LANES = 7;
-const MAX_LANES = 8;
-
 const heatLabel = (event: Event, heat: Heat): string => `Event ${event.number} Heat ${heat.number}`;
 
 const duplicateLaneErrors = (event: Event, heat: Heat): readonly string[] =>
@@ -10,11 +7,21 @@ const duplicateLaneErrors = (event: Event, heat: Heat): readonly string[] =>
     .filter((lane, index) => heat.lanes.findIndex((other) => other.lane === lane.lane) !== index)
     .map((lane) => `${heatLabel(event, heat)}: lane ${lane.lane} is assigned to more than one team`);
 
-const laneCountErrors = (event: Event, heat: Heat): readonly string[] => {
-  const count = heat.lanes.length;
-  if (count >= MIN_LANES && count <= MAX_LANES) return [];
-  return [`${heatLabel(event, heat)}: has ${count} lanes, expected ${MIN_LANES}–${MAX_LANES}`];
-};
+const laneRangeErrors = (event: Event, heat: Heat): readonly string[] =>
+  heat.lanes
+    .filter((lane) => lane.lane < 1 || lane.lane > event.lanes)
+    .map((lane) => `${heatLabel(event, heat)}: lane ${lane.lane} is outside 1–${event.lanes}`);
+
+const divisionErrors = (schedule: Schedule, event: Event, heat: Heat): readonly string[] =>
+  heat.lanes
+    .filter((lane) => !schedule.divisions.includes(lane.division))
+    .map(
+      (lane) =>
+        `${heatLabel(event, heat)}: lane ${lane.lane} division "${lane.division}" is not one of ${schedule.divisions.join(", ")}`,
+    );
+
+const heatTimeErrors = (event: Event, heat: Heat): readonly string[] =>
+  heat.end > heat.start ? [] : [`${heatLabel(event, heat)}: end ${heat.end} is not after start ${heat.start}`];
 
 const overlapErrors = (event: Event): readonly string[] =>
   event.heats.flatMap((heat, index) => {
@@ -23,18 +30,15 @@ const overlapErrors = (event: Event): readonly string[] =>
     return [`${heatLabel(event, heat)}: starts ${heat.start}, overlaps Heat ${previous.number} ending ${previous.end}`];
   });
 
-const teamsIn = (event: Event): ReadonlySet<string> =>
-  new Set(event.heats.flatMap((heat) => heat.lanes.map((lane) => lane.team)));
+const duplicateHeatErrors = (event: Event): readonly string[] =>
+  event.heats
+    .filter((heat, index) => event.heats.findIndex((other) => other.number === heat.number) !== index)
+    .map((heat) => `Event ${event.number}: Heat ${heat.number} appears more than once`);
 
-const missingTeamErrors = (schedule: Schedule): readonly string[] => {
-  const allTeams = new Set(schedule.events.flatMap((event) => [...teamsIn(event)]));
-  return schedule.events.flatMap((event) => {
-    const present = teamsIn(event);
-    return [...allTeams]
-      .filter((team) => !present.has(team))
-      .map((team) => `"${team}" is missing from Event ${event.number}`);
-  });
-};
+const duplicateEventErrors = (schedule: Schedule): readonly string[] =>
+  schedule.events
+    .filter((event, index) => schedule.events.findIndex((other) => other.number === event.number) !== index)
+    .map((event) => `Event ${event.number} appears more than once`);
 
 const noHeatErrors = (event: Event): readonly string[] =>
   event.heats.length === 0 ? [`Event ${event.number}: has no heats`] : [];
@@ -50,12 +54,24 @@ const scoringErrors = (event: Event): readonly string[] => {
   return [];
 };
 
+const settingsErrors = (schedule: Schedule): readonly string[] => [
+  ...(schedule.teamSize < 1 ? ["teamSize must be at least 1"] : []),
+  ...(schedule.divisions.length === 0 ? ["divisions must list at least one division"] : []),
+];
+
+const heatErrors = (schedule: Schedule, event: Event, heat: Heat): readonly string[] => [
+  ...duplicateLaneErrors(event, heat),
+  ...laneRangeErrors(event, heat),
+  ...(schedule.divisions.length === 0 ? [] : divisionErrors(schedule, event, heat)),
+  ...heatTimeErrors(event, heat),
+];
+
 export const validateSchedule = (schedule: Schedule): readonly string[] => [
-  ...schedule.events.flatMap((event) =>
-    event.heats.flatMap((heat) => [...duplicateLaneErrors(event, heat), ...laneCountErrors(event, heat)]),
-  ),
+  ...settingsErrors(schedule),
+  ...duplicateEventErrors(schedule),
+  ...schedule.events.flatMap((event) => event.heats.flatMap((heat) => heatErrors(schedule, event, heat))),
   ...schedule.events.flatMap(overlapErrors),
-  ...missingTeamErrors(schedule),
+  ...schedule.events.flatMap(duplicateHeatErrors),
   ...schedule.events.flatMap(scoringErrors),
   ...schedule.events.flatMap(noHeatErrors),
 ];
