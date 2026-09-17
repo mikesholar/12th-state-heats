@@ -2,7 +2,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/12th-state-heats/",
+  base: "/",
   test: {
     globals: true,
     environment: "jsdom",

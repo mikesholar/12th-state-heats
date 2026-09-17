@@ -4,7 +4,7 @@ import type { JudgeAssignment, JudgeCodeTable } from "../src/core/judge-codes";
 import { snapshotSchedule } from "../src/data/snapshot";
 
 const OUTPUT = "src/data/judge-codes.ts";
-const SITE = "https://mikesholar.github.io/12th-state-heats/";
+const SITE = "https://12thstatecomp.com/";
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 const CODE_LENGTH = 5;
 const GRID_EVENTS = 6;

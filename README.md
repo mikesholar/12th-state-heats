@@ -3,7 +3,7 @@
 Phone-first heat and lane tracker for the 12th State CrossFit in-house comp,
 **Saturday, September 12, 2026**, 8:00 AM – 1:00 PM Eastern.
 
-**Live:** https://mikesholar.github.io/12th-state-heats/
+**Live:** https://12thstatecomp.com/
 
 Open it on comp day and it shows the heat on the floor, the heat up next, and
 every event's heats and lanes. The page refreshes itself every 15 seconds; no
