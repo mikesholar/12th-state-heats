@@ -16,7 +16,7 @@ describe("fetching the schedule from the sheet", () => {
       kind: "loaded",
       schedule: makeSchedule({ events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ email: "a@example.com" })] })] })] }),
     });
-    expect(fetchFn).toHaveBeenCalledWith(ENDPOINT, { cache: "no-store" });
+    expect(fetchFn).toHaveBeenCalledWith(ENDPOINT, expect.objectContaining({ cache: "no-store", signal: expect.any(AbortSignal) }));
   });
 
   it("is unreachable when the endpoint is not configured, without fetching", async () => {

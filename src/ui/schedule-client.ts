@@ -8,6 +8,8 @@ type FetchScheduleOptions = {
 
 type Reply = { readonly ok: boolean; readonly error?: string; readonly schedule?: unknown };
 
+const FETCH_TIMEOUT_MS = 8_000;
+
 const isReply = (value: unknown): value is Reply =>
   typeof value === "object" &&
   value !== null &&
@@ -25,7 +27,7 @@ const outcomeOf = (body: unknown): FetchOutcome => {
 
 const readBody = async ({ endpoint, fetchFn }: FetchScheduleOptions): Promise<{ readonly body: unknown } | undefined> => {
   try {
-    const response = await fetchFn(endpoint, { cache: "no-store" });
+    const response = await fetchFn(endpoint, { cache: "no-store", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!response.ok) return undefined;
     return { body: await response.json() };
   } catch {

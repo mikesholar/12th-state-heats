@@ -52,18 +52,30 @@ const startSpectator = (initial: LoadedSchedule): void => {
     });
   };
 
+  const reloadLater = (): void => {
+    setTimeout(() => {
+      void loadSchedule()
+        .then((next) => {
+          loaded = next;
+          draw(loadTeam());
+        })
+        .finally(reloadLater);
+    }, RELOAD_SCHEDULE_MS);
+  };
+
   draw(loadTeam());
   root.querySelector(".heat.current, .heat.upcoming")?.scrollIntoView({ block: "start" });
   setInterval(() => draw(loadTeam()), REFRESH_MS);
-  setInterval(() => {
-    void loadSchedule().then((next) => {
-      loaded = next;
-      draw(loadTeam());
-    });
-  }, RELOAD_SCHEDULE_MS);
+  reloadLater();
 };
 
-const startJudge = (schedule: Schedule, event: Event, lane: number): void => {
+type StartJudgeOptions = {
+  readonly schedule: Schedule;
+  readonly event: Event;
+  readonly lane: number;
+};
+
+const startJudge = ({ schedule, event, lane }: StartJudgeOptions): void => {
   const page = startJudgePage({
     root,
     schedule,
@@ -85,7 +97,8 @@ const route = (loaded: LoadedSchedule): void => {
   const laneEvent = assignment.kind === "lane" ? schedule.events.find((e) => e.number === assignment.event) : undefined;
 
   if (code === undefined) startSpectator(loaded);
-  else if (assignment.kind === "lane" && laneEvent && assignment.lane <= laneEvent.lanes) startJudge(schedule, laneEvent, assignment.lane);
+  else if (assignment.kind === "lane" && laneEvent && assignment.lane <= laneEvent.lanes)
+    startJudge({ schedule, event: laneEvent, lane: assignment.lane });
   else if (assignment.kind === "head")
     void renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` }).catch(() =>
       renderInvalid({ root }),
@@ -93,5 +106,9 @@ const route = (loaded: LoadedSchedule): void => {
   else renderInvalid({ root });
 };
 
+const renderLoadFailed = (): void => {
+  root.innerHTML = `<main class="main"><p class="loading">Couldn't load the schedule — check your connection and reload.</p></main>`;
+};
+
 root.innerHTML = `<main class="main"><p class="loading">Loading schedule…</p></main>`;
-void loadSchedule().then(route);
+void loadSchedule().then(route).catch(renderLoadFailed);
