@@ -118,14 +118,15 @@ Dispatches on `action` in the JSON body. Every reply is `{ ok: true, … }` or
 answer).
 
 - **No `action` or `action: "score"`** — the existing score log, unchanged.
-- **`action: "claim"`** — body: `clientId, event, heat, lane, email, team,
-  athletes, division`. Refused (`ok: false`) when: `signupsOpen` is false;
-  the event/heat doesn't exist or `lane` is outside `1..lanes`; the slot is
+- **`action: "claim"`** — body: `event, heat, lane, email, team, athletes,
+  division`. Refused (`ok: false`) when: `signupsOpen` is false; the
+  event/heat doesn't exist or `lane` is outside `1..lanes`; the slot is
   held by a different email; this email already holds a slot in this
   event; `division` is not in the list; `team` or `athletes` is blank.
-  Emails are compared trimmed and case-insensitively. The same `clientId`
-  twice → `{ ok: true, duplicate: true }`. On success appends the `Slots`
-  row with `signedUpAt` = server time.
+  Emails are compared trimmed and case-insensitively. Re-claiming a slot
+  you already hold → `{ ok: true, duplicate: true }` (retries are
+  idempotent without a client id). On success appends the `Slots` row with
+  `signedUpAt` = server time.
 - **`action: "release"`** — body: `event, heat, lane, email`. Deletes the
   matching row only if the email matches; otherwise
   `{ ok: false, error: "That slot isn't yours" }`. A slot that is already
@@ -279,7 +280,9 @@ code exists.
 
 ### Sign-up page (`?s=<code>`)
 
-Phone-first, same styling family as the rest.
+Phone-first, same styling family as the rest. The email input is
+`type="email"`. A slow background refresh never overwrites a claim that
+landed after it started.
 
 1. **Header** — comp date, an "Sign-ups open" / "Sign-ups closed" pill, and
    a "Your email" field remembered on the device under `signup:email`.
@@ -300,11 +303,11 @@ Phone-first, same styling family as the rest.
    Fields are pre-filled from this device's last claim (`signup:last`).
    The client joins the names with ` + ` into `athletes`; for individuals
    `team` = the name. Blank fields are rejected inline before posting.
-4. **Submit** — posts `claim` with a fresh `clientId`; on `ok` the page
-   redraws from the returned schedule and the chip is now **yours**. A
-   rejection shows the server's message inline under the heat (e.g. "Lane 4
-   was just taken") and the redrawn heat shows the slot taken.
-   Unreachable → "Couldn't reach the sheet — try again".
+4. **Submit** — posts `claim`; on `ok` the page redraws from the returned
+   schedule and the chip is now **yours**. On a refusal the form closes and
+   the redrawn chips show why (e.g. "Lane 4 was just taken"); the typed
+   values are kept for the next attempt. When the sheet is unreachable
+   ("Couldn't reach the sheet — try again") the form stays open.
 5. **Cancel** — posts `release`; on `ok` redraws. No confirm dialog: the slot
    is one tap to reclaim.
 6. **Closed** — when `signupsOpen` is false everything is read-only, Cancel

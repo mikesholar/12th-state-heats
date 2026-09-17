@@ -92,13 +92,31 @@ Now the real thing: open a judge link on your phone (get it from
 **Then delete the smoke-test rows from `Log`** (right-click the row number →
 Delete row). `Results` and `Overall` update themselves.
 
+Now the sign-up endpoint (same URL again):
+
+```bash
+curl -sL '<url>' --data '{"action":"claim","event":1,"heat":1,"lane":1,"email":"smoke@example.com","team":"Smoke Test","athletes":"A + B","division":"F/M Scaled"}'
+```
+
+Expected `{"ok":true,"schedule":{…}}` — or `{"ok":false,"error":"Sign-ups
+are closed"}` if the `signupsOpen` box is unticked (tick it first). The
+`division` must be one of the values listed in `Settings`. `Slots` gains a
+row. Then:
+
+```bash
+curl -sL '<url>' --data '{"action":"release","event":1,"heat":1,"lane":1,"email":"smoke@example.com"}'
+```
+
+Expected `{"ok":true,…}`; the row is gone.
+
 ## 2. Each year: define the comp in the Sheet
 
 1. **Settings** — set `compDate` (`YYYY-MM-DD`), `timeZone` (an IANA name,
    e.g. `America/New_York`), `teamSize` (`1` for an individual comp), and
    `divisions` as a comma-separated list in the order you want them
-   displayed. Leave `signupsOpen` unchecked — the sign-up page isn't built
-   yet.
+   displayed. Tick `signupsOpen` when you're ready to share the sign-up
+   link; untick it to freeze the field — members can still see the heats
+   but not change anything.
 2. **Events** — one row per event: `scoring` is `time-or-rounds` for
    anything with a time cap (fill in `capSeconds`) or `rounds-reps` for an
    AMRAP (leave `capSeconds` blank); `lanes` is the number of lanes per
@@ -114,16 +132,20 @@ Delete row). `Results` and `Overall` update themselves.
    rounds-reps`) — fix the cell. Changes show on phones within about a
    minute and a half: the script caches replies for 30 s and phones
    re-fetch every 60 s.
-6. **Slots** — until the sign-up page ships, fill this in by hand: one row
-   per claimed lane (`event`, `heat`, `lane`, `team`, `athletes`,
-   `division`; `email` and `signedUpAt` are optional).
+6. **Slots** — filled in by the sign-up page as members claim lanes. Rows
+   can also be typed by hand: one row per claimed lane (`event`, `heat`,
+   `lane`, `team`, `athletes`, `division`; `email` and `signedUpAt` are
+   optional). Leave `email` blank for a hand-typed row — then nobody can
+   cancel it from the sign-up page. A member's row carries their email, so
+   only they can cancel it.
 7. Either start a fresh Sheet for the year (repeat section 1 — a new
    deployment gives a new `/exec` URL for `src/data/sheet-endpoint.ts`) or
    clear last year's rows from `Slots` and `Log` in the same Sheet.
 8. `npm run judge-links` — prints every judge URL plus the head-judge link.
-   Codes are stable across years, so existing links keep working; pass
-   `--regenerate` to issue fresh ones (do this if a link was posted
-   somewhere public).
+   It also prints the `SIGN-UP` link — share that with members. It is
+   obscure, not secret: anyone with the link can sign up. Codes are stable
+   across years, so existing links keep working; pass `--regenerate` to
+   issue fresh ones (do this if a link was posted somewhere public).
 9. Update the date in `README.md` and the `<meta name="description">` in
    `index.html`.
 
@@ -135,6 +157,19 @@ Delete row). `Results` and `Overall` update themselves.
   strips them before writing the file.
 - `npm test`, commit, push.
 
+## 2a. Sign-up window
+
+1. Tick `signupsOpen` in `Settings`.
+2. Share the sign-up link (`npm run judge-links` prints the `SIGN-UP`
+   line).
+3. Members claim one lane per event: email once, then team name, athlete
+   names and division per lane. They can Cancel their own claim from the
+   page.
+4. Watch `Slots` as claims come in; fix anything wrong by editing or
+   deleting rows directly.
+5. The night before: untick `signupsOpen`, `npm run snapshot`, commit,
+   push.
+
 ## 3. Comp day
 
 **Night before**
@@ -143,6 +178,8 @@ Delete row). `Results` and `Overall` update themselves.
   event × lane.
 - Open the Sheet on the laptop at the scorer's table. Keep `Overall` visible.
 - Check the site loads on the gym Wi-Fi and on cellular.
+- The sign-up link keeps working on comp day only if `signupsOpen` is
+  ticked; leave it unticked so nobody moves lanes mid-comp.
 
 **Before each event**
 - Head judge walks the lanes; each lane judge scans the QR card for their
@@ -206,3 +243,9 @@ so the site does not need a rebuild.
 | Comp date is off by one | `compDate` cell became a date in a sheet whose time zone differs from the comp's | Type it as text (`'2027-09-11`), or set File → Settings → Time zone to the comp's zone |
 | Judge page says "No team in lane N" for a lane that was just filled | Judge page loaded before the change | Reload the judge page |
 | `Overall` has the wrong number of `E` columns | Events changed after `setup()` | Run `setup()` again |
+| Sign-up page says "Sign-ups are closed" when claiming | `signupsOpen` unticked | Tick it in `Settings` |
+| "Lane N was just taken" | Someone else claimed it seconds earlier | Pick another lane |
+| "You're already in Heat X of this event" | One lane per email per event | Cancel the other one first (or use the other email) |
+| A member can't cancel a slot | The `Slots` row's `email` doesn't match theirs (hand-typed or typo) | Fix the `email` cell or delete the row |
+| Member says the page shows old data | Script caches 30 s; the page re-fetches every 30 s | Wait a minute or reload |
+| Sign-up link shows "This link isn't valid" | Code doesn't match `signupCode` in `src/data/judge-codes.ts` | `npm run judge-links` and share the printed `SIGN-UP` link |

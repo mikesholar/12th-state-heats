@@ -30,6 +30,14 @@ A lane nobody has claimed shows as *— open —*. The 2026 snapshot keeps two
 transcription corrections from the source PDFs: Event 1 Heat 2 lane 5 is
 12th State Dumpys, and Jointly Unstable has no Event 3 lane.
 
+## Sign-up
+
+Members use the sign-up link (`?s=<code>`, printed by `npm run judge-links`)
+to claim one lane per event: email once, then team name, athlete names and
+division per lane. Their own claims show a **Cancel**. Organisers open and
+close the window with the `signupsOpen` checkbox in `Settings` and can fix
+anything by editing `Slots`.
+
 ## Previewing a different time
 
 Append `?at=YYYY-MM-DDTHH:MM` (Eastern) to see the page as it will look then:
