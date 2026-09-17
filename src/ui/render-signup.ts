@@ -77,7 +77,7 @@ const headerHtml = ({ schedule, email, sourceNotice, notice, busy }: HeaderOptio
     ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     ${email ? identityHtml(email) : emailFormHtml()}
     ${notice && !notice.at ? noticeHtml(notice) : ""}
-    ${busy ? `<div class="notice info" role="status" aria-busy="true" data-testid="saving">Saving to the sheet…</div>` : ""}
+    ${busy ? `<div class="notice info" role="status" aria-busy="true" data-testid="saving">Notifying the Coaches!</div>` : ""}
   </header>`;
 
 type ChipOptions = { readonly label: string; readonly slot: SlotKey };

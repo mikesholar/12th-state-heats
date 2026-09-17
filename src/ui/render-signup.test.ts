@@ -153,7 +153,7 @@ describe("lane chips", () => {
   it("says it is saving while a write is in flight", () => {
     const { root } = renderWith({ busy: true });
 
-    expect(getByTestId(root, "saving")).toHaveTextContent("Saving to the sheet…");
+    expect(getByTestId(root, "saving")).toHaveTextContent("Notifying the Coaches!");
     expect(queryByTestId(renderWith().root, "saving")).toBeNull();
   });
 
