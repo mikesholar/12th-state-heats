@@ -52,6 +52,47 @@ export const makeScore = (overrides?: Partial<Extract<Score, { kind: "rounds-rep
   ...overrides,
 });
 
+export type RawObject = Readonly<Record<string, unknown>>;
+
+export const makeRawLane = (overrides?: RawObject): RawObject => ({
+  lane: 1,
+  email: "a@example.com",
+  team: "Team A",
+  athletes: "A One + A Two",
+  division: "F/M Scaled",
+  ...overrides,
+});
+
+export const makeRawHeat = (overrides?: RawObject): RawObject => ({
+  number: 1,
+  start: "08:00",
+  end: "08:08",
+  lanes: [makeRawLane()],
+  ...overrides,
+});
+
+export const makeRawEvent = (overrides?: RawObject): RawObject => ({
+  number: 1,
+  title: "Test Event",
+  format: "AMRAP 1",
+  scoring: "rounds-reps",
+  rx: "rx",
+  scaled: "scaled",
+  lanes: 8,
+  heats: [makeRawHeat()],
+  ...overrides,
+});
+
+export const makeRawSchedule = (overrides?: RawObject): RawObject => ({
+  compDate: "2026-09-12",
+  timeZone: "America/New_York",
+  teamSize: 2,
+  divisions: DIVISIONS,
+  signupsOpen: true,
+  events: [makeRawEvent()],
+  ...overrides,
+});
+
 export const makeSubmission = (overrides?: Partial<Submission>): Submission => ({
   clientId: "sub-1",
   submittedAt: "2026-09-12T13:45:00.000Z",
