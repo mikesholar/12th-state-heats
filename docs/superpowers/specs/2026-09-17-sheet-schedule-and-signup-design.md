@@ -265,8 +265,9 @@ code exists.
 ### Spectator page changes
 
 - Lanes with no claim render as `— open —`.
-- The team picker lists claimed lanes across all events, deduped by team
-  name. Its label is "I'm on…" when `teamSize > 1`, "I'm…" when 1.
+- The "I'm on…" team picker, the my-heat card, the sticky strip and the row
+  highlight are removed (decision 2026-09-17, after Plan A shipped): the
+  page shows the whole schedule and nothing is remembered per phone.
 - Offline/problem pill as above.
 
 ### Judge page changes
