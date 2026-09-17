@@ -24,8 +24,8 @@ it is for judge links.
 | Question | Decision |
 |---|---|
 | Sign-up model | Slot-picking: a member claims a specific heat × lane, **per event** (a comp may have one event or several). |
-| What a slot captures | Email, team name (when team size > 1), one name per athlete, division from a Sheet-defined list. No separate team-name field for individuals — the athlete's name is the team. |
-| Team vs. individual | A comp-level `teamSize` setting (1 = individual). The form adapts. Team name is **required** when `teamSize > 1`. |
+| What a slot captures | Email, division from a Sheet-defined list, team name (when the division's team size > 1), one name per athlete. No separate team-name field for individuals — the athlete's name is the team. |
+| Team vs. individual | Team size lives on the division, not the comp: a `Divisions` tab (`division`, `teamSize`) lets individuals and teams share a heat. The form adapts to the chosen division. Team name is **required** when that division's `teamSize > 1`. |
 | Identity | Email, typed once and remembered on the device. Never shown on public pages. |
 | Cancelling | Only your own slots (email match), from the sign-up page. Organisers fix anything else in the Sheet. |
 | Sign-up window | A `signupsOpen` TRUE/FALSE cell in the Sheet. |
@@ -45,9 +45,20 @@ organiser-edited tab; it still rebuilds the formula tabs `Results` and
 |---|---|---|
 | `compDate` | `2027-09-11` | ISO date |
 | `timeZone` | `America/New_York` | IANA name |
-| `teamSize` | `2` | 1 = individual comp |
-| `divisions` | `F/F RX, F/F Scaled, F/M RX, F/M Scaled, M/M RX, M/M Scaled` | comma-separated; order is the dropdown order |
 | `signupsOpen` | `TRUE` | checkbox cell |
+
+### `Divisions` — one row per division
+
+| division | teamSize |
+|---|---|
+| `F/F RX` | `2` |
+| `F/F Scaled` | `2` |
+
+Order is the dropdown order. `teamSize` is a whole number ≥ 1: `1` for an
+individual division, `2` for a pair, and so on — individuals and teams can
+share a heat. The sign-up form asks for that many athlete names once the
+division is picked. Division names here are what `Slots` rows (hand-typed
+or from the sign-up page) must match.
 
 ### `Events` — one row per event
 
@@ -90,7 +101,8 @@ Returns the schedule assembled from `Settings`, `Events`, `Heats`, `Slots`:
 { "ok": true,
   "schedule": {
     "compDate": "2027-09-11", "timeZone": "America/New_York",
-    "teamSize": 2, "divisions": ["F/F RX", "F/F Scaled"], "signupsOpen": true,
+    "divisions": [{ "name": "F/F RX", "teamSize": 2 }, { "name": "F/F Scaled", "teamSize": 2 }],
+    "signupsOpen": true,
     "events": [
       { "number": 1, "title": "12th Gear", "format": "12 Rounds · 8:00 Cap",
         "scoring": "time-or-rounds", "capSeconds": 480, "rx": "…", "scaled": "…",
@@ -143,6 +155,11 @@ same `curl` again returns `duplicate: true`; a `release` removes it.
 ### Types
 
 ```ts
+type Division = {
+  readonly name: string;
+  readonly teamSize: number;
+};
+
 type Lane = {
   readonly lane: number;
   readonly team: string;
@@ -166,8 +183,7 @@ type Event = {
 type Schedule = {
   readonly compDate: string;
   readonly timeZone: string;
-  readonly teamSize: number;
-  readonly divisions: readonly string[];
+  readonly divisions: readonly Division[];
   readonly signupsOpen: boolean;
   readonly events: readonly Event[];
 };
@@ -184,7 +200,12 @@ dependencies and keeps it that way) takes `unknown` and returns
 organiser can find the row (nested JSON carries no sheet row numbers):
 `Heats: Event 1 Heat 3: end "08:21" is not after start 08:26`,
 `Events: Event 2: scoring "amrap" must be time-or-rounds or rounds-reps`,
-`Settings: compDate "9/11/27" must be YYYY-MM-DD`. The decoder stops at the
+`Settings: compDate "9/11/27" must be YYYY-MM-DD`. `divisions` decodes as a
+list of `{ name, teamSize }` objects, one `Divisions:` message per problem:
+`Divisions: must be a list`, `Divisions: name is missing`,
+`Divisions: "Individual RX": teamSize is missing`,
+`Divisions: "Individual RX": teamSize "one" must be a whole number`,
+`Divisions: a division entry is not an object`. The decoder stops at the
 first structural problem; `validateSchedule` then reports every semantic
 problem at once.
 
@@ -193,9 +214,12 @@ model:
 
 - Keeps: duplicate lane in a heat, overlapping heats within an event, event
   with no heats, scoring/capSeconds consistency.
-- Adds: heat end not after start; lane number outside `1..event.lanes`;
-  `teamSize < 1`; empty `divisions`; a lane whose `division` is not in the
-  list; duplicate heat numbers within an event; duplicate event numbers.
+- Adds: heat end not after start; lane number outside `1..event.lanes`; a
+  division's `teamSize < 1` (`Divisions: "Solo" teamSize must be at least
+  1`); a duplicate division name (`Divisions: "RX" appears more than
+  once`); empty `divisions`; a lane whose `division` is not one of the
+  names in the `Divisions` tab; duplicate heat numbers within an event;
+  duplicate event numbers.
 - Drops: the 7–8 lane count constant and "team missing from an event"
   (sign-up is per event; a team may skip one).
 
@@ -266,7 +290,7 @@ code exists.
 ### Spectator page changes
 
 - Lanes with no claim render as `— open —`.
-- The "I'm on…" team picker, the my-heat card, the sticky strip and the row
+- The team picker, the my-heat card, the sticky strip and the row
   highlight are removed (decision 2026-09-17, after Plan A shipped): the
   page shows the whole schedule and nothing is remembered per phone.
 - Offline/problem pill as above.
@@ -297,12 +321,17 @@ landed after it started.
    If your email holds a slot in this event, the event's open chips are
    dimmed and labelled "You're in Heat 3".
 3. **Claim form** — tapping an open chip opens an inline form under that
-   heat: team name (only when `teamSize > 1`), `teamSize` name fields
-   (labelled "Your name" when `teamSize` is 1, else "Athlete 1…N"), a
-   division select from `divisions`, **Claim lane N** and **Never mind**.
-   Fields are pre-filled from this device's last claim (`signup:last`).
-   The client joins the names with ` + ` into `athletes`; for individuals
-   `team` = the name. Blank fields are rejected inline before posting.
+   heat, division first: a division select from `divisions`, then the
+   fields that division calls for — no name fields until one is picked,
+   then team name (only when the division's `teamSize > 1`) and one name
+   field per athlete (labelled "Your name" when `teamSize` is 1, else
+   "Athlete 1…N") — plus **Claim lane N** and **Never mind**. Changing the
+   division reports the current draft via `onDraftChange` so the
+   controller redraws with the right number of fields, keeping whatever
+   was already typed. Fields are pre-filled from this device's last claim
+   (`signup:last`). The client joins the names with ` + ` into `athletes`;
+   for individuals `team` = the name. Blank fields are rejected inline
+   before posting.
 4. **Submit** — posts `claim`; on `ok` the page redraws from the returned
    schedule and the chip is now **yours**. On a refusal the form closes and
    the redrawn chips show why (e.g. "Lane 4 was just taken"); the typed
@@ -341,7 +370,8 @@ docs/deploy.md                    replaces scoring-deploy.md
 ## Testing
 
 Vitest, behaviour-level, factories extended (`makeSchedule` gains
-`teamSize`, `divisions`, `signupsOpen`; `makeLane` gains `email`).
+`divisions` as `Division` objects and `signupsOpen`; a `makeDivision`
+factory; `makeLane` gains `email`).
 
 - **schedule-schema**: decodes the documented JSON; each malformed shape is
   rejected with a message naming tab and row; the committed snapshot
@@ -351,11 +381,12 @@ Vitest, behaviour-level, factories extended (`makeSchedule` gains
   reported; nothing available → error.
 - **schedule-client**: loaded / unreachable / invalid; claim and release
   map `ok`, `ok+error`, network failure.
-- **spectator**: open lanes render as `— open —`; picker label by
-  `teamSize`; offline pill when not live.
+- **spectator**: open lanes render as `— open —`; offline pill when not
+  live.
 - **sign-up page** (Testing Library, fake `fetchFn`): email gate; chip
-  states open/taken/yours; one-slot-per-event dimming; claim form fields by
-  `teamSize`; pre-fill; blank-field rejection; successful claim redraws from
+  states open/taken/yours; one-slot-per-event dimming; claim form asks for
+  the division first and grows to the chosen division's `teamSize`;
+  pre-fill; blank-field rejection; successful claim redraws from
   reply; server rejection shown inline; cancel releases; closed mode
   read-only; unknown code → invalid page.
 - **codes**: grid covers snapshot; unique; one head; one sign-up code.

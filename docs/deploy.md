@@ -29,11 +29,11 @@ Budget 30 minutes the first time, 10 minutes in later years.
    account → Advanced → Go to 12th State Scoring (unsafe) → Allow**. It is
    "unsafe" only in the sense that you wrote it; it can touch this Sheet
    and nothing else.
-3. Back in the Sheet you now have seven tabs: `Settings`, `Events`, `Heats`,
-   `Slots`, `Log`, `Results` and `Overall`. `setup()` only creates a tab if
-   it is missing — running it again never clears data you have already
-   entered. `Results` and `Overall` are formula-driven and empty until
-   scores arrive. Delete `Sheet1`.
+3. Back in the Sheet you now have eight tabs: `Settings`, `Divisions`,
+   `Events`, `Heats`, `Slots`, `Log`, `Results` and `Overall`. `setup()`
+   only creates a tab if it is missing — running it again never clears data
+   you have already entered. `Results` and `Overall` are formula-driven and
+   empty until scores arrive. Delete `Sheet1`.
 
 ### 1d. Deploy the web app
 
@@ -100,8 +100,8 @@ curl -sL '<url>' --data '{"action":"claim","event":1,"heat":1,"lane":1,"email":"
 
 Expected `{"ok":true,"schedule":{…}}` — or `{"ok":false,"error":"Sign-ups
 are closed"}` if the `signupsOpen` box is unticked (tick it first). The
-`division` must be one of the values listed in `Settings`. `Slots` gains a
-row. Then:
+`division` must be one of the names listed in the `Divisions` tab. `Slots`
+gains a row. Then:
 
 ```bash
 curl -sL '<url>' --data '{"action":"release","event":1,"heat":1,"lane":1,"email":"smoke@example.com"}'
@@ -111,43 +111,48 @@ Expected `{"ok":true,…}`; the row is gone.
 
 ## 2. Each year: define the comp in the Sheet
 
-1. **Settings** — set `compDate` (`YYYY-MM-DD`), `timeZone` (an IANA name,
-   e.g. `America/New_York`), `teamSize` (`1` for an individual comp), and
-   `divisions` as a comma-separated list in the order you want them
-   displayed. Tick `signupsOpen` when you're ready to share the sign-up
-   link; untick it to freeze the field — members can still see the heats
-   but not change anything.
-2. **Events** — one row per event: `scoring` is `time-or-rounds` for
+1. **Settings** — set `compDate` (`YYYY-MM-DD`) and `timeZone` (an IANA
+   name, e.g. `America/New_York`). Tick `signupsOpen` when you're ready to
+   share the sign-up link; untick it to freeze the field — members can
+   still see the heats but not change anything.
+2. **Divisions** — one row per division, in the order you want them
+   displayed: `division` (the name) and `teamSize` — `1` for individuals,
+   `2` for pairs, and so on. Mixed sizes are fine in the same heat (an
+   individual and a pair can share lanes); the sign-up form asks for
+   however many names the chosen division's `teamSize` calls for. Division
+   names here must match exactly what any hand-typed `Slots` rows use.
+3. **Events** — one row per event: `scoring` is `time-or-rounds` for
    anything with a time cap (fill in `capSeconds`) or `rounds-reps` for an
    AMRAP (leave `capSeconds` blank); `lanes` is the number of lanes per
    heat.
-3. **Heats** — one row per event × heat, `start`/`end` as `HH:MM` text
+4. **Heats** — one row per event × heat, `start`/`end` as `HH:MM` text
    (e.g. `08:00`).
-4. Run `setup()` again. It only fills in what's missing, but it always
+5. Run `setup()` again. It only fills in what's missing, but it always
    rebuilds `Overall`'s columns to match the current `Events` tab — do this
    any time the number of events changes.
-5. Open the site and check it against the Sheet. If a cell is wrong, the
+6. Open the site and check it against the Sheet. If a cell is wrong, the
    header shows an amber pill naming the problem (e.g. `Sheet has a
    problem: Events: Event 2: scoring "amrap" must be time-or-rounds or
    rounds-reps`) — fix the cell. Changes show on phones within about a
    minute and a half: the script caches replies for 30 s and phones
    re-fetch every 60 s.
-6. **Slots** — filled in by the sign-up page as members claim lanes. Rows
+7. **Slots** — filled in by the sign-up page as members claim lanes. Rows
    can also be typed by hand: one row per claimed lane (`event`, `heat`,
    `lane`, `team`, `athletes`, `division`; `email` and `signedUpAt` are
-   optional). Leave `email` blank for a hand-typed row — then nobody can
-   cancel it from the sign-up page. A member's row carries their email, so
-   only they can cancel it.
-7. Either start a fresh Sheet for the year (repeat section 1 — a new
+   optional). `division` must be one of the names in the `Divisions` tab.
+   Leave `email` blank for a hand-typed row — then nobody can cancel it
+   from the sign-up page. A member's row carries their email, so only they
+   can cancel it.
+8. Either start a fresh Sheet for the year (repeat section 1 — a new
    deployment gives a new `/exec` URL for `src/data/sheet-endpoint.ts`) or
    clear last year's rows from `Slots` and `Log` in the same Sheet.
-8. `npm run judge-links` — prints every judge URL plus the head-judge link.
+9. `npm run judge-links` — prints every judge URL plus the head-judge link.
    It also prints the `SIGN-UP` link — share that with members. It is
    obscure, not secret: anyone with the link can sign up. Codes are stable
    across years, so existing links keep working; pass `--regenerate` to
    issue fresh ones (do this if a link was posted somewhere public).
-9. Update the date in `README.md` and the `<meta name="description">` in
-   `index.html`.
+10. Update the date in `README.md` and the `<meta name="description">` in
+    `index.html`.
 
 **Night before**
 - Uncheck `signupsOpen` in `Settings` (if it was ever checked).
@@ -162,9 +167,9 @@ Expected `{"ok":true,…}`; the row is gone.
 1. Tick `signupsOpen` in `Settings`.
 2. Share the sign-up link (`npm run judge-links` prints the `SIGN-UP`
    line).
-3. Members claim one lane per event: email once, then team name, athlete
-   names and division per lane. They can Cancel their own claim from the
-   page.
+3. Members claim one lane per event: email once, then per lane a division
+   first, then the team name and one name per athlete the division calls
+   for. They can Cancel their own claim from the page.
 4. Watch `Slots` as claims come in; fix anything wrong by editing or
    deleting rows directly.
 5. The night before: untick `signupsOpen`, `npm run snapshot`, commit,
@@ -221,6 +226,24 @@ Any edit to `Code.gs` needs a new version: **Deploy → Manage deployments →
 ✎ (edit) → Version: New version → Deploy**. The `/exec` URL stays the same,
 so the site does not need a rebuild.
 
+## 4a. Migrating an existing Sheet to the `Divisions` tab
+
+If your Sheet was set up before team size moved to the `Divisions` tab, it
+still has `teamSize` and `divisions` rows in `Settings` instead.
+
+1. In the script editor, paste the current `apps-script/Code.gs` (section
+   1b) and run `setup()`. It creates the `Divisions` tab with six default
+   rows (`F/F RX`, `F/F Scaled`, `F/M RX`, `F/M Scaled`, `M/M RX`,
+   `M/M Scaled`, each `teamSize` 2) without touching anything else.
+2. Edit those rows to match your comp — add, remove or rename divisions,
+   and set each `teamSize`.
+3. Delete the old `teamSize` and `divisions` rows from `Settings`. Leaving
+   them is harmless; the script no longer reads them.
+4. Deploy the script as a new version (section 4) **before** pushing the
+   updated site. Until both the script and the site are on the new
+   version, phones show the amber "Sheet has a problem: Divisions: …" pill
+   over the last known schedule.
+
 ## 5. Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -249,3 +272,5 @@ so the site does not need a rebuild.
 | A member can't cancel a slot | The `Slots` row's `email` doesn't match theirs (hand-typed or typo) | Fix the `email` cell or delete the row |
 | Member says the page shows old data | Script caches 30 s; the page re-fetches every 30 s | Wait a minute or reload |
 | Sign-up link shows "This link isn't valid" | Code doesn't match `signupCode` in `src/data/judge-codes.ts` | `npm run judge-links` and share the printed `SIGN-UP` link |
+| Sign-up form shows no name fields | The member hasn't picked a division yet — by design, until then the form doesn't know how many names to ask for | Pick a division |
+| Amber "Sheet has a problem: Divisions: …" | A row in the `Divisions` tab has a blank or non-number `teamSize`, or a blank division name | Fix the row in the `Divisions` tab |

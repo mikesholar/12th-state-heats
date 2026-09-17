@@ -18,8 +18,8 @@ troubleshooting: **[docs/deploy.md](docs/deploy.md)**.
 
 ## The schedule lives in the Sheet
 
-Organisers define the comp in the Google Sheet — `Settings`, `Events`,
-`Heats` and `Slots` tabs — and the site reads it through the Apps Script
+Organisers define the comp in the Google Sheet — `Settings`, `Divisions`,
+`Events`, `Heats` and `Slots` tabs — and the site reads it through the Apps Script
 endpoint on every load (re-checked every minute). Phones cache the last
 good copy, and `src/data/schedule-snapshot.json` (refreshed with
 `npm run snapshot`) is the fallback for a phone that has never loaded the
@@ -32,10 +32,11 @@ transcription corrections from the source PDFs: Event 1 Heat 2 lane 5 is
 ## Sign-up
 
 Members use the sign-up link (`?s=<code>`, printed by `npm run judge-links`)
-to claim one lane per event: email once, then team name, athlete names and
-division per lane. Their own claims show a **Cancel**. Organisers open and
-close the window with the `signupsOpen` checkbox in `Settings` and can fix
-anything by editing `Slots`.
+to claim one lane per event: email once, then per lane a division first,
+then the team name and one name per athlete the division calls for. Their
+own claims show a **Cancel**. Organisers open and close the window with the
+`signupsOpen` checkbox in `Settings` and can fix anything by editing
+`Slots`.
 
 ## Previewing a different time
 
