@@ -1770,7 +1770,8 @@ if (!root) throw new Error("Missing #root element");
 const loadSchedule = async (): Promise<LoadedSchedule> => {
   const fetched = await fetchSchedule({ endpoint: sheetEndpoint, fetchFn: fetch });
   if (fetched.kind === "loaded") saveCachedSchedule(fetched.schedule);
-  return chooseSchedule({ fetched, cached: loadCachedSchedule(), snapshot: snapshotSchedule });
+  const cached = fetched.kind === "loaded" ? undefined : loadCachedSchedule();
+  return chooseSchedule({ fetched, cached, snapshot: snapshotSchedule });
 };
 
 const clockFor = (schedule: Schedule): (() => Date) => {
@@ -2322,7 +2323,7 @@ loaded the site before.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Amber "Offline — showing last known schedule" on every phone | Script not deployed as *Anyone*, or wrong URL | Section 1d; the curl in 1f |
+| Amber "Offline — showing last known schedule" on every phone, even on good Wi-Fi | Script not deployed as *Anyone* (the browser cannot follow Google's login redirect, so it looks like being offline), or wrong URL | Section 1d; the curl in 1f |
 | Amber "Sheet has a problem: Events: Event 2: scoring …" | A cell in the named tab/row | Fix the cell; phones update within a minute |
 | Amber "Sheet has a problem: Run setup() …" | Tabs missing | Section 1c |
 | `npm run snapshot` fails with "The Sheet has a problem" | Same as above | Fix the Sheet, rerun |

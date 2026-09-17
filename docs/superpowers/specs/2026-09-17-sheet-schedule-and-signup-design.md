@@ -386,7 +386,10 @@ One spec, two implementation plans:
   tabs, `doGet`, decoder, cache, snapshot, code grid, spectator/judge
   updates, `deploy.md`. Independently useful; the 2026 data becomes the
   first snapshot and nothing user-visible changes.
-- **Plan B — sign-up**: `claim`/`release`, sign-up page, sign-up code.
+- **Plan B — sign-up**: `claim`/`release`, sign-up page, sign-up code. Its
+  client is the third reader of the script's `{ ok, error? }` envelope
+  (after `score-client.ts` and `schedule-client.ts`), so Plan B extracts a
+  shared `isSheetReply` predicate into `src/ui/sheet-reply.ts`.
 
 ## Out of scope
 
