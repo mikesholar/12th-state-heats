@@ -25,6 +25,7 @@ const SETTINGS_ROWS = [
   ["signupsOpen", false],
 ];
 const DEFAULT_LANE_LABEL = "Lane";
+const RETIRED_SETTINGS = ["teamSize", "divisions"];
 const DIVISION_HEADERS = ["division", "teamSize"];
 const DIVISION_ROWS = [
   ["F/F RX", 2],
@@ -416,10 +417,25 @@ function createIfMissing(ss, name, headers, fill) {
 
 function setupSettings(ss) {
   createIfMissing(ss, SETTINGS, ["key", "value"], (sheet) => {
-    sheet.getRange(2, 2, SETTINGS_ROWS.length - 1, 1).setNumberFormat("@");
-    sheet.getRange(2, 1, SETTINGS_ROWS.length, 2).setValues(SETTINGS_ROWS);
-    sheet.getRange(2 + SETTINGS_ROWS.length - 1, 2).insertCheckboxes();
     sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · laneLabel the word for a lane (Lane, Position, Spot) · signupsOpen checkbox");
+  });
+  reconcileSettings(ss.getSheetByName(SETTINGS));
+}
+
+function reconcileSettings(sheet) {
+  const values = sheet.getDataRange().getValues();
+  const keyOf = (row) => String(row[0]).trim();
+  const kept = values.slice(1).filter((row) => keyOf(row) !== "" && RETIRED_SETTINGS.indexOf(keyOf(row)) === -1);
+  const present = kept.map(keyOf);
+  const added = SETTINGS_ROWS.filter(([key]) => present.indexOf(key) === -1);
+  const rows = kept.concat(added);
+  if (values.length > 1) sheet.getRange(2, 1, values.length - 1, values[0].length).clearContent().clearDataValidations();
+  if (rows.length === 0) return;
+  sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  rows.forEach((row, i) => {
+    const cell = sheet.getRange(2 + i, 2);
+    if (keyOf(row) === "signupsOpen") cell.insertCheckboxes().setValue(asBoolean(row[1]));
+    else cell.setNumberFormat("@");
   });
 }
 
