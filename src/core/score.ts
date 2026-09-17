@@ -1,12 +1,13 @@
 import type { ScoringFormat } from "./types";
+import { fail, ok, type Result } from "./result";
+
+export type { Result } from "./result";
 
 export type Score =
   | { readonly kind: "time"; readonly seconds: number }
   | { readonly kind: "rounds-reps"; readonly rounds: number; readonly reps: number };
 
 export type ScoreKind = Score["kind"];
-
-export type Result<T> = { readonly success: true; readonly data: T } | { readonly success: false; readonly error: string };
 
 type ValidateScoreOptions = {
   readonly scoring: ScoringFormat;
@@ -15,9 +16,6 @@ type ValidateScoreOptions = {
 };
 
 const SECONDS_PER_MINUTE = 60;
-
-const fail = (error: string): Result<Score> => ({ success: false, error });
-const ok = (score: Score): Result<Score> => ({ success: true, data: score });
 
 const formatSeconds = (seconds: number): string => {
   const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
