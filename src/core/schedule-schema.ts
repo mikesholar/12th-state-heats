@@ -1,5 +1,5 @@
 import { fail, ok, type Result } from "./result";
-import type { Event, Heat, Lane, Schedule, ScoringFormat } from "./types";
+import type { Division, Event, Heat, Lane, Schedule, ScoringFormat } from "./types";
 import { validateSchedule } from "./validate-schedule";
 
 type Raw = Readonly<Record<string, unknown>>;
@@ -154,10 +154,18 @@ const decodeEvent = (value: unknown): Result<Event> => {
   });
 };
 
-const decodeDivisions = (raw: Raw): Result<readonly string[]> => {
-  const value = list(raw, "divisions", "Settings");
-  if (!value.success) return value;
-  return ok(value.data.map(trimmed).filter((division) => division !== ""));
+const decodeDivision = (value: unknown): Result<Division> => {
+  if (!isRaw(value)) return fail("Divisions: a division entry is not an object");
+  const name = text(value, "name", "Divisions");
+  if (!name.success) return name;
+  const teamSize = integer(value, "teamSize", `Divisions: "${name.data}"`);
+  if (!teamSize.success) return teamSize;
+  return ok({ name: name.data, teamSize: teamSize.data });
+};
+
+const decodeDivisions = (raw: Raw): Result<readonly Division[]> => {
+  if (!Array.isArray(raw.divisions)) return fail("Divisions: must be a list");
+  return all(raw.divisions.map(decodeDivision));
 };
 
 const decodeShape = (raw: Raw): Result<Schedule> => {
@@ -168,8 +176,6 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   const timeZone = text(raw, "timeZone", "Settings");
   if (!timeZone.success) return timeZone;
   if (!isTimeZone(timeZone.data)) return fail(`Settings: timeZone "${timeZone.data}" is not a known time zone (e.g. America/New_York)`);
-  const teamSize = integer(raw, "teamSize", "Settings");
-  if (!teamSize.success) return teamSize;
   const divisions = decodeDivisions(raw);
   if (!divisions.success) return divisions;
   const signupsOpen = boolean(raw, "signupsOpen", "Settings");
@@ -180,7 +186,6 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   return ok({
     compDate: compDate.data,
     timeZone: timeZone.data,
-    teamSize: teamSize.data,
     divisions: divisions.data,
     signupsOpen: signupsOpen.data,
     events: decodedEvents.data,

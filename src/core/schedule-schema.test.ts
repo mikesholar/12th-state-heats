@@ -31,7 +31,6 @@ describe("decoding the schedule JSON", () => {
 
   it("accepts numbers written as strings and trims text", () => {
     const raw = makeRawSchedule({
-      teamSize: "2",
       events: [makeRawEvent({ number: "1", lanes: "8", capSeconds: "480", scoring: "time-or-rounds", title: "  12th Gear " })],
     });
 
@@ -51,14 +50,31 @@ describe("decoding the schedule JSON", () => {
     [{ compDate: "2026-13-45" }, 'Settings: compDate "2026-13-45" is not a real date'],
     [{ timeZone: "" }, "Settings: timeZone is missing"],
     [{ timeZone: "Eastern" }, 'Settings: timeZone "Eastern" is not a known time zone (e.g. America/New_York)'],
-    [{ teamSize: "two" }, 'Settings: teamSize "two" must be a whole number'],
-    [{ teamSize: "" }, "Settings: teamSize is missing"],
-    [{ teamSize: "1e3" }, 'Settings: teamSize "1e3" must be a whole number'],
-    [{ divisions: "RX" }, "Settings: divisions must be a list"],
     [{ signupsOpen: "yes" }, 'Settings: signupsOpen "yes" must be TRUE or FALSE'],
     [{ events: {} }, "Events: must be a list"],
   ])("names the setting that is wrong: %j", (override, message) => {
     expect(errorOf(makeRawSchedule(override))).toBe(message);
+  });
+
+  it.each([
+    [{ divisions: "RX" }, "Divisions: must be a list"],
+    [{ divisions: [{ name: "", teamSize: 2 }] }, "Divisions: name is missing"],
+    [{ divisions: [{ name: "Individual RX", teamSize: "one" }] }, 'Divisions: "Individual RX": teamSize "one" must be a whole number'],
+    [{ divisions: [{ name: "Individual RX" }] }, 'Divisions: "Individual RX": teamSize is missing'],
+    [{ divisions: ["F/M RX"] }, "Divisions: a division entry is not an object"],
+  ])("names the division that is wrong: %j", (override, message) => {
+    expect(errorOf(makeRawSchedule(override))).toBe(message);
+  });
+
+  it("reads a mixed list of individual and team divisions", () => {
+    const raw = makeRawSchedule({
+      divisions: [{ name: " Individual RX ", teamSize: "1" }, { name: "F/M RX", teamSize: 2 }],
+      events: [makeRawEvent({ heats: [makeRawHeat({ lanes: [makeRawLane({ division: "F/M RX" })] })] })],
+    });
+
+    const result = decodeSchedule(raw);
+
+    expect(result.success && result.data.divisions).toEqual([{ name: "Individual RX", teamSize: 1 }, { name: "F/M RX", teamSize: 2 }]);
   });
 
   it("reads TRUE and FALSE written as text", () => {

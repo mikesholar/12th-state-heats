@@ -11,7 +11,7 @@ const laneFor = (team: string) =>
 describe("the committed snapshot", () => {
   it("pins the 2026 settings", () => {
     expect(schedule.compDate).toBe("2026-09-12");
-    expect(schedule.teamSize).toBe(2);
+    expect(schedule.divisions.map((d) => d.teamSize)).toEqual([2, 2, 2, 2, 2, 2]);
   });
 
   it("carries no member emails (it is committed to a public repo)", () => {

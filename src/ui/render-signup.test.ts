@@ -1,7 +1,7 @@
 import { fireEvent, getByLabelText, getByRole, getByTestId, getByText, queryByRole, queryByTestId, queryByText } from "@testing-library/dom";
 import { readClaimDraft, renderSignup, type RenderSignupOptions } from "./render-signup";
 import { emptyDraft } from "../core/signup";
-import { DIVISIONS, makeClaimDraft, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import { DIVISIONS, DIVISION_NAMES, makeClaimDraft, makeDivision, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -10,6 +10,7 @@ afterEach(() => {
 const ME = "mike@example.com";
 
 const schedule = makeSchedule({
+  divisions: [makeDivision({ name: "Individual RX", teamSize: 1 }), ...DIVISIONS],
   events: [
     makeEvent({
       number: 1,
@@ -39,7 +40,7 @@ const renderWith = (overrides?: Partial<RenderSignupOptions>) => {
     sourceNotice: undefined,
     live: true,
     openForm: undefined,
-    draft: emptyDraft(2),
+    draft: emptyDraft(),
     notice: undefined,
     busy: false,
     onEmailSubmit: vi.fn(),
@@ -48,6 +49,7 @@ const renderWith = (overrides?: Partial<RenderSignupOptions>) => {
     onCloseForm: vi.fn(),
     onClaim: vi.fn(),
     onRelease: vi.fn(),
+    onDraftChange: vi.fn(),
     ...overrides,
   };
   renderSignup(options);
@@ -148,40 +150,57 @@ describe("lane chips", () => {
 });
 
 describe("the claim form", () => {
-  it("opens under the tapped heat with team, one field per athlete and a division select, pre-filled", () => {
-    const { root } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 }, draft: makeClaimDraft() });
+  const open = { event: 1, heat: 2, lane: 1 };
 
-    const form = getByTestId(root, "claim-form");
-    expect(form.closest('[data-heat="E1H2"]')).not.toBeNull();
-    expect(getByLabelText<HTMLInputElement>(root, "Team name").value).toBe("Fast but Questionable");
-    expect(getByLabelText<HTMLInputElement>(root, "Athlete 1").value).toBe("Caroline Ortiz");
-    expect(getByLabelText<HTMLInputElement>(root, "Athlete 2").value).toBe("Mike Sholar");
-    expect(getByLabelText<HTMLSelectElement>(root, "Division").value).toBe("F/M Scaled");
+  it("asks for the division first and shows no name fields until one is picked", () => {
+    const { root } = renderWith({ openForm: open, draft: emptyDraft() });
+
+    expect(getByLabelText(root, "Division")).toBeInTheDocument();
+    expect(root.querySelectorAll('[id^="athlete-"]')).toHaveLength(0);
+    expect(queryByText(root, "Team name")).toBeNull();
     expect(getByRole(root, "button", { name: "Claim lane 1" })).toBeInTheDocument();
   });
 
+  it("shows team name and one field per athlete for a team division, pre-filled", () => {
+    const { root } = renderWith({ openForm: open, draft: makeClaimDraft() });
+
+    expect(getByTestId(root, "claim-form").closest('[data-heat="E1H2"]')).not.toBeNull();
+    expect(getByLabelText<HTMLSelectElement>(root, "Division").value).toBe("F/M Scaled");
+    expect(getByLabelText<HTMLInputElement>(root, "Team name").value).toBe("Fast but Questionable");
+    expect(getByLabelText<HTMLInputElement>(root, "Athlete 1").value).toBe("Caroline Ortiz");
+    expect(getByLabelText<HTMLInputElement>(root, "Athlete 2").value).toBe("Mike Sholar");
+  });
+
   it("asks an individual only for their name", () => {
-    const solo = { ...schedule, teamSize: 1 };
-    const { root } = renderWith({ schedule: solo, openForm: { event: 1, heat: 2, lane: 1 }, draft: emptyDraft(1) });
+    const { root } = renderWith({ openForm: open, draft: makeClaimDraft({ division: "Individual RX", athletes: [""] }) });
 
     expect(queryByText(root, "Team name")).toBeNull();
     expect(getByLabelText(root, "Your name")).toBeInTheDocument();
+    expect(root.querySelectorAll('[id^="athlete-"]')).toHaveLength(1);
+  });
+
+  it("reports the draft when the division changes so the fields can follow", () => {
+    const { root, options } = renderWith({ openForm: open, draft: makeClaimDraft() });
+
+    fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "Kept" } });
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "Individual RX" } });
+
+    expect(options.onDraftChange).toHaveBeenCalledWith({ team: "Kept", athletes: ["Caroline Ortiz", "Mike Sholar"], division: "Individual RX" });
   });
 
   it("submits what was typed", () => {
-    const { root, options } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 }, draft: emptyDraft(2) });
+    const { root, options } = renderWith({ openForm: open, draft: makeClaimDraft({ team: "", athletes: ["", ""] }) });
 
     fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "New Team" } });
     fireEvent.input(getByLabelText(root, "Athlete 1"), { target: { value: "A" } });
     fireEvent.input(getByLabelText(root, "Athlete 2"), { target: { value: "B" } });
-    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "M/M RX" } });
     fireEvent.submit(getByTestId(root, "claim-form"));
 
-    expect(options.onClaim).toHaveBeenCalledWith({ team: "New Team", athletes: ["A", "B"], division: "M/M RX" });
+    expect(options.onClaim).toHaveBeenCalledWith({ team: "New Team", athletes: ["A", "B"], division: "F/M Scaled" });
   });
 
   it("can be dismissed", () => {
-    const { root, options } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 } });
+    const { root, options } = renderWith({ openForm: open });
 
     fireEvent.click(getByRole(root, "button", { name: "Never mind" }));
 
@@ -189,14 +208,14 @@ describe("the claim form", () => {
   });
 
   it("lists the divisions from the schedule", () => {
-    const { root } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 } });
+    const { root } = renderWith({ openForm: open });
 
     const labels = [...getByLabelText<HTMLSelectElement>(root, "Division").options].map((o) => o.textContent);
-    expect(labels).toEqual(["— pick a division —", ...DIVISIONS]);
+    expect(labels).toEqual(["— pick a division —", "Individual RX", ...DIVISION_NAMES]);
   });
 
   it("disables the submit while busy", () => {
-    const { root } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 }, busy: true });
+    const { root } = renderWith({ openForm: open, draft: makeClaimDraft(), busy: true });
 
     expect(getByRole(root, "button", { name: "Claim lane 1" })).toBeDisabled();
   });
@@ -233,12 +252,12 @@ describe("reading the draft back", () => {
   it("returns the current field values", () => {
     const { root } = renderWith({ openForm: { event: 1, heat: 2, lane: 1 }, draft: makeClaimDraft() });
 
-    expect(readClaimDraft({ root, teamSize: 2, fallback: emptyDraft(2) })).toEqual(makeClaimDraft());
+    expect(readClaimDraft({ root, fallback: emptyDraft() })).toEqual(makeClaimDraft());
   });
 
   it("falls back when the form is not on the page", () => {
     const { root } = renderWith();
 
-    expect(readClaimDraft({ root, teamSize: 2, fallback: makeClaimDraft() })).toEqual(makeClaimDraft());
+    expect(readClaimDraft({ root, fallback: makeClaimDraft() })).toEqual(makeClaimDraft());
   });
 });

@@ -1,14 +1,31 @@
 {
   "compDate": "2026-09-12",
   "timeZone": "America/New_York",
-  "teamSize": 2,
   "divisions": [
-    "F/F RX",
-    "F/F Scaled",
-    "F/M RX",
-    "F/M Scaled",
-    "M/M RX",
-    "M/M Scaled"
+    {
+      "name": "F/F RX",
+      "teamSize": 2
+    },
+    {
+      "name": "F/F Scaled",
+      "teamSize": 2
+    },
+    {
+      "name": "F/M RX",
+      "teamSize": 2
+    },
+    {
+      "name": "F/M Scaled",
+      "teamSize": 2
+    },
+    {
+      "name": "M/M RX",
+      "teamSize": 2
+    },
+    {
+      "name": "M/M Scaled",
+      "teamSize": 2
+    }
   ],
   "signupsOpen": false,
   "events": [

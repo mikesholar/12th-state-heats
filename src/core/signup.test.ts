@@ -1,54 +1,52 @@
-import { buildClaim, buildRelease, emptyDraft, isMine, mySlotIn, validateClaim } from "./signup";
-import { DIVISIONS, makeClaimDraft, makeEvent, makeHeat, makeLane } from "../test/factories";
+import { buildClaim, buildRelease, emptyDraft, isMine, mySlotIn, teamSizeOf, validateClaim } from "./signup";
+import { makeClaimDraft, makeDivision, makeEvent, makeHeat, makeLane } from "../test/factories";
 
 const slot = { event: 2, heat: 3, lane: 5 };
 
+const divisions = [makeDivision({ name: "Individual RX", teamSize: 1 }), makeDivision({ name: "F/M Scaled", teamSize: 2 })];
+
 describe("validating a claim", () => {
-  it("joins athlete names and keeps the team name for a team comp", () => {
-    const result = validateClaim({ draft: makeClaimDraft(), teamSize: 2, divisions: DIVISIONS });
+  it("joins athlete names and keeps the team name for a team division", () => {
+    const result = validateClaim({ draft: makeClaimDraft(), divisions });
 
-    expect(result).toEqual({
-      success: true,
-      data: { team: "Fast but Questionable", athletes: "Caroline Ortiz + Mike Sholar", division: "F/M Scaled" },
-    });
+    expect(result).toEqual({ success: true, data: { team: "Fast but Questionable", athletes: "Caroline Ortiz + Mike Sholar", division: "F/M Scaled" } });
   });
 
-  it("uses the athlete's name as the team for an individual comp", () => {
-    const draft = makeClaimDraft({ team: "", athletes: ["  Mike Sholar "], division: "M/M RX" });
+  it("uses the athlete's name as the team for an individual division", () => {
+    const draft = makeClaimDraft({ team: "", athletes: ["  Mike Sholar "], division: "Individual RX" });
 
-    const result = validateClaim({ draft, teamSize: 1, divisions: DIVISIONS });
-
-    expect(result).toEqual({ success: true, data: { team: "Mike Sholar", athletes: "Mike Sholar", division: "M/M RX" } });
+    expect(validateClaim({ draft, divisions })).toEqual({ success: true, data: { team: "Mike Sholar", athletes: "Mike Sholar", division: "Individual RX" } });
   });
 
-  it("requires a team name for a team comp", () => {
-    const result = validateClaim({ draft: makeClaimDraft({ team: "  " }), teamSize: 2, divisions: DIVISIONS });
+  it("asks for the division before anything else", () => {
+    expect(validateClaim({ draft: makeClaimDraft({ division: "" }), divisions })).toEqual({ success: false, error: "Pick a division" });
+    expect(validateClaim({ draft: makeClaimDraft({ division: "Open" }), divisions })).toEqual({ success: false, error: "Pick a division" });
+  });
 
-    expect(result).toEqual({ success: false, error: "Enter a team name" });
+  it("requires a team name for a team division", () => {
+    expect(validateClaim({ draft: makeClaimDraft({ team: "  " }), divisions })).toEqual({ success: false, error: "Enter a team name" });
   });
 
   it("requires every athlete's name", () => {
-    const result = validateClaim({ draft: makeClaimDraft({ athletes: ["Caroline Ortiz", ""] }), teamSize: 2, divisions: DIVISIONS });
-
-    expect(result).toEqual({ success: false, error: "Enter a name for every athlete" });
+    expect(validateClaim({ draft: makeClaimDraft({ athletes: ["Caroline Ortiz", ""] }), divisions })).toEqual({ success: false, error: "Enter a name for every athlete" });
+    expect(validateClaim({ draft: makeClaimDraft({ athletes: ["Caroline Ortiz"] }), divisions })).toEqual({ success: false, error: "Enter a name for every athlete" });
   });
 
   it("asks an individual for their name", () => {
-    const result = validateClaim({ draft: makeClaimDraft({ athletes: [""] }), teamSize: 1, divisions: DIVISIONS });
-
-    expect(result).toEqual({ success: false, error: "Enter your name" });
+    expect(validateClaim({ draft: makeClaimDraft({ athletes: [""], division: "Individual RX" }), divisions })).toEqual({ success: false, error: "Enter your name" });
   });
 
-  it("ignores extra athlete fields beyond the team size", () => {
-    const result = validateClaim({ draft: makeClaimDraft({ athletes: ["A", "B", "C"] }), teamSize: 2, divisions: DIVISIONS });
+  it("ignores extra athlete fields beyond the division's team size", () => {
+    const result = validateClaim({ draft: makeClaimDraft({ athletes: ["A", "B", "C"] }), divisions });
 
     expect(result.success && result.data.athletes).toBe("A + B");
   });
+});
 
-  it("requires a division from the list", () => {
-    const result = validateClaim({ draft: makeClaimDraft({ division: "Open" }), teamSize: 2, divisions: DIVISIONS });
-
-    expect(result).toEqual({ success: false, error: "Pick a division" });
+describe("team size of a division", () => {
+  it("looks the division up by name, defaulting to one field when none is chosen", () => {
+    expect(teamSizeOf({ divisions, name: "F/M Scaled" })).toBe(2);
+    expect(teamSizeOf({ divisions, name: "" })).toBe(0);
   });
 });
 
@@ -94,7 +92,7 @@ describe("recognising my own lanes", () => {
 });
 
 describe("the empty draft", () => {
-  it("has one name field per athlete", () => {
-    expect(emptyDraft(3)).toEqual({ team: "", athletes: ["", "", ""], division: "" });
+  it("has no athlete fields until a division is picked", () => {
+    expect(emptyDraft()).toEqual({ team: "", athletes: [], division: "" });
   });
 });

@@ -12,12 +12,14 @@ const laneRangeErrors = (event: Event, heat: Heat): readonly string[] =>
     .filter((lane) => lane.lane < 1 || lane.lane > event.lanes)
     .map((lane) => `${heatLabel(event, heat)}: lane ${lane.lane} is outside 1–${event.lanes}`);
 
+const divisionNames = (schedule: Schedule): readonly string[] => schedule.divisions.map((d) => d.name);
+
 const divisionErrors = (schedule: Schedule, event: Event, heat: Heat): readonly string[] =>
   heat.lanes
-    .filter((lane) => !schedule.divisions.includes(lane.division))
+    .filter((lane) => !divisionNames(schedule).includes(lane.division))
     .map(
       (lane) =>
-        `${heatLabel(event, heat)}: lane ${lane.lane} division "${lane.division}" is not one of ${schedule.divisions.join(", ")}`,
+        `${heatLabel(event, heat)}: lane ${lane.lane} division "${lane.division}" is not one of ${divisionNames(schedule).join(", ")}`,
     );
 
 const heatTimeErrors = (event: Event, heat: Heat): readonly string[] =>
@@ -60,9 +62,15 @@ const scoringErrors = (event: Event): readonly string[] => {
 
 const hasDivisions = (schedule: Schedule): boolean => schedule.divisions.length > 0;
 
+const divisionListErrors = (schedule: Schedule): readonly string[] => [
+  ...schedule.divisions.filter((d) => d.teamSize < 1).map((d) => `Divisions: "${d.name}" teamSize must be at least 1`),
+  ...schedule.divisions
+    .filter((d, i) => schedule.divisions.findIndex((other) => other.name === d.name) !== i)
+    .map((d) => `Divisions: "${d.name}" appears more than once`),
+];
+
 const settingsErrors = (schedule: Schedule): readonly string[] => [
-  ...(schedule.teamSize < 1 ? ["teamSize must be at least 1"] : []),
-  ...(hasDivisions(schedule) ? [] : ["divisions must list at least one division"]),
+  ...(hasDivisions(schedule) ? divisionListErrors(schedule) : ["divisions must list at least one division"]),
   ...(schedule.events.length === 0 ? ["Events: must list at least one event"] : []),
 ];
 

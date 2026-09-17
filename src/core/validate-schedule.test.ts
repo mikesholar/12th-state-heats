@@ -1,5 +1,5 @@
 import { validateSchedule } from "./validate-schedule";
-import { makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import { makeDivision, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
 const lanes = (count: number) => Array.from({ length: count }, (_, i) => makeLane({ lane: i + 1, team: `Team ${i + 1}` }));
 
@@ -93,10 +93,6 @@ describe("schedule validation", () => {
     expect(validateSchedule(makeSchedule({ events: [] }))).toEqual(["Events: must list at least one event"]);
   });
 
-  it("rejects a team size below one", () => {
-    expect(validateSchedule(makeSchedule({ teamSize: 0 }))).toEqual(["teamSize must be at least 1"]);
-  });
-
   it("rejects an empty division list without also flagging every lane", () => {
     const schedule = makeSchedule({ divisions: [], events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ lane: 1 })] })] })] });
 
@@ -105,11 +101,23 @@ describe("schedule validation", () => {
 
   it("rejects a lane whose division is not in the list", () => {
     const schedule = makeSchedule({
-      divisions: ["RX", "Scaled"],
+      divisions: [makeDivision({ name: "RX" }), makeDivision({ name: "Scaled" })],
       events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ lane: 3, division: "Open" })] })] })],
     });
 
     expect(validateSchedule(schedule)).toEqual(['Event 1 Heat 1: lane 3 division "Open" is not one of RX, Scaled']);
+  });
+
+  it("rejects a division with a team size below one", () => {
+    const schedule = makeSchedule({ divisions: [makeDivision({ name: "Solo", teamSize: 0 })], events: [makeEvent({ heats: [makeHeat({ lanes: [] })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(['Divisions: "Solo" teamSize must be at least 1']);
+  });
+
+  it("rejects duplicate division names", () => {
+    const schedule = makeSchedule({ divisions: [makeDivision({ name: "RX" }), makeDivision({ name: "RX" })], events: [makeEvent({ heats: [makeHeat({ lanes: [] })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(['Divisions: "RX" appears more than once']);
   });
 
   it("accepts heats listed out of chronological order when they do not overlap", () => {

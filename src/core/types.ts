@@ -27,11 +27,15 @@ export type Event = {
   readonly heats: readonly Heat[];
 };
 
+export type Division = {
+  readonly name: string;
+  readonly teamSize: number;
+};
+
 export type Schedule = {
   readonly compDate: string;
   readonly timeZone: string;
-  readonly teamSize: number;
-  readonly divisions: readonly string[];
+  readonly divisions: readonly Division[];
   readonly signupsOpen: boolean;
   readonly events: readonly Event[];
 };

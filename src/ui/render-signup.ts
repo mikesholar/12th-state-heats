@@ -1,6 +1,6 @@
 import { formatRange } from "../core/format";
-import { isMine, mySlotIn, type ClaimDraft, type SlotKey } from "../core/signup";
-import type { Event, Heat, Lane, Schedule } from "../core/types";
+import { isMine, mySlotIn, teamSizeOf, type ClaimDraft, type SlotKey } from "../core/signup";
+import type { Division, Event, Heat, Lane, Schedule } from "../core/types";
 import { esc } from "./html";
 
 export type SignupNotice = {
@@ -25,6 +25,7 @@ export type RenderSignupOptions = {
   readonly onCloseForm: () => void;
   readonly onClaim: (draft: ClaimDraft) => void;
   readonly onRelease: (slot: SlotKey) => void;
+  readonly onDraftChange: (draft: ClaimDraft) => void;
 };
 
 type SignupViewState = Pick<RenderSignupOptions, "schedule" | "openForm" | "draft" | "notice" | "busy"> & {
@@ -118,24 +119,27 @@ const athleteFieldsHtml = (draft: ClaimDraft, teamSize: number): string =>
     return `<label for="${id}">${athleteLabel(i, teamSize)}</label><input id="${id}" name="${id}" type="text" autocomplete="name" value="${esc(draft.athletes[i] ?? "")}" />`;
   }).join("");
 
-const divisionOptionsHtml = (divisions: readonly string[], selected: string): string =>
+const divisionOptionsHtml = (divisions: readonly Division[], selected: string): string =>
   [`<option value="">— pick a division —</option>`]
-    .concat(divisions.map((d) => `<option value="${esc(d)}"${d === selected ? " selected" : ""}>${esc(d)}</option>`))
+    .concat(divisions.map((d) => `<option value="${esc(d.name)}"${d.name === selected ? " selected" : ""}>${esc(d.name)}</option>`))
     .join("");
 
 type FormOptions = { readonly schedule: Schedule; readonly slot: SlotKey; readonly draft: ClaimDraft; readonly busy: boolean };
 
-const claimFormHtml = ({ schedule, slot, draft, busy }: FormOptions): string => `
+const claimFormHtml = ({ schedule, slot, draft, busy }: FormOptions): string => {
+  const teamSize = teamSizeOf({ divisions: schedule.divisions, name: draft.division });
+  return `
   <form id="claim-form" data-testid="claim-form" class="claim-form">
-    ${schedule.teamSize > 1 ? `<label for="team">Team name</label><input id="team" name="team" type="text" value="${esc(draft.team)}" />` : ""}
-    ${athleteFieldsHtml(draft, schedule.teamSize)}
     <label for="division">Division</label>
     <select id="division" name="division">${divisionOptionsHtml(schedule.divisions, draft.division)}</select>
+    ${teamSize > 1 ? `<label for="team">Team name</label><input id="team" name="team" type="text" value="${esc(draft.team)}" />` : ""}
+    ${athleteFieldsHtml(draft, teamSize)}
     <div class="claim-actions">
       <button type="submit" class="primary" ${busy ? "disabled" : ""}>Claim lane ${slot.lane}</button>
       <button type="button" class="link" id="dismiss-claim">Never mind</button>
     </div>
   </form>`;
+};
 
 type HeatOptions = SignupViewState & { readonly event: Event; readonly heat: Heat; readonly alreadyIn: boolean };
 
@@ -173,19 +177,20 @@ const eventHtml = (options: EventOptions): string => {
 
 const inputValue = (root: HTMLElement, id: string): string | undefined => root.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)?.value;
 
-type ReadClaimDraftOptions = { readonly root: HTMLElement; readonly teamSize: number; readonly fallback: ClaimDraft };
+type ReadClaimDraftOptions = { readonly root: HTMLElement; readonly fallback: ClaimDraft };
 
-export const readClaimDraft = ({ root, teamSize, fallback }: ReadClaimDraftOptions): ClaimDraft => {
+export const readClaimDraft = ({ root, fallback }: ReadClaimDraftOptions): ClaimDraft => {
   if (!root.querySelector("#claim-form")) return fallback;
+  const typed = [...root.querySelectorAll<HTMLInputElement>('[id^="athlete-"]')].map((input) => input.value);
   return {
     team: inputValue(root, "team") ?? fallback.team,
-    athletes: Array.from({ length: teamSize }, (_, i) => inputValue(root, `athlete-${i + 1}`) ?? fallback.athletes[i] ?? ""),
+    athletes: typed.length > 0 ? typed : fallback.athletes,
     division: inputValue(root, "division") ?? fallback.division,
   };
 };
 
 const wire = (options: RenderSignupOptions): void => {
-  const { root, schedule, draft } = options;
+  const { root, draft } = options;
   root.querySelector("#email-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const value = root.querySelector<HTMLInputElement>("#signup-email")?.value ?? "";
@@ -207,8 +212,9 @@ const wire = (options: RenderSignupOptions): void => {
   root.querySelector("#dismiss-claim")?.addEventListener("click", () => options.onCloseForm());
   root.querySelector("#claim-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    options.onClaim(readClaimDraft({ root, teamSize: schedule.teamSize, fallback: draft }));
+    options.onClaim(readClaimDraft({ root, fallback: draft }));
   });
+  root.querySelector("#division")?.addEventListener("change", () => options.onDraftChange(readClaimDraft({ root, fallback: draft })));
 };
 
 export const renderSignup = (options: RenderSignupOptions): void => {

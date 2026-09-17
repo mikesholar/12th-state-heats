@@ -26,10 +26,7 @@ type PageState = {
 
 const UNREACHABLE_TEXT = "Couldn't reach the sheet — try again";
 
-const draftFor = (schedule: Schedule, current: ClaimDraft | undefined): ClaimDraft => {
-  const stored = current ?? loadLastClaim() ?? emptyDraft(schedule.teamSize);
-  return { ...stored, athletes: Array.from({ length: schedule.teamSize }, (_, i) => stored.athletes[i] ?? "") };
-};
+const draftFor = (current: ClaimDraft | undefined): ClaimDraft => current ?? loadLastClaim() ?? emptyDraft();
 
 const live = (schedule: Schedule): LoadedSchedule => {
   saveCachedSchedule(schedule);
@@ -49,7 +46,7 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
       sourceNotice: sourceNotice(loaded),
       live: loaded.source === "live",
       openForm: state.openForm,
-      draft: draftFor(loaded.schedule, state.draft),
+      draft: draftFor(state.draft),
       notice: state.notice,
       busy: state.busy,
       onEmailSubmit: (email) => {
@@ -64,6 +61,7 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
       onCloseForm: () => draw({ ...state, openForm: undefined, notice: undefined }),
       onClaim: (draft) => void claim(draft),
       onRelease: (slot) => void release(slot),
+      onDraftChange: (draft) => draw({ ...state, draft }),
     });
   };
 
@@ -87,8 +85,7 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
     const email = loadSignupEmail();
     const slot = state.openForm;
     if (!email || !slot) return;
-    const { teamSize, divisions } = state.loaded.schedule;
-    const validated = validateClaim({ draft, teamSize, divisions });
+    const validated = validateClaim({ draft, divisions: state.loaded.schedule.divisions });
     if (!validated.success) {
       draw({ ...state, draft, notice: { kind: "error", text: validated.error, at: slot } });
       return;

@@ -4,7 +4,7 @@ import { startSignupPage } from "./signup-page";
 import { loadCachedSchedule } from "./schedule-store";
 import { loadLastClaim, saveLastClaim, saveSignupEmail } from "./signup-store";
 import type { LoadedSchedule } from "../core/load-schedule";
-import { makeClaimDraft, makeEvent, makeHeat, makeLane, makeLoadedSchedule, makeRawEvent, makeRawHeat, makeRawLane, makeRawSchedule, makeSchedule } from "../test/factories";
+import { DIVISIONS, makeClaimDraft, makeDivision, makeEvent, makeHeat, makeLane, makeLoadedSchedule, makeRawEvent, makeRawHeat, makeRawLane, makeRawSchedule, makeSchedule } from "../test/factories";
 
 afterEach(() => {
   localStorage.clear();
@@ -15,6 +15,7 @@ const ENDPOINT = "https://script.example/exec";
 const ME = "mike@example.com";
 
 const schedule = makeSchedule({
+  divisions: [makeDivision({ name: "Individual RX", teamSize: 1 }), ...DIVISIONS],
   events: [makeEvent({ number: 1, lanes: 2, heats: [makeHeat({ number: 1, lanes: [makeLane({ lane: 1, team: "Taken", email: "other@example.com" })] })] })],
 });
 
@@ -56,10 +57,10 @@ const start = (options?: StartOptions) => {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const fillForm = (root: HTMLElement) => {
+  fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
   fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "Fast but Questionable" } });
   fireEvent.input(getByLabelText(root, "Athlete 1"), { target: { value: "Caroline Ortiz" } });
   fireEvent.input(getByLabelText(root, "Athlete 2"), { target: { value: "Mike Sholar" } });
-  fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
 };
 
 const openLane2 = (root: HTMLElement) => fireEvent.click(getByRole(root, "button", { name: /lane 2 · open/i }));
@@ -132,6 +133,7 @@ describe("claiming", () => {
     const { root, fetchFn } = start();
 
     openLane2(root);
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
     fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "Half" } });
     fireEvent.submit(getByTestId(root, "claim-form"));
     await flush();
@@ -213,6 +215,20 @@ describe("claiming", () => {
     expect(loadSchedule).toHaveBeenCalled();
     expect(queryByTestId(root, "claim-form")).toBeNull();
   });
+
+  it("grows the name fields to fit the chosen division", () => {
+    saveSignupEmail(ME);
+    const { root } = start();
+
+    openLane2(root);
+    expect(root.querySelectorAll('[id^="athlete-"]')).toHaveLength(0);
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "Individual RX" } });
+    expect(getByLabelText(root, "Your name")).toBeInTheDocument();
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
+
+    expect(getByLabelText(root, "Athlete 2")).toBeInTheDocument();
+    expect(getByLabelText(root, "Team name")).toBeInTheDocument();
+  });
 });
 
 describe("cancelling", () => {
@@ -290,6 +306,7 @@ describe("refreshing", () => {
 
     const pending = page.refresh();
     openLane2(root);
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
     fireEvent.input(getByLabelText(root, "Team name"), { target: { value: "Half" } });
     resolve(makeLoadedSchedule({ schedule }));
     await pending;

@@ -1,4 +1,4 @@
-import type { Event, Heat, Lane, Schedule } from "../core/types";
+import type { Division, Event, Heat, Lane, Schedule } from "../core/types";
 import type { Score } from "../core/score";
 import type { Submission } from "../core/submission";
 import type { ClaimDraft } from "../core/signup";
@@ -32,12 +32,15 @@ export const makeEvent = (overrides?: Partial<Event>): Event => ({
   ...overrides,
 });
 
-export const DIVISIONS = ["F/F RX", "F/F Scaled", "F/M RX", "F/M Scaled", "M/M RX", "M/M Scaled"];
+export const DIVISION_NAMES = ["F/F RX", "F/F Scaled", "F/M RX", "F/M Scaled", "M/M RX", "M/M Scaled"];
+
+export const makeDivision = (overrides?: Partial<Division>): Division => ({ name: "F/M Scaled", teamSize: 2, ...overrides });
+
+export const DIVISIONS: readonly Division[] = DIVISION_NAMES.map((name) => makeDivision({ name }));
 
 export const makeSchedule = (overrides?: Partial<Schedule>): Schedule => ({
   compDate: "2026-09-12",
   timeZone: "America/New_York",
-  teamSize: 2,
   divisions: DIVISIONS,
   signupsOpen: true,
   events: [makeEvent()],
@@ -88,8 +91,7 @@ export const makeRawEvent = (overrides?: RawObject): RawObject => ({
 export const makeRawSchedule = (overrides?: RawObject): RawObject => ({
   compDate: "2026-09-12",
   timeZone: "America/New_York",
-  teamSize: 2,
-  divisions: DIVISIONS,
+  divisions: DIVISIONS.map((d) => ({ ...d })),
   signupsOpen: true,
   events: [makeRawEvent()],
   ...overrides,
