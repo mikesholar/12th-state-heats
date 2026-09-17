@@ -45,4 +45,15 @@ describe("the head judge assignment page", () => {
     expect(card).toHaveTextContent("https://example.test/heats/?j=bbbbb");
     expect(card?.querySelector("svg")).not.toBeNull();
   });
+
+  it("skips codes for lanes the event does not have", async () => {
+    const root = document.createElement("div");
+    const narrow = makeSchedule({ events: [makeEvent({ number: 1, lanes: 1 })] });
+
+    await renderHead({ root, schedule: narrow, table, siteUrl: "https://example.test/heats/" });
+
+    expect(getAllByTestId(root, "judge-card")).toHaveLength(1);
+    expect(root.textContent).toContain("Lane 1");
+    expect(root.textContent).not.toContain("Lane 2");
+  });
 });

@@ -1,5 +1,5 @@
 import { snapshotSchedule as schedule } from "./snapshot";
-import { judgeCodes } from "./judge-codes";
+import { judgeCodes, signupCode } from "./judge-codes";
 
 const laneFor = (team: string) =>
   schedule.events.map((event) => {
@@ -46,19 +46,26 @@ describe("the committed snapshot", () => {
 });
 
 describe("the shipped judge codes", () => {
-  const laneAssignments = Object.values(judgeCodes).filter((a) => a.kind === "lane");
+  const laneKeys = Object.values(judgeCodes).flatMap((a) => (a.kind === "lane" ? [`e${a.event}l${a.lane}`] : []));
 
-  it("cover every event and lane in the schedule exactly once", () => {
-    const expected = schedule.events.flatMap((event) =>
-      [...new Set(event.heats.flatMap((h) => h.lanes.map((l) => l.lane)))].map((lane) => `e${event.number}l${lane}`),
-    );
-    const actual = laneAssignments.map((a) => (a.kind === "lane" ? `e${a.event}l${a.lane}` : ""));
+  it("cover every event and lane in the snapshot", () => {
+    const needed = schedule.events.flatMap((event) => Array.from({ length: event.lanes }, (_, i) => `e${event.number}l${i + 1}`));
 
-    expect([...actual].sort()).toEqual([...expected].sort());
+    needed.forEach((key) => expect(laneKeys).toContain(key));
+  });
+
+  it("cover a 6-event by 12-lane grid so the Sheet can grow without regenerating", () => {
+    expect(laneKeys).toHaveLength(6 * 12);
+    expect(laneKeys).toContain("e6l12");
   });
 
   it("have exactly one head judge code", () => {
     expect(Object.values(judgeCodes).filter((a) => a.kind === "head")).toHaveLength(1);
+  });
+
+  it("have a sign-up code that is not also a judge code", () => {
+    expect(signupCode).toMatch(/^[a-z0-9]{5}$/);
+    expect(Object.keys(judgeCodes)).not.toContain(signupCode);
   });
 
   it("are five lowercase alphanumerics", () => {

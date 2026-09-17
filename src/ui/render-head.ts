@@ -12,7 +12,7 @@ type RenderHeadOptions = {
 
 type LaneCardsOptions = {
   readonly table: JudgeCodeTable;
-  readonly eventNumber: number;
+  readonly event: Event;
   readonly siteUrl: string;
 };
 
@@ -20,9 +20,9 @@ type LaneCard = { readonly code: string; readonly lane: number; readonly url: st
 
 type EventGroup = { readonly event: Event; readonly cards: readonly LaneCard[] };
 
-const laneCards = async ({ table, eventNumber, siteUrl }: LaneCardsOptions): Promise<readonly LaneCard[]> => {
+const laneCards = async ({ table, event, siteUrl }: LaneCardsOptions): Promise<readonly LaneCard[]> => {
   const entries = Object.entries(table)
-    .flatMap(([code, a]) => (a.kind === "lane" && a.event === eventNumber ? [{ code, lane: a.lane }] : []))
+    .flatMap(([code, a]) => (a.kind === "lane" && a.event === event.number && a.lane <= event.lanes ? [{ code, lane: a.lane }] : []))
     .sort((a, b) => a.lane - b.lane);
   return Promise.all(
     entries.map(async ({ code, lane }) => {
@@ -48,7 +48,7 @@ const groupHtml = ({ event, cards }: EventGroup): string => `
 
 export const renderHead = async ({ root, schedule, table, siteUrl }: RenderHeadOptions): Promise<void> => {
   const groups = await Promise.all(
-    schedule.events.map(async (event) => ({ event, cards: await laneCards({ table, eventNumber: event.number, siteUrl }) })),
+    schedule.events.map(async (event) => ({ event, cards: await laneCards({ table, event, siteUrl }) })),
   );
   root.innerHTML = `
     <header class="header"><div class="header-row"><h1 class="title">Judge assignments</h1></div></header>
