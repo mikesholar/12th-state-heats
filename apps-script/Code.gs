@@ -74,8 +74,8 @@ function pad2(n) {
   return (n < 10 ? "0" : "") + n;
 }
 
-function asClock(value, timeZone) {
-  if (value instanceof Date) return Utilities.formatDate(value, timeZone, "HH:mm");
+function asClock(value, sheetZone) {
+  if (value instanceof Date) return Utilities.formatDate(value, sheetZone, "HH:mm");
   if (typeof value === "number") {
     const minutes = Math.round(value * 24 * 60);
     return pad2(Math.floor(minutes / 60) % 24) + ":" + pad2(minutes % 60);
@@ -83,8 +83,8 @@ function asClock(value, timeZone) {
   return String(value === undefined || value === null ? "" : value).trim();
 }
 
-function asDateString(value, timeZone) {
-  if (value instanceof Date) return Utilities.formatDate(value, timeZone, "yyyy-MM-dd");
+function asDateString(value, sheetZone) {
+  if (value instanceof Date) return Utilities.formatDate(value, sheetZone, "yyyy-MM-dd");
   return String(value === undefined || value === null ? "" : value).trim();
 }
 
@@ -113,7 +113,7 @@ function bySignedUpAt(a, b) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 
-function readEvents(ss, timeZone) {
+function readEvents(ss, sheetZone) {
   const heats = readTable(ss.getSheetByName(HEATS));
   const slots = readTable(ss.getSheetByName(SLOTS)).sort(bySignedUpAt);
   return readTable(ss.getSheetByName(EVENTS_TAB)).map((row) => {
@@ -130,20 +130,20 @@ function readEvents(ss, timeZone) {
       lanes: laneCount,
       heats: heats
         .filter((h) => asNumberOrText(h.event) === number)
-        .map((h) => readHeat(h, number, laneCount, slots, timeZone)),
+        .map((h) => readHeat(h, number, laneCount, slots, sheetZone)),
       ...(capSeconds === "" ? {} : { capSeconds: asNumberOrText(capSeconds) }),
     };
   });
 }
 
-function readHeat(row, eventNumber, laneCount, slots, timeZone) {
+function readHeat(row, eventNumber, laneCount, slots, sheetZone) {
   const number = asNumberOrText(row.heat);
   const lanes = slots
     .filter((s) => asNumberOrText(s.event) === eventNumber && asNumberOrText(s.heat) === number)
     .map((s) => readLane(s))
     .filter((lane) => typeof lane.lane === "number" && lane.lane >= 1 && (typeof laneCount !== "number" || lane.lane <= laneCount))
     .filter((lane, i, all) => all.findIndex((other) => other.lane === lane.lane) === i);
-  return { number: number, start: asClock(row.start, timeZone), end: asClock(row.end, timeZone), lanes: lanes };
+  return { number: number, start: asClock(row.start, sheetZone), end: asClock(row.end, sheetZone), lanes: lanes };
 }
 
 function readLane(slot) {
@@ -245,7 +245,7 @@ function createIfMissing(ss, name, headers, fill) {
 
 function setupSettings(ss) {
   createIfMissing(ss, SETTINGS, ["key", "value"], (sheet) => {
-    sheet.getRange(2, 2, SETTINGS_ROWS.length, 1).setNumberFormat("@");
+    sheet.getRange(2, 2, SETTINGS_ROWS.length - 1, 1).setNumberFormat("@");
     sheet.getRange(2, 1, SETTINGS_ROWS.length, 2).setValues(SETTINGS_ROWS);
     sheet.getRange(2 + SETTINGS_ROWS.length - 1, 2).insertCheckboxes();
     sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · teamSize 1 for individuals · divisions comma-separated · signupsOpen checkbox");
