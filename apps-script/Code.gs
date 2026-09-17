@@ -26,6 +26,8 @@ const EVENT_HEADERS = ["event", "title", "format", "scoring", "capSeconds", "rx"
 const HEAT_HEADERS = ["event", "heat", "start", "end"];
 const SLOT_HEADERS = ["event", "heat", "lane", "email", "team", "athletes", "division", "signedUpAt"];
 const SCORING_FORMATS = ["time-or-rounds", "rounds-reps"];
+const SCHEDULE_CACHE_KEY = "schedule";
+const SCHEDULE_CACHE_SECONDS = 30;
 
 function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -33,8 +35,26 @@ function reply(body) {
 
 function doGet() {
   const ss = SpreadsheetApp.getActive();
-  if (!ss.getSheetByName(SETTINGS)) return reply({ ok: false, error: "Run setup() in the script editor first" });
-  return reply({ ok: true, schedule: readSchedule(ss) });
+  const missing = [SETTINGS, EVENTS_TAB, HEATS, SLOTS].filter((name) => !ss.getSheetByName(name));
+  if (missing.length > 0) return reply({ ok: false, error: "Run setup() in the script editor first (missing " + missing.join(", ") + ")" });
+  try {
+    return reply({ ok: true, schedule: cachedSchedule(ss) });
+  } catch (err) {
+    return reply({ ok: false, error: String((err && err.message) || err) });
+  }
+}
+
+function cachedSchedule(ss) {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get(SCHEDULE_CACHE_KEY);
+  if (hit) return JSON.parse(hit);
+  const schedule = readSchedule(ss);
+  cache.put(SCHEDULE_CACHE_KEY, JSON.stringify(schedule), SCHEDULE_CACHE_SECONDS);
+  return schedule;
+}
+
+function clearScheduleCache() {
+  CacheService.getScriptCache().remove(SCHEDULE_CACHE_KEY);
 }
 
 function readTable(sheet) {
@@ -42,12 +62,12 @@ function readTable(sheet) {
   const headers = (values[0] || []).map((h) => String(h).trim());
   return values.slice(1)
     .filter((row) => row.some((cell) => cell !== "" && cell !== null))
-    .map((row) => headers.reduce((record, header, i) => Object.assign(record, { [header]: row[i] }), {}));
+    .map((row) => Object.fromEntries(headers.map((h, i) => [h, row[i]])));
 }
 
 function readSettings(ss) {
   const rows = ss.getSheetByName(SETTINGS).getDataRange().getValues().slice(1);
-  return rows.reduce((settings, row) => Object.assign(settings, { [String(row[0]).trim()]: row[1] }), {});
+  return Object.fromEntries(rows.map((row) => [String(row[0]).trim(), row[1]]));
 }
 
 function pad2(n) {
@@ -82,28 +102,37 @@ function asBoolean(value) {
   return asText(value).toUpperCase() === "TRUE";
 }
 
+function signedUpAtMs(value) {
+  const ms = new Date(value).getTime();
+  return isNaN(ms) ? Infinity : ms;
+}
+
+function bySignedUpAt(a, b) {
+  const left = signedUpAtMs(a.signedUpAt);
+  const right = signedUpAtMs(b.signedUpAt);
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+
 function readEvents(ss, timeZone) {
   const heats = readTable(ss.getSheetByName(HEATS));
-  const slots = readTable(ss.getSheetByName(SLOTS)).slice().sort((a, b) => new Date(a.signedUpAt) - new Date(b.signedUpAt));
+  const slots = readTable(ss.getSheetByName(SLOTS)).sort(bySignedUpAt);
   return readTable(ss.getSheetByName(EVENTS_TAB)).map((row) => {
     const number = asNumberOrText(row.event);
     const laneCount = asNumberOrText(row.lanes);
     const capSeconds = asText(row.capSeconds);
-    return Object.assign(
-      {
-        number: number,
-        title: asText(row.title),
-        format: asText(row.format),
-        scoring: asText(row.scoring),
-        rx: asText(row.rx),
-        scaled: asText(row.scaled),
-        lanes: laneCount,
-        heats: heats
-          .filter((h) => asNumberOrText(h.event) === number)
-          .map((h) => readHeat(h, number, laneCount, slots, timeZone)),
-      },
-      capSeconds === "" ? {} : { capSeconds: asNumberOrText(capSeconds) },
-    );
+    return {
+      number: number,
+      title: asText(row.title),
+      format: asText(row.format),
+      scoring: asText(row.scoring),
+      rx: asText(row.rx),
+      scaled: asText(row.scaled),
+      lanes: laneCount,
+      heats: heats
+        .filter((h) => asNumberOrText(h.event) === number)
+        .map((h) => readHeat(h, number, laneCount, slots, timeZone)),
+      ...(capSeconds === "" ? {} : { capSeconds: asNumberOrText(capSeconds) }),
+    };
   });
 }
 
@@ -119,22 +148,25 @@ function readHeat(row, eventNumber, laneCount, slots, timeZone) {
 
 function readLane(slot) {
   const email = asText(slot.email);
-  return Object.assign(
-    { lane: asNumberOrText(slot.lane), team: asText(slot.team), athletes: asText(slot.athletes), division: asText(slot.division) },
-    email === "" ? {} : { email: email },
-  );
+  return {
+    lane: asNumberOrText(slot.lane),
+    team: asText(slot.team),
+    athletes: asText(slot.athletes),
+    division: asText(slot.division),
+    ...(email === "" ? {} : { email: email }),
+  };
 }
 
 function readSchedule(ss) {
   const settings = readSettings(ss);
-  const timeZone = asText(settings.timeZone) || "America/New_York";
+  const sheetZone = ss.getSpreadsheetTimeZone();
   return {
-    compDate: asDateString(settings.compDate, timeZone),
-    timeZone: timeZone,
+    compDate: asDateString(settings.compDate, sheetZone),
+    timeZone: asText(settings.timeZone),
     teamSize: asNumberOrText(settings.teamSize),
     divisions: asText(settings.divisions).split(",").map((d) => d.trim()).filter((d) => d !== ""),
     signupsOpen: asBoolean(settings.signupsOpen),
-    events: readEvents(ss, timeZone),
+    events: readEvents(ss, sheetZone),
   };
 }
 
@@ -201,6 +233,7 @@ function setup() {
   setupLog(ss);
   setupResults(ss);
   setupOverall(ss);
+  clearScheduleCache();
 }
 
 function createIfMissing(ss, name, headers, fill) {
@@ -212,6 +245,7 @@ function createIfMissing(ss, name, headers, fill) {
 
 function setupSettings(ss) {
   createIfMissing(ss, SETTINGS, ["key", "value"], (sheet) => {
+    sheet.getRange(2, 2, SETTINGS_ROWS.length, 1).setNumberFormat("@");
     sheet.getRange(2, 1, SETTINGS_ROWS.length, 2).setValues(SETTINGS_ROWS);
     sheet.getRange(2 + SETTINGS_ROWS.length - 1, 2).insertCheckboxes();
     sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · teamSize 1 for individuals · divisions comma-separated · signupsOpen checkbox");
