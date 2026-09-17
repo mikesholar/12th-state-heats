@@ -227,10 +227,11 @@ button.primary:active { filter: brightness(0.9); }
 .signup-main .heat { padding-bottom: 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px 0; }
 .chip { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); font: inherit; font-size: 0.9rem; background: var(--surface); color: var(--text); }
-button.chip.open { border-color: var(--navy); color: var(--navy); font-weight: 700; cursor: pointer; }
+button.chip.open { border-color: var(--navy); color: var(--navy); font-weight: 700; cursor: pointer; min-height: 44px; }
 .chip.open.dim { opacity: 0.45; }
 .chip.taken { background: var(--surface-2); color: var(--muted); }
 .chip.mine { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); font-weight: 700; }
+.chip.mine .link { padding: 6px 8px; margin: -6px -8px -6px 0; }
 .your-slot { margin-top: 6px; font-weight: 700; color: var(--orange); }
 .claim-form { display: grid; gap: 6px; padding: 10px 12px 4px; }
 .claim-form label { font-weight: 700; color: var(--navy); font-size: 0.85rem; }

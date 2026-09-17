@@ -60,10 +60,10 @@ describe("the email gate", () => {
   it("asks for an email and reports it", () => {
     const { root, options } = renderWith({ email: undefined });
 
-    fireEvent.input(getByLabelText(root, "Your email"), { target: { value: " Mike@Example.com " } });
+    fireEvent.input(getByLabelText(root, "Your email"), { target: { value: "Mike@Example.com" } });
     fireEvent.submit(getByTestId(root, "email-form"));
 
-    expect(options.onEmailSubmit).toHaveBeenCalledWith(" Mike@Example.com ");
+    expect(options.onEmailSubmit).toHaveBeenCalledWith("Mike@Example.com");
     expect(queryByRole(root, "button", { name: /lane 2 · open/i })).toBeNull();
   });
 
@@ -135,7 +135,15 @@ describe("lane chips", () => {
     const { root } = renderWith({ live: false, sourceNotice: "Offline — showing last known schedule" });
 
     expect(root.querySelectorAll("button.chip")).toHaveLength(0);
+    expect(queryByText(root, "Cancel")).toBeNull();
     expect(getByTestId(root, "source-notice")).toHaveTextContent("Offline");
+  });
+
+  it("is read-only while busy", () => {
+    const { root } = renderWith({ busy: true });
+
+    expect(root.querySelectorAll("button.chip")).toHaveLength(0);
+    expect(queryByText(root, "Cancel")).toBeNull();
   });
 });
 
@@ -212,6 +220,12 @@ describe("notices", () => {
 
   it("has no notice element otherwise", () => {
     expect(queryByTestId(renderWith().root, "notice")).toBeNull();
+  });
+
+  it("gives an info notice a status role", () => {
+    const { root } = renderWith({ notice: { kind: "info", text: "Saved" } });
+
+    expect(getByTestId(root, "notice")).toHaveAttribute("role", "status");
   });
 });
 

@@ -27,7 +27,10 @@ export type RenderSignupOptions = {
   readonly onRelease: (slot: SlotKey) => void;
 };
 
-type Interactivity = { readonly canWrite: boolean; readonly busy: boolean };
+type SignupViewState = Pick<RenderSignupOptions, "schedule" | "openForm" | "draft" | "notice" | "busy"> & {
+  readonly email: string | undefined;
+  readonly canWrite: boolean;
+};
 
 const slotAttr = ({ event, heat, lane }: SlotKey): string => `${event}:${heat}:${lane}`;
 
@@ -48,7 +51,7 @@ const compDateLabel = (schedule: Schedule): string =>
 const emailFormHtml = (): string => `
   <form id="email-form" data-testid="email-form" class="name-form">
     <label for="signup-email">Your email</label>
-    <input id="signup-email" name="email" type="text" autocomplete="email" inputmode="email" required />
+    <input id="signup-email" name="email" type="email" autocomplete="email" inputmode="email" required />
     <button type="submit" class="primary">Continue</button>
   </form>`;
 
@@ -78,14 +81,14 @@ const headerHtml = ({ schedule, email, sourceNotice, notice }: HeaderOptions): s
 const openChipHtml = (slot: SlotKey, interactive: boolean): string =>
   interactive
     ? `<button type="button" class="chip open" data-lane="${slot.lane}" data-claim="${slotAttr(slot)}">Lane ${slot.lane} · open</button>`
-    : `<div class="chip open dim" data-lane="${slot.lane}">Lane ${slot.lane} · open</div>`;
+    : `<div class="chip open dim" data-lane="${slot.lane}" aria-disabled="true">Lane ${slot.lane} · open</div>`;
 
 const takenChipHtml = (lane: Lane): string =>
   `<div class="chip taken" data-lane="${lane.lane}">Lane ${lane.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}</div>`;
 
 const mineChipHtml = (slot: SlotKey, lane: Lane, canRelease: boolean): string =>
   `<div class="chip mine" data-lane="${lane.lane}">Lane ${lane.lane} · <b>${esc(lane.team)}</b> · ${esc(lane.division)}${
-    canRelease ? ` <button type="button" class="link" data-release="${slotAttr(slot)}">Cancel</button>` : ""
+    canRelease ? ` <button type="button" class="link" data-release="${slotAttr(slot)}" aria-label="Cancel lane ${lane.lane}, heat ${slot.heat}">Cancel</button>` : ""
   }</div>`;
 
 type ChipsOptions = {
@@ -93,16 +96,16 @@ type ChipsOptions = {
   readonly heat: Heat;
   readonly email: string | undefined;
   readonly alreadyIn: boolean;
-  readonly interactivity: Interactivity;
+  readonly canWrite: boolean;
 };
 
-const chipsHtml = ({ event, heat, email, alreadyIn, interactivity }: ChipsOptions): string =>
+const chipsHtml = ({ event, heat, email, alreadyIn, canWrite }: ChipsOptions): string =>
   Array.from({ length: event.lanes }, (_, i) => i + 1)
     .map((laneNumber) => {
       const slot = { event: event.number, heat: heat.number, lane: laneNumber };
       const lane = heat.lanes.find((l) => l.lane === laneNumber);
-      if (!lane) return openChipHtml(slot, interactivity.canWrite && !alreadyIn);
-      if (email !== undefined && isMine({ lane, email })) return mineChipHtml(slot, lane, interactivity.canWrite);
+      if (!lane) return openChipHtml(slot, canWrite && !alreadyIn);
+      if (email !== undefined && isMine({ lane, email })) return mineChipHtml(slot, lane, canWrite);
       return takenChipHtml(lane);
     })
     .join("");
@@ -130,29 +133,30 @@ const claimFormHtml = ({ schedule, slot, draft, busy }: FormOptions): string => 
     <select id="division" name="division">${divisionOptionsHtml(schedule.divisions, draft.division)}</select>
     <div class="claim-actions">
       <button type="submit" class="primary" ${busy ? "disabled" : ""}>Claim lane ${slot.lane}</button>
-      <button type="button" class="link" id="cancel-claim">Never mind</button>
+      <button type="button" class="link" id="dismiss-claim">Never mind</button>
     </div>
   </form>`;
 
-type HeatOptions = Omit<RenderSignupOptions, "root"> & { readonly event: Event; readonly heat: Heat; readonly alreadyIn: boolean };
+type HeatOptions = SignupViewState & { readonly event: Event; readonly heat: Heat; readonly alreadyIn: boolean };
 
 const heatHtml = (options: HeatOptions): string => {
-  const { schedule, event, heat, email, alreadyIn, openForm, draft, notice, busy, live } = options;
-  const interactivity = { canWrite: email !== undefined && schedule.signupsOpen && live && !busy, busy };
-  const formOpen = openForm !== undefined && sameHeat(openForm, event, heat);
+  const { schedule, event, heat, email, alreadyIn, openForm, draft, notice, busy, canWrite } = options;
+  const formSlot = openForm !== undefined && sameHeat(openForm, event, heat) ? openForm : undefined;
   return `
   <article class="heat" data-heat="E${event.number}H${heat.number}">
     <header class="heat-header">
       <h3>Heat ${heat.number}</h3>
       <span class="heat-time">${formatRange(heat.start, heat.end)}</span>
     </header>
-    <div class="chips">${chipsHtml({ event, heat, email, alreadyIn, interactivity })}</div>
-    ${formOpen && openForm ? claimFormHtml({ schedule, slot: openForm, draft, busy }) : ""}
+    <div class="chips">${chipsHtml({ event, heat, email, alreadyIn, canWrite })}</div>
+    ${formSlot ? claimFormHtml({ schedule, slot: formSlot, draft, busy }) : ""}
     ${notice && sameHeat(notice.at, event, heat) ? noticeHtml(notice) : ""}
   </article>`;
 };
 
-const eventHtml = (options: Omit<RenderSignupOptions, "root"> & { readonly event: Event }): string => {
+type EventOptions = SignupViewState & { readonly event: Event };
+
+const eventHtml = (options: EventOptions): string => {
   const { event, email } = options;
   const mine = email === undefined ? undefined : mySlotIn({ event, email });
   return `
@@ -200,7 +204,7 @@ const wire = (options: RenderSignupOptions): void => {
       if (slot) options.onRelease(slot);
     }),
   );
-  root.querySelector("#cancel-claim")?.addEventListener("click", () => options.onCloseForm());
+  root.querySelector("#dismiss-claim")?.addEventListener("click", () => options.onCloseForm());
   root.querySelector("#claim-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     options.onClaim(readClaimDraft({ root, teamSize: schedule.teamSize, fallback: draft }));
@@ -208,11 +212,13 @@ const wire = (options: RenderSignupOptions): void => {
 };
 
 export const renderSignup = (options: RenderSignupOptions): void => {
-  const { root, schedule } = options;
+  const { root, schedule, email, openForm, draft, notice, busy, live } = options;
+  const canWrite = email !== undefined && schedule.signupsOpen && live && !busy;
+  const view: SignupViewState = { schedule, openForm, draft, notice, busy, email, canWrite };
   root.innerHTML = `
     ${headerHtml(options)}
     <main class="main signup-main">
-      ${schedule.events.map((event) => eventHtml({ ...options, event })).join("")}
+      ${schedule.events.map((event) => eventHtml({ ...view, event })).join("")}
     </main>
     <footer class="footer">One lane per event · ${compDateLabel(schedule)}</footer>`;
   wire(options);

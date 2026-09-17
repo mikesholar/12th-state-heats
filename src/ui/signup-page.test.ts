@@ -202,7 +202,7 @@ describe("cancelling", () => {
     const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(replying({ ok: true, schedule: emptied }));
     const { root } = start({ fetchFn, initial: makeLoadedSchedule({ schedule: mine }) });
 
-    fireEvent.click(getByRole(root, "button", { name: "Cancel" }));
+    fireEvent.click(getByRole(root, "button", { name: /^cancel lane 2/i }));
     await flush();
 
     expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toEqual({ action: "release", event: 1, heat: 1, lane: 2, email: ME });
