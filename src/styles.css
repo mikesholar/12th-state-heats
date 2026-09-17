@@ -75,50 +75,7 @@ body {
 
 .source-notice { margin-top: 8px; padding: 6px 12px; border-radius: 6px; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.85rem; }
 
-.picker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  font-weight: 700;
-  color: var(--navy);
-}
-
-.picker select {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  padding: 9px 10px;
-}
-
 .main { padding: 12px 16px 40px; }
-
-.my-heat {
-  background: var(--navy);
-  color: #ffffff;
-  border-radius: 2px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "team lane" "headline lane" "detail lane";
-  column-gap: 16px;
-  border-left: 6px solid var(--orange);
-}
-
-.my-heat.on-floor { background: var(--orange); border-left-color: var(--navy); }
-
-.my-team { grid-area: team; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; opacity: 0.85; }
-.my-headline { grid-area: headline; font-size: 1.3rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
-.my-detail { grid-area: detail; font-weight: 500; opacity: 0.9; }
-.my-lane { grid-area: lane; align-self: center; text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; }
-.my-lane strong { display: block; font-weight: 900; font-size: 3.4rem; line-height: 1; opacity: 1; }
-.my-heat.done { grid-template-areas: "team" "headline"; grid-template-columns: 1fr; }
 
 .banner {
   background: var(--surface);
@@ -192,10 +149,6 @@ body {
 .athletes { color: var(--muted); font-size: 0.82rem; }
 .lane-div { width: 6em; text-align: right; color: var(--muted); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 
-tr.mine { background: var(--orange-soft); box-shadow: inset 4px 0 0 var(--orange); }
-tr.mine .team-name { color: var(--navy); font-weight: 900; }
-tr.mine .lane-num { color: var(--orange); }
-
 tr.open .team-name { color: var(--muted); font-weight: 400; font-style: italic; }
 tr.open .lane-num { color: var(--muted); }
 
@@ -204,27 +157,6 @@ tr.open .lane-num { color: var(--muted); }
 @media (max-width: 480px) {
   .title-text { display: none; }
 }
-
-.picker.compact { margin-top: 6px; }
-.picker.compact span { display: none; }
-.picker.compact select { padding: 5px 8px; font-size: 0.85rem; background: transparent; border-color: transparent; color: var(--muted); }
-
-.my-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 6px -16px -12px;
-  padding: 7px 16px;
-  background: var(--navy);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-.my-strip.on-floor { background: var(--orange); }
-.my-strip.done { background: var(--muted); }
-.strip-team { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 900; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.strip-summary { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* ---------- judge page ---------- */
 .judge-gate { padding-top: 40px; }

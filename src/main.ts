@@ -13,7 +13,6 @@ import { renderHead } from "./ui/render-head";
 import { renderInvalid } from "./ui/render-invalid";
 import { fetchSchedule } from "./ui/schedule-client";
 import { loadCachedSchedule, saveCachedSchedule } from "./ui/schedule-store";
-import { loadTeam, saveTeam } from "./ui/team-store";
 
 const REFRESH_MS = 15_000;
 const RELOAD_SCHEDULE_MS = 60_000;
@@ -38,16 +37,11 @@ const startSpectator = (initial: LoadedSchedule): void => {
   let loaded = initial;
   const now = clockFor(initial.schedule);
 
-  const draw = (selectedTeam: string | undefined): void => {
+  const draw = (): void => {
     render({
       root,
       schedule: loaded.schedule,
       now: now(),
-      selectedTeam,
-      onTeamChange: (team) => {
-        saveTeam(team);
-        draw(team);
-      },
       sourceNotice: sourceNotice(loaded),
     });
   };
@@ -57,15 +51,15 @@ const startSpectator = (initial: LoadedSchedule): void => {
       void loadSchedule()
         .then((next) => {
           loaded = next;
-          draw(loadTeam());
+          draw();
         })
         .finally(reloadLater);
     }, RELOAD_SCHEDULE_MS);
   };
 
-  draw(loadTeam());
+  draw();
   root.querySelector(".heat.current, .heat.upcoming")?.scrollIntoView({ block: "start" });
-  setInterval(() => draw(loadTeam()), REFRESH_MS);
+  setInterval(() => draw(), REFRESH_MS);
   reloadLater();
 };
 
