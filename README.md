@@ -15,27 +15,20 @@ refreshes itself every 15 seconds; no reload needed.
 Lane judges get a per-event link (`?j=<code>`) that shows the team in their
 lane for the heat on the floor and posts the score to a Google Sheet. The
 head judge's link shows a QR code for every lane. Setup, comp-day steps and
-troubleshooting: **[docs/scoring-deploy.md](docs/scoring-deploy.md)**.
+troubleshooting: **[docs/deploy.md](docs/deploy.md)**.
 
-## Editing the schedule
+## The schedule lives in the Sheet
 
-Everything is in **`src/data/schedule.ts`**: three events, each with heats,
-each heat with lanes (`lane`, `team`, `athletes`, `division`). Team names are
-the join key across events, so spell them identically everywhere.
+Organisers define the comp in the Google Sheet — `Settings`, `Events`,
+`Heats` and `Slots` tabs — and the site reads it through the Apps Script
+endpoint on every load (re-checked every minute). Phones cache the last
+good copy, and `src/data/schedule-snapshot.json` (refreshed with
+`npm run snapshot`) is the fallback for a phone that has never loaded the
+site. Everything the organiser does is in **[docs/deploy.md](docs/deploy.md)**.
 
-Push to `main` and GitHub Actions runs lint, typecheck and tests, then deploys.
-The test suite validates the data — duplicate lanes, overlapping heats, wrong
-lane counts and a team missing from an event all fail the build.
-
-### Known deviations from the source PDFs
-
-- **Event 1 Heat 2** listed two teams in lane 6. 12th State Dumpys is lane 5.
-- **Jointly Unstable** (Gail Ho + Kelly Monroe) does not appear anywhere in
-  the Event 3 PDF. The test pins this as the one allowed gap; if they get a
-  lane, add them and change the expectation in `src/data/schedule.test.ts` to
-  `[]`.
-- **Event 2 Scaled** says *20 Ring Rows* (from the gym's workout post); the heat
-  PDF header says *20 Pull Ups*.
+A lane nobody has claimed shows as *— open —*. The 2026 snapshot keeps two
+transcription corrections from the source PDFs: Event 1 Heat 2 lane 5 is
+12th State Dumpys, and Jointly Unstable has no Event 3 lane.
 
 ## Previewing a different time
 
@@ -61,18 +54,24 @@ Pure logic lives in `src/core/` (all functions take `now: Date`; nothing reads
 the clock); DOM rendering in `src/ui/`. Design spec and plan are under
 `docs/superpowers/`.
 
-`npm run judge-links` regenerates `src/data/judge-codes.ts` (keeping existing
-codes) and prints every judge URL. `apps-script/Code.gs` is the Sheet
-backend; it is pasted into Apps Script by hand, not built. `flush` in
-`submit-queue.ts` is not serialised; concurrent flushes (tick, `online`,
-post-submit) can double-post, which is safe only because `Code.gs` dedups by
-`clientId` under `LockService`.
+`npm run judge-links` regenerates `src/data/judge-codes.ts` (a fixed 6-event
+× 12-lane grid plus head and sign-up codes; existing codes are kept) and
+prints the URLs the current snapshot uses. `npm run snapshot` pulls the
+Sheet into `src/data/schedule-snapshot.json`, emails stripped.
+`apps-script/Code.gs` is the Sheet backend; it is pasted into Apps Script by
+hand, not built. `flush` in `submit-queue.ts` is not serialised; concurrent
+flushes (tick, `online`, post-submit) can double-post, which is safe only
+because `Code.gs` dedups by `clientId` under `LockService`.
 
 ### Gotchas
 
 - `score-client.ts` posts a string body with **no** headers on purpose. A
   `Content-Type: application/json` header triggers a CORS preflight that
   Apps Script cannot answer, and every score sticks at "pending".
+- `Code.gs` converts date/time cells using the *spreadsheet's* time zone
+  (File → Settings), which is why `setup()` formats those columns as plain
+  text — a pasted time-formatted cell in a Pacific-zoned sheet would
+  otherwise come out three hours off.
 - In jsdom tests, `toBeInTheDocument` needs the root attached
   (`document.body.append(root)`); otherwise every such assertion fails with
   an unhelpful message. See `render-judge.test.ts`.
