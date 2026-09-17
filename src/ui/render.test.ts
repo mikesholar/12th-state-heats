@@ -198,8 +198,7 @@ describe("lanes nobody has claimed", () => {
     const rows = root.querySelectorAll('[data-heat="E1H3"] tbody tr');
     expect(rows).toHaveLength(8);
     expect(rows[7]).toHaveClass("open");
-    expect(rows[7]?.textContent).toContain("8");
-    expect(rows[7]?.textContent).toContain("open");
+    expect(rows[7]).toHaveTextContent(/^8\s*— open —$/);
   });
 
   it("are not offered in the team picker", () => {
@@ -231,5 +230,12 @@ describe("the source notice", () => {
     const root = renderSchedule(makeSchedule(), "Offline — showing last known schedule");
 
     expect(getByTestId(root, "source-notice")).toHaveTextContent("Offline — showing last known schedule");
+  });
+
+  it("escapes sheet-derived text in the notice", () => {
+    const root = renderSchedule(makeSchedule(), 'Sheet has a problem: Events: Event 1: title "<b>x</b>" is odd');
+
+    expect(getByTestId(root, "source-notice").querySelector("b")).toBeNull();
+    expect(getByTestId(root, "source-notice")).toHaveTextContent('"<b>x</b>"');
   });
 });
