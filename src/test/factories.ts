@@ -1,6 +1,7 @@
 import type { Event, Heat, Lane, Schedule } from "../core/types";
 import type { Score } from "../core/score";
 import type { Submission } from "../core/submission";
+import type { ClaimDraft } from "../core/signup";
 
 export const makeLane = (overrides?: Partial<Lane>): Lane => ({
   lane: 1,
@@ -90,6 +91,13 @@ export const makeRawSchedule = (overrides?: RawObject): RawObject => ({
   divisions: DIVISIONS,
   signupsOpen: true,
   events: [makeRawEvent()],
+  ...overrides,
+});
+
+export const makeClaimDraft = (overrides?: Partial<ClaimDraft>): ClaimDraft => ({
+  team: "Fast but Questionable",
+  athletes: ["Caroline Ortiz", "Mike Sholar"],
+  division: "F/M Scaled",
   ...overrides,
 });
 
