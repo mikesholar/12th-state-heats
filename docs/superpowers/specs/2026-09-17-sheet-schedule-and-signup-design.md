@@ -179,10 +179,13 @@ Renderers iterate `1..event.lanes` and look up the claimed lane by number.
 
 The trust boundary. A hand-rolled decoder (the project has no runtime
 dependencies and keeps it that way) takes `unknown` and returns
-`Result<Schedule, string>`. Messages name the tab and row so an organiser
-can fix the Sheet: `Heats row 4: end 08:21 is before start 08:26`,
-`Events row 2: scoring "amrap" must be time-or-rounds or rounds-reps`,
-`Settings: compDate "9/11/27" must be YYYY-MM-DD`.
+`Result<Schedule, string>`. Messages name the tab and the entity so an
+organiser can find the row (nested JSON carries no sheet row numbers):
+`Heats: Event 1 Heat 3: end "08:21" is not after start 08:26`,
+`Events: Event 2: scoring "amrap" must be time-or-rounds or rounds-reps`,
+`Settings: compDate "9/11/27" must be YYYY-MM-DD`. The decoder stops at the
+first structural problem; `validateSchedule` then reports every semantic
+problem at once.
 
 `validateSchedule` runs on the decoded value and changes to match the new
 model:
@@ -213,14 +216,18 @@ last known schedule". If nothing decodes at all the page shows only
 "Couldn't load the schedule — check your connection and reload" (with the
 reason underneath when it is a Sheet problem).
 
-Spectator and judge pages re-fetch every 60 s; the sign-up page every 30 s.
-The existing 15 s clock tick stays local. `?at=` preview keeps working.
+The spectator page re-fetches every 60 s; the sign-up page every 30 s. The
+judge page fetches once when opened (judges open it fresh before each event
+by scanning the QR; a reload picks up any change). The existing 15 s clock
+tick stays local. `?at=` preview keeps working.
 
 ### Snapshot — `scripts/snapshot.ts` (`npm run snapshot`)
 
-Fetches `doGet`, decodes and validates, writes the raw JSON to
-`src/data/schedule-snapshot.json` (fails loudly on any error). The test
-suite decodes the committed snapshot, so a bad one fails the build.
+Fetches `doGet`, decodes and validates, writes the reply's `schedule`
+object to `src/data/schedule-snapshot.json` (fails loudly on any error).
+`src/data/snapshot.ts` decodes that file at import time and exports
+`snapshotSchedule`; the app, the tests and the link script all use it, and
+the test suite decodes the committed snapshot, so a bad one fails the build.
 `src/data/schedule.ts` and its hand-written data are deleted; the 2026 data
 becomes the first snapshot.
 
@@ -366,7 +373,8 @@ Replaces `scoring-deploy.md`. Sections:
 4. **Redeploying the script** — unchanged.
 5. **Troubleshooting** — existing rows plus: "Sheet has a problem: …"
    (fix the named row), sign-ups refused with "closed" (`signupsOpen`),
-   slot shows on the page but not in `Slots` (cached — wait 60 s).
+   slot shows on the page but not in `Slots` (cached — wait 60 s), judge
+   page shows no team in a lane that was just filled (reload the page).
 
 ## Delivery
 
