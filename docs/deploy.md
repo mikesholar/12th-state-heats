@@ -201,7 +201,7 @@ so the site does not need a rebuild.
 | Amber "Sheet has a problem: Events: Event 2: scoring …" | A cell in the named tab/row | Fix the cell; phones update within about a minute and a half |
 | Amber "Sheet has a problem: Run setup() … (missing Heats)" | A tab was deleted or renamed | Run `setup()` again (it recreates only what is missing) |
 | `npm run snapshot` fails with "The Sheet has a problem" | Same as above | Fix the Sheet, rerun |
-| `npm run snapshot` says "Refusing to write an empty schedule" | `Events` tab is empty | Fill `Events`/`Heats` first |
+| `npm run snapshot` fails with "Events: must list at least one event" | `Events` tab is empty | Fill `Events`/`Heats` first |
 | Heat times show as `#####` or wrong | `start`/`end` cells auto-formatted as times | Type them as text (`'08:00`) or set the column format to Plain text |
 | Comp date is off by one | `compDate` cell became a date in a sheet whose time zone differs from the comp's | Type it as text (`'2027-09-11`), or set File → Settings → Time zone to the comp's zone |
 | Judge page says "No team in lane N" for a lane that was just filled | Judge page loaded before the change | Reload the judge page |

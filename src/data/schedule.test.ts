@@ -59,7 +59,7 @@ describe("the shipped judge codes", () => {
   });
 
   it("cover a 6-event by 12-lane grid so the Sheet can grow without regenerating", () => {
-    expect(laneKeys).toHaveLength(6 * 12);
+    expect(new Set(laneKeys).size).toBe(6 * 12);
     expect(laneKeys).toContain("e6l12");
   });
 

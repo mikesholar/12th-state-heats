@@ -38,7 +38,6 @@ if (!hasSchedule(body)) die(`Unexpected reply: ${JSON.stringify(body).slice(0, 2
 
 const decoded = decodeSchedule(body.schedule);
 if (!decoded.success) die(`The Sheet has a problem: ${decoded.error}`);
-if (decoded.data.events.length === 0) die("Refusing to write an empty schedule — the Events tab has no rows");
 
 writeFileSync(OUTPUT, JSON.stringify(withoutEmails(decoded.data), null, 2) + "\n");
 const events = decoded.data.events.map((e) => `E${e.number}: ${e.heats.length} heats`).join(", ");

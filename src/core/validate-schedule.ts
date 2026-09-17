@@ -63,6 +63,7 @@ const hasDivisions = (schedule: Schedule): boolean => schedule.divisions.length 
 const settingsErrors = (schedule: Schedule): readonly string[] => [
   ...(schedule.teamSize < 1 ? ["teamSize must be at least 1"] : []),
   ...(hasDivisions(schedule) ? [] : ["divisions must list at least one division"]),
+  ...(schedule.events.length === 0 ? ["Events: must list at least one event"] : []),
 ];
 
 const laneCountErrors = (event: Event): readonly string[] =>

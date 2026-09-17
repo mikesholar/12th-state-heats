@@ -1,7 +1,6 @@
 import type { ScoringFormat } from "./types";
 import { fail, ok, type Result } from "./result";
 
-export type { Result } from "./result";
 
 export type Score =
   | { readonly kind: "time"; readonly seconds: number }

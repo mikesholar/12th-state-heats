@@ -89,6 +89,10 @@ describe("schedule validation", () => {
     expect(validateSchedule(schedule)).toEqual(["Event 2 appears more than once"]);
   });
 
+  it("rejects a schedule with no events", () => {
+    expect(validateSchedule(makeSchedule({ events: [] }))).toEqual(["Events: must list at least one event"]);
+  });
+
   it("rejects a team size below one", () => {
     expect(validateSchedule(makeSchedule({ teamSize: 0 }))).toEqual(["teamSize must be at least 1"]);
   });
