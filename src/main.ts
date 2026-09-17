@@ -36,34 +36,39 @@ const clockFor = (schedule: Schedule): (() => Date) => {
   return () => new Date(Date.now() + previewOffsetMs);
 };
 
-const startSpectator = (initial: LoadedSchedule): void => {
-  let loaded = initial;
-  const now = clockFor(initial.schedule);
+const lastKnownSchedule = (): LoadedSchedule => {
+  const cached = loadCachedSchedule();
+  return cached ? { schedule: cached, source: "cached" } : { schedule: snapshotSchedule, source: "snapshot" };
+};
+
+const startSpectator = (): void => {
+  let loaded = lastKnownSchedule();
+  let awaitingFirstLoad = true;
+  const now = clockFor(loaded.schedule);
 
   const draw = (): void => {
     render({
       root,
       schedule: loaded.schedule,
       now: now(),
-      sourceNotice: sourceNotice(loaded),
+      sourceNotice: awaitingFirstLoad ? undefined : sourceNotice(loaded),
     });
   };
 
+  const reload = async (): Promise<void> => {
+    loaded = await loadSchedule();
+    awaitingFirstLoad = false;
+    draw();
+  };
+
   const reloadLater = (): void => {
-    setTimeout(() => {
-      void loadSchedule()
-        .then((next) => {
-          loaded = next;
-          draw();
-        })
-        .finally(reloadLater);
-    }, RELOAD_SCHEDULE_MS);
+    setTimeout(() => void reload().finally(reloadLater), RELOAD_SCHEDULE_MS);
   };
 
   draw();
   root.querySelector(".heat.current, .heat.upcoming")?.scrollIntoView({ block: "start" });
   setInterval(draw, REFRESH_MS);
-  reloadLater();
+  void reload().finally(reloadLater);
 };
 
 type StartJudgeOptions = {
@@ -104,8 +109,7 @@ const route = (loaded: LoadedSchedule): void => {
   const assignment = resolveJudgeCode({ table: judgeCodes, code });
   const laneEvent = assignment.kind === "lane" ? schedule.events.find((e) => e.number === assignment.event) : undefined;
 
-  if (code === undefined) startSpectator(loaded);
-  else if (assignment.kind === "lane" && laneEvent && assignment.lane <= laneEvent.lanes)
+  if (assignment.kind === "lane" && laneEvent && assignment.lane <= laneEvent.lanes)
     startJudge({ schedule, event: laneEvent, lane: assignment.lane });
   else if (assignment.kind === "head")
     void renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` }).catch(() =>
@@ -118,5 +122,10 @@ const renderLoadFailed = (): void => {
   root.innerHTML = `<main class="main"><p class="loading">Couldn't load the schedule — check your connection and reload.</p></main>`;
 };
 
-root.innerHTML = `<main class="main"><p class="loading">Loading schedule…</p></main>`;
-void loadSchedule().then(route).catch(renderLoadFailed);
+const hasCode = readSignupCode(location.search) !== undefined || readJudgeCode(location.search) !== undefined;
+if (hasCode) {
+  root.innerHTML = `<main class="main"><p class="loading">Loading schedule…</p></main>`;
+  void loadSchedule().then(route).catch(renderLoadFailed);
+} else {
+  startSpectator();
+}

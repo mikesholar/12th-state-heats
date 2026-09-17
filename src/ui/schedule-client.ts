@@ -8,7 +8,7 @@ type FetchScheduleOptions = {
   readonly fetchFn: typeof fetch;
 };
 
-const FETCH_TIMEOUT_MS = 8_000;
+const FETCH_TIMEOUT_MS = 20_000;
 
 const outcomeOf = (body: unknown): FetchOutcome => {
   if (!isSheetReply(body)) return { kind: "invalid", reason: "Unexpected reply from the sheet" };
