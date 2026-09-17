@@ -12,6 +12,7 @@ describe("the committed snapshot", () => {
   it("pins the 2026 settings", () => {
     expect(schedule.compDate).toBe("2026-09-12");
     expect(schedule.teamSize).toBe(2);
+    expect(schedule.events.flatMap((e) => e.heats.flatMap((h) => h.lanes)).some((l) => l.email !== undefined)).toBe(false);
   });
 
   it("has three events of five heats each, eight lanes wide", () => {

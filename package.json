@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "judge-links": "tsx scripts/judge-links.ts"
+    "judge-links": "tsx scripts/judge-links.ts",
+    "snapshot": "tsx scripts/snapshot.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
