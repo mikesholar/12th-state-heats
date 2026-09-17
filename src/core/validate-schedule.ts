@@ -23,12 +23,16 @@ const divisionErrors = (schedule: Schedule, event: Event, heat: Heat): readonly 
 const heatTimeErrors = (event: Event, heat: Heat): readonly string[] =>
   heat.end > heat.start ? [] : [`${heatLabel(event, heat)}: end ${heat.end} is not after start ${heat.start}`];
 
-const overlapErrors = (event: Event): readonly string[] =>
-  event.heats.flatMap((heat, index) => {
-    const previous = event.heats[index - 1];
-    if (!previous || heat.start >= previous.end) return [];
-    return [`${heatLabel(event, heat)}: starts ${heat.start}, overlaps Heat ${previous.number} ending ${previous.end}`];
+const blockingHeat = (earlier: readonly Heat[], heat: Heat): Heat | undefined =>
+  [...earlier].filter((other) => other.end > heat.start).sort((a, b) => b.end.localeCompare(a.end))[0];
+
+const overlapErrors = (event: Event): readonly string[] => {
+  const byStart = [...event.heats].sort((a, b) => a.start.localeCompare(b.start));
+  return byStart.flatMap((heat, index) => {
+    const blocking = blockingHeat(byStart.slice(0, index), heat);
+    return blocking ? [`${heatLabel(event, heat)}: starts ${heat.start}, overlaps Heat ${blocking.number} ending ${blocking.end}`] : [];
   });
+};
 
 const duplicateHeatErrors = (event: Event): readonly string[] =>
   event.heats
@@ -54,15 +58,20 @@ const scoringErrors = (event: Event): readonly string[] => {
   return [];
 };
 
+const hasDivisions = (schedule: Schedule): boolean => schedule.divisions.length > 0;
+
 const settingsErrors = (schedule: Schedule): readonly string[] => [
   ...(schedule.teamSize < 1 ? ["teamSize must be at least 1"] : []),
-  ...(schedule.divisions.length === 0 ? ["divisions must list at least one division"] : []),
+  ...(hasDivisions(schedule) ? [] : ["divisions must list at least one division"]),
 ];
+
+const laneCountErrors = (event: Event): readonly string[] =>
+  event.lanes < 1 ? [`Event ${event.number}: lanes must be at least 1`] : [];
 
 const heatErrors = (schedule: Schedule, event: Event, heat: Heat): readonly string[] => [
   ...duplicateLaneErrors(event, heat),
   ...laneRangeErrors(event, heat),
-  ...(schedule.divisions.length === 0 ? [] : divisionErrors(schedule, event, heat)),
+  ...(hasDivisions(schedule) ? divisionErrors(schedule, event, heat) : []),
   ...heatTimeErrors(event, heat),
 ];
 
@@ -72,6 +81,7 @@ export const validateSchedule = (schedule: Schedule): readonly string[] => [
   ...schedule.events.flatMap((event) => event.heats.flatMap((heat) => heatErrors(schedule, event, heat))),
   ...schedule.events.flatMap(overlapErrors),
   ...schedule.events.flatMap(duplicateHeatErrors),
+  ...schedule.events.flatMap(laneCountErrors),
   ...schedule.events.flatMap(scoringErrors),
   ...schedule.events.flatMap(noHeatErrors),
 ];

@@ -107,6 +107,53 @@ describe("schedule validation", () => {
 
     expect(validateSchedule(schedule)).toEqual(['Event 1 Heat 1: lane 3 division "Open" is not one of RX, Scaled']);
   });
+
+  it("accepts heats listed out of chronological order when they do not overlap", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 2, start: "08:13", end: "08:21" }), makeHeat({ number: 1, start: "08:00", end: "08:08" })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([]);
+  });
+
+  it("reports an overlap with an earlier heat that is not the immediately preceding one", () => {
+    const schedule = makeSchedule({
+      events: [
+        makeEvent({
+          heats: [
+            makeHeat({ number: 1, start: "08:00", end: "08:30" }),
+            makeHeat({ number: 2, start: "08:05", end: "08:10" }),
+            makeHeat({ number: 3, start: "08:20", end: "08:25" }),
+          ],
+        }),
+      ],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([
+      "Event 1 Heat 2: starts 08:05, overlaps Heat 1 ending 08:30",
+      "Event 1 Heat 3: starts 08:20, overlaps Heat 1 ending 08:30",
+    ]);
+  });
+
+  it("accepts back-to-back heats", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 1, start: "08:00", end: "08:08" }), makeHeat({ number: 2, start: "08:08", end: "08:16" })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([]);
+  });
+
+  it("rejects a zero-length heat", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ heats: [makeHeat({ start: "08:00", end: "08:00" })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 1 Heat 1: end 08:00 is not after start 08:00"]);
+  });
+
+  it("rejects an event with fewer than one lane", () => {
+    const schedule = makeSchedule({ events: [makeEvent({ lanes: 0, heats: [makeHeat({ lanes: [] })] })] });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 1: lanes must be at least 1"]);
+  });
 });
 
 describe("scoring configuration", () => {
