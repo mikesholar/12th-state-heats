@@ -73,6 +73,8 @@ body {
   flex: none;
 }
 
+.source-notice { margin-top: 8px; padding: 6px 12px; border-radius: 6px; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.85rem; }
+
 .picker {
   display: flex;
   align-items: center;
@@ -193,6 +195,9 @@ body {
 tr.mine { background: var(--orange-soft); box-shadow: inset 4px 0 0 var(--orange); }
 tr.mine .team-name { color: var(--navy); font-weight: 900; }
 tr.mine .lane-num { color: var(--orange); }
+
+tr.open .team-name { color: var(--muted); font-weight: 400; font-style: italic; }
+tr.open .lane-num { color: var(--muted); }
 
 .footer { background: var(--surface-2); text-align: center; color: var(--muted); font-size: 0.8rem; padding: 14px 16px 32px; }
 

@@ -10,6 +10,7 @@ export type RenderOptions = {
   readonly now: Date;
   readonly selectedTeam: string | undefined;
   readonly onTeamChange: (team: string | undefined) => void;
+  readonly sourceNotice: string | undefined;
 };
 
 const MINUTE_MS = 60_000;
@@ -51,18 +52,24 @@ type HeaderOptions = {
   readonly now: Date;
   readonly selectedTeam: string | undefined;
   readonly teamStatus: TeamStatus | undefined;
+  readonly sourceNotice: string | undefined;
 };
 
-const headerHtml = ({ schedule, now, selectedTeam, teamStatus }: HeaderOptions): string => `
+const pickerLabel = (schedule: Schedule): string => (schedule.teamSize > 1 ? "I'm on…" : "I'm…");
+
+const pickerPlaceholder = (schedule: Schedule): string => (schedule.teamSize > 1 ? "— pick your team —" : "— pick your name —");
+
+const headerHtml = ({ schedule, now, selectedTeam, teamStatus, sourceNotice }: HeaderOptions): string => `
   <header class="header">
     <div class="header-row">
       <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">12 Years of 12th State</span></h1>
       <div class="clock" aria-label="Current time">${clockLabel(schedule, now)}</div>
     </div>
+    ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     <label class="picker${selectedTeam ? " compact" : ""}">
-      <span>I'm on…</span>
+      <span>${pickerLabel(schedule)}</span>
       <select id="team-picker">
-        <option value="">— pick your team —</option>
+        <option value="">${pickerPlaceholder(schedule)}</option>
         ${allTeams(schedule)
           .map((team) => `<option value="${esc(team)}"${team === selectedTeam ? " selected" : ""}>${esc(team)}</option>`)
           .join("")}
@@ -130,6 +137,21 @@ const laneRowHtml = (lane: Lane, selectedTeam: string | undefined): string => `
     <td class="lane-div">${esc(lane.division)}</td>
   </tr>`;
 
+const openRowHtml = (laneNumber: number): string => `
+  <tr class="open">
+    <td class="lane-num">${laneNumber}</td>
+    <td class="lane-team"><div class="team-name">— open —</div></td>
+    <td class="lane-div"></td>
+  </tr>`;
+
+const laneRowsHtml = (event: Event, heat: Heat, selectedTeam: string | undefined): string =>
+  Array.from({ length: event.lanes }, (_, i) => i + 1)
+    .map((laneNumber) => {
+      const lane = heat.lanes.find((l) => l.lane === laneNumber);
+      return lane ? laneRowHtml(lane, selectedTeam) : openRowHtml(laneNumber);
+    })
+    .join("");
+
 type HeatCardOptions = {
   readonly schedule: Schedule;
   readonly event: Event;
@@ -159,7 +181,7 @@ const heatCardHtml = ({ schedule, event, heat, now, status, selectedTeam }: Heat
     </header>
     <table class="lanes">
       <thead><tr><th>Lane</th><th>Team</th><th>Div</th></tr></thead>
-      <tbody>${heat.lanes.map((lane) => laneRowHtml(lane, selectedTeam)).join("")}</tbody>
+      <tbody>${laneRowsHtml(event, heat, selectedTeam)}</tbody>
     </table>
   </article>`;
 };
@@ -176,13 +198,13 @@ const eventHtml = (schedule: Schedule, event: Event, now: Date, status: HeatStat
     ${event.heats.map((heat) => heatCardHtml({ schedule, event, heat, now, status, selectedTeam })).join("")}
   </section>`;
 
-export const render = ({ root, schedule, now, selectedTeam, onTeamChange }: RenderOptions): void => {
+export const render = ({ root, schedule, now, selectedTeam, onTeamChange, sourceNotice }: RenderOptions): void => {
   const status = resolveHeats(schedule, now);
   const teamStatus = selectedTeam ? resolveTeam({ schedule, team: selectedTeam, now }) : undefined;
   const myHeat = selectedTeam && teamStatus ? myHeatHtml(selectedTeam, teamStatus) : "";
 
   root.innerHTML = `
-    ${headerHtml({ schedule, now, selectedTeam, teamStatus })}
+    ${headerHtml({ schedule, now, selectedTeam, teamStatus, sourceNotice })}
     <main class="main">
       ${myHeat}
       ${bannerHtml(schedule, status, now)}

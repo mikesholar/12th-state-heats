@@ -1,17 +1,29 @@
 import { fireEvent, getByTestId, queryByTestId, getByLabelText } from "@testing-library/dom";
 import { render } from "./render";
 import { snapshotSchedule as schedule } from "../data/snapshot";
-import { at } from "../test/factories";
+import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import type { Schedule } from "../core/types";
 
 const TEAM = "Fast but Questionable";
 
 const renderAt = (now: Date, selectedTeam?: string, onTeamChange = vi.fn()) => {
   const root = document.createElement("div");
-  render({ root, schedule, now, selectedTeam, onTeamChange });
+  render({ root, schedule, now, selectedTeam, onTeamChange, sourceNotice: undefined });
   return { root, onTeamChange };
 };
 
+const renderSchedule = (custom: Schedule, sourceNotice?: string) => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  render({ root, schedule: custom, now: at("08:15"), selectedTeam: undefined, onTeamChange: vi.fn(), sourceNotice });
+  return root;
+};
+
 const bannerText = (root: HTMLElement) => getByTestId(root, "banner").textContent ?? "";
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
 
 describe("the up-next banner", () => {
   it("before the first heat, announces it", () => {
@@ -176,5 +188,48 @@ describe("the sticky header strip", () => {
     const { root } = renderAt(at("13:00"), TEAM);
 
     expect(getByTestId(root, "my-strip").textContent).toContain("Done");
+  });
+});
+
+describe("lanes nobody has claimed", () => {
+  it("are listed as open so the heat is always eight rows", () => {
+    const { root } = renderAt(at("08:15"));
+
+    const rows = root.querySelectorAll('[data-heat="E1H3"] tbody tr');
+    expect(rows).toHaveLength(8);
+    expect(rows[7]).toHaveClass("open");
+    expect(rows[7]?.textContent).toContain("8");
+    expect(rows[7]?.textContent).toContain("open");
+  });
+
+  it("are not offered in the team picker", () => {
+    const custom = makeSchedule({ events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ team: "Only Team" })] })] })] });
+
+    const picker = getByLabelText<HTMLSelectElement>(renderSchedule(custom), /i'm on/i);
+
+    expect([...picker.options].map((o) => o.textContent)).toEqual(["— pick your team —", "Only Team"]);
+  });
+});
+
+describe("an individual comp", () => {
+  it("asks who you are rather than which team you are on", () => {
+    const custom = makeSchedule({ teamSize: 1, events: [makeEvent({ heats: [makeHeat({ lanes: [makeLane({ team: "Mike Sholar" })] })] })] });
+
+    const root = renderSchedule(custom);
+
+    expect(getByLabelText(root, /^i'm…$/i)).toBeInTheDocument();
+    expect(root.textContent).toContain("pick your name");
+  });
+});
+
+describe("the source notice", () => {
+  it("is absent when the schedule is live", () => {
+    expect(queryByTestId(renderSchedule(makeSchedule()), "source-notice")).toBeNull();
+  });
+
+  it("shows the notice when the schedule is stale", () => {
+    const root = renderSchedule(makeSchedule(), "Offline — showing last known schedule");
+
+    expect(getByTestId(root, "source-notice")).toHaveTextContent("Offline — showing last known schedule");
   });
 });

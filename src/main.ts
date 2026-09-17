@@ -31,6 +31,7 @@ const startSpectator = (): void => {
         saveTeam(team);
         draw(team);
       },
+      sourceNotice: undefined,
     });
   };
 
