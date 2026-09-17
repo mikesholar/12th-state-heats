@@ -5,10 +5,9 @@ Phone-first heat and lane tracker for the 12th State CrossFit in-house comp,
 
 **Live:** https://mikesholar.github.io/12th-state-heats/
 
-Open it on comp day and it shows the heat on the floor, the heat up next, and —
-once you pick your team from the **"I'm on…"** dropdown — your own next event,
-heat and lane with a countdown. The pick is remembered on your phone. The page
-refreshes itself every 15 seconds; no reload needed.
+Open it on comp day and it shows the heat on the floor, the heat up next, and
+every event's heats and lanes. The page refreshes itself every 15 seconds; no
+reload needed.
 
 ## Scoring
 

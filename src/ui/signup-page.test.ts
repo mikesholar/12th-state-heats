@@ -1,6 +1,7 @@
 import { fireEvent, getByLabelText, getByRole, getByTestId, queryByTestId, queryByRole } from "@testing-library/dom";
 import type { Mock } from "vitest";
 import { startSignupPage } from "./signup-page";
+import { loadCachedSchedule } from "./schedule-store";
 import { loadLastClaim, saveLastClaim, saveSignupEmail } from "./signup-store";
 import type { LoadedSchedule } from "../core/load-schedule";
 import { makeClaimDraft, makeEvent, makeHeat, makeLane, makeLoadedSchedule, makeRawEvent, makeRawHeat, makeRawLane, makeRawSchedule, makeSchedule } from "../test/factories";
@@ -113,6 +114,7 @@ describe("claiming", () => {
     expect(queryByTestId(root, "claim-form")).toBeNull();
     expect(root.querySelector('[data-lane="2"]')).toHaveClass("mine");
     expect(loadLastClaim()).toEqual(makeClaimDraft());
+    expect(loadCachedSchedule()?.events[0]?.heats[0]?.lanes.map((l) => l.lane)).toEqual([1, 2]);
   });
 
   it("pre-fills the form from the last claim", () => {

@@ -2,6 +2,7 @@ import { sourceNotice, type LoadedSchedule } from "../core/load-schedule";
 import { buildClaim, buildRelease, emptyDraft, validateClaim, type ClaimDraft, type SlotKey } from "../core/signup";
 import type { Schedule } from "../core/types";
 import { renderSignup, type SignupNotice } from "./render-signup";
+import { saveCachedSchedule } from "./schedule-store";
 import { postClaim, postRelease, type WriteOutcome } from "./signup-client";
 import { loadLastClaim, loadSignupEmail, saveLastClaim, saveSignupEmail } from "./signup-store";
 
@@ -30,7 +31,10 @@ const draftFor = (schedule: Schedule, current: ClaimDraft | undefined): ClaimDra
   return { ...stored, athletes: Array.from({ length: schedule.teamSize }, (_, i) => stored.athletes[i] ?? "") };
 };
 
-const live = (schedule: Schedule): LoadedSchedule => ({ schedule, source: "live" });
+const live = (schedule: Schedule): LoadedSchedule => {
+  saveCachedSchedule(schedule);
+  return { schedule, source: "live" };
+};
 
 export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn }: SignupPageOptions): SignupPage => {
   let state: PageState = { loaded: initial, openForm: undefined, draft: undefined, notice: undefined, busy: false };
