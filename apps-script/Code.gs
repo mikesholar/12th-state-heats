@@ -2,6 +2,7 @@ const LOG = "Log";
 const RESULTS = "Results";
 const OVERALL = "Overall";
 const SETTINGS = "Settings";
+const DIVISIONS = "Divisions";
 const EVENTS_TAB = "Events";
 const HEATS = "Heats";
 const SLOTS = "Slots";
@@ -20,9 +21,16 @@ const RELEASE_REQUIRED = ["event", "heat", "lane", "email"];
 const SETTINGS_ROWS = [
   ["compDate", "2027-09-11"],
   ["timeZone", "America/New_York"],
-  ["teamSize", 2],
-  ["divisions", "F/F RX, F/F Scaled, F/M RX, F/M Scaled, M/M RX, M/M Scaled"],
   ["signupsOpen", false],
+];
+const DIVISION_HEADERS = ["division", "teamSize"];
+const DIVISION_ROWS = [
+  ["F/F RX", 2],
+  ["F/F Scaled", 2],
+  ["F/M RX", 2],
+  ["F/M Scaled", 2],
+  ["M/M RX", 2],
+  ["M/M Scaled", 2],
 ];
 const EVENT_HEADERS = ["event", "title", "format", "scoring", "capSeconds", "rx", "scaled", "lanes"];
 const HEAT_HEADERS = ["event", "heat", "start", "end"];
@@ -36,7 +44,7 @@ function reply(body) {
 }
 
 function missingTabs(ss) {
-  return [SETTINGS, EVENTS_TAB, HEATS, SLOTS].filter((name) => !ss.getSheetByName(name));
+  return [SETTINGS, DIVISIONS, EVENTS_TAB, HEATS, SLOTS].filter((name) => !ss.getSheetByName(name));
 }
 
 function setupError(ss) {
@@ -172,14 +180,20 @@ function readLane(slot) {
   };
 }
 
+function readDivisions(ss) {
+  return readTable(ss.getSheetByName(DIVISIONS)).map((row) => ({
+    name: asText(row.division),
+    teamSize: asNumberOrText(row.teamSize),
+  }));
+}
+
 function readSchedule(ss) {
   const settings = readSettings(ss);
   const sheetZone = ss.getSpreadsheetTimeZone();
   return {
     compDate: asDateString(settings.compDate, sheetZone),
     timeZone: asText(settings.timeZone),
-    teamSize: asNumberOrText(settings.teamSize),
-    divisions: divisionList(settings),
+    divisions: readDivisions(ss),
     signupsOpen: asBoolean(settings.signupsOpen),
     events: readEvents(ss, sheetZone),
   };
@@ -236,8 +250,8 @@ function normalisedEmail(value) {
   return asText(value).toLowerCase();
 }
 
-function divisionList(settings) {
-  return asText(settings.divisions).split(",").map((d) => d.trim()).filter((d) => d !== "");
+function divisionNames(ss) {
+  return readDivisions(ss).map((d) => d.name);
 }
 
 function withSchedule(ss, body) {
@@ -298,7 +312,7 @@ function claimSlot(record) {
   if (!asBoolean(settings.signupsOpen)) return reply({ ok: false, error: "Sign-ups are closed" });
   const target = findTarget(ss, record);
   if (target.error) return reply({ ok: false, error: target.error });
-  const divisions = divisionList(settings);
+  const divisions = divisionNames(ss);
   if (divisions.indexOf(asText(record.division)) === -1) return reply({ ok: false, error: "Division must be one of " + divisions.join(", ") });
   const email = normalisedEmail(record.email);
   const { headers, rows: slots } = slotRows(ss);
@@ -375,6 +389,7 @@ function toRow(record) {
 function setup() {
   const ss = SpreadsheetApp.getActive();
   setupSettings(ss);
+  setupDivisions(ss);
   setupEvents(ss);
   setupHeats(ss);
   setupSlots(ss);
@@ -396,7 +411,14 @@ function setupSettings(ss) {
     sheet.getRange(2, 2, SETTINGS_ROWS.length - 1, 1).setNumberFormat("@");
     sheet.getRange(2, 1, SETTINGS_ROWS.length, 2).setValues(SETTINGS_ROWS);
     sheet.getRange(2 + SETTINGS_ROWS.length - 1, 2).insertCheckboxes();
-    sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · teamSize 1 for individuals · divisions comma-separated · signupsOpen checkbox");
+    sheet.getRange("A1").setNote("compDate YYYY-MM-DD · timeZone IANA name · signupsOpen checkbox");
+  });
+}
+
+function setupDivisions(ss) {
+  createIfMissing(ss, DIVISIONS, DIVISION_HEADERS, (sheet) => {
+    sheet.getRange(2, 1, DIVISION_ROWS.length, 2).setValues(DIVISION_ROWS);
+    sheet.getRange("A1").setNote("One row per division. teamSize 1 for individuals, 2 for pairs, and so on — the sign-up form asks for that many names.");
   });
 }
 
