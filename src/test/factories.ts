@@ -2,6 +2,7 @@ import type { Event, Heat, Lane, Schedule } from "../core/types";
 import type { Score } from "../core/score";
 import type { Submission } from "../core/submission";
 import type { ClaimDraft } from "../core/signup";
+import type { LoadedSchedule } from "../core/load-schedule";
 
 export const makeLane = (overrides?: Partial<Lane>): Lane => ({
   lane: 1,
@@ -114,5 +115,11 @@ export const makeSubmission = (overrides?: Partial<Submission>): Submission => (
   seconds: "",
   rounds: 4,
   reps: 7,
+  ...overrides,
+});
+
+export const makeLoadedSchedule = (overrides?: Partial<LoadedSchedule>): LoadedSchedule => ({
+  schedule: makeSchedule(),
+  source: "live",
   ...overrides,
 });
