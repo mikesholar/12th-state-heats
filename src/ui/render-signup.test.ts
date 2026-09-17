@@ -92,9 +92,19 @@ describe("lane chips", () => {
   it("reports which slot was tapped", () => {
     const { root, options } = renderWith();
 
-    fireEvent.click(getByRole(root, "button", { name: /lane 3 · open/i }));
+    const target = chip(root, "E1H1", 3);
+    if (!(target instanceof HTMLButtonElement)) throw new Error("expected an open-lane button");
+    fireEvent.click(target);
 
     expect(options.onOpenForm).toHaveBeenCalledWith({ event: 1, heat: 1, lane: 3 });
+  });
+
+  it("offers every open lane in every heat", () => {
+    const { root } = renderWith();
+
+    expect(chip(root, "E1H1", 2)?.tagName).toBe("BUTTON");
+    expect(chip(root, "E1H2", 1)?.tagName).toBe("BUTTON");
+    expect(chip(root, "E1H2", 3)?.tagName).toBe("BUTTON");
   });
 
   it("dims the open lanes of an event I am already in", () => {

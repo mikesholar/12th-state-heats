@@ -40,11 +40,6 @@ const parseSlot = (value: string | undefined): SlotKey | undefined => {
 const sameHeat = (a: SlotKey | undefined, event: Event, heat: Heat): boolean =>
   a !== undefined && a.event === event.number && a.heat === heat.number;
 
-const isFirstOpenHeat = (event: Event, heat: Heat): boolean => {
-  const firstOpen = event.heats.find((candidate) => candidate.lanes.length < event.lanes);
-  return firstOpen?.number === heat.number;
-};
-
 const compDateLabel = (schedule: Schedule): string =>
   new Intl.DateTimeFormat("en-US", { timeZone: schedule.timeZone, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(
     new Date(`${schedule.compDate}T12:00:00Z`),
@@ -101,18 +96,16 @@ type ChipsOptions = {
   readonly interactivity: Interactivity;
 };
 
-const chipsHtml = ({ event, heat, email, alreadyIn, interactivity }: ChipsOptions): string => {
-  const canClaimHere = interactivity.canWrite && !alreadyIn && isFirstOpenHeat(event, heat);
-  return Array.from({ length: event.lanes }, (_, i) => i + 1)
+const chipsHtml = ({ event, heat, email, alreadyIn, interactivity }: ChipsOptions): string =>
+  Array.from({ length: event.lanes }, (_, i) => i + 1)
     .map((laneNumber) => {
       const slot = { event: event.number, heat: heat.number, lane: laneNumber };
       const lane = heat.lanes.find((l) => l.lane === laneNumber);
-      if (!lane) return openChipHtml(slot, canClaimHere);
+      if (!lane) return openChipHtml(slot, interactivity.canWrite && !alreadyIn);
       if (email !== undefined && isMine({ lane, email })) return mineChipHtml(slot, lane, interactivity.canWrite);
       return takenChipHtml(lane);
     })
     .join("");
-};
 
 const athleteLabel = (index: number, teamSize: number): string => (teamSize === 1 ? "Your name" : `Athlete ${index + 1}`);
 
