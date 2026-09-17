@@ -149,7 +149,8 @@ Expected `{"ok":true,…}`; the row is gone.
 8. Either start a fresh Sheet for the year (repeat section 1 — a new
    deployment gives a new `/exec` URL for `src/data/sheet-endpoint.ts`) or
    clear last year's rows from `Slots` and `Log` in the same Sheet.
-9. `npm run judge-links` — prints every judge URL plus the head-judge link.
+9. `npm run judge-links` — reads the Sheet and prints a judge URL for every
+   event × lane it has, plus the head-judge link.
    It also prints the `SIGN-UP` link — share that with members. It is
    obscure, not secret: anyone with the link can sign up. Codes are stable
    across years, so existing links keep working; pass `--regenerate` to

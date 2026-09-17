@@ -1,7 +1,10 @@
 import { randomInt } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import type { JudgeAssignment, JudgeCodeTable } from "../src/core/judge-codes";
+import type { Schedule } from "../src/core/types";
+import { sheetEndpoint } from "../src/data/sheet-endpoint";
 import { snapshotSchedule } from "../src/data/snapshot";
+import { fetchSchedule } from "../src/ui/schedule-client";
 
 const OUTPUT = "src/data/judge-codes.ts";
 const SITE = "https://12thstatecomp.com/";
@@ -69,9 +72,16 @@ const fileSource = (entries: readonly Entry[], signupCode: string): string =>
     ``,
   ].join("\n");
 
-const inSnapshot = (assignment: JudgeAssignment): boolean =>
+const currentSchedule = async (): Promise<{ readonly schedule: Schedule; readonly source: string }> => {
+  const fetched = await fetchSchedule({ endpoint: process.env.SHEET_ENDPOINT ?? sheetEndpoint, fetchFn: fetch });
+  if (fetched.kind === "loaded") return { schedule: fetched.schedule, source: "the Sheet" };
+  const reason = fetched.kind === "invalid" ? fetched.reason : "unreachable";
+  return { schedule: snapshotSchedule, source: `the committed snapshot (Sheet ${reason})` };
+};
+
+const inUse = (schedule: Schedule, assignment: JudgeAssignment): boolean =>
   assignment.kind === "head" ||
-  snapshotSchedule.events.some((event) => event.number === assignment.event && assignment.lane <= event.lanes);
+  schedule.events.some((event) => event.number === assignment.event && assignment.lane <= event.lanes);
 
 const linkLine = ({ code, assignment }: Entry): string =>
   assignment.kind === "head"
@@ -83,7 +93,9 @@ const signupCode = previous.signupCode ?? freshCode(new Set(previous.entries.map
 const entries = withCodes(neededAssignments(), previous.entries, [signupCode]);
 writeFileSync(OUTPUT, fileSource(entries, signupCode));
 
-const used = entries.filter((e) => inSnapshot(e.assignment));
+const current = await currentSchedule();
+const used = entries.filter((e) => inUse(current.schedule, e.assignment));
+console.log(`${current.schedule.compName} — events and lanes from ${current.source}\n`);
 console.log(used.map(linkLine).join("\n"));
 console.log(`SIGN-UP               ${SITE}?s=${signupCode}`);
-console.log(`\nWrote ${entries.length} codes to ${OUTPUT} (${entries.length - used.length} spare for events/lanes not in the snapshot)`);
+console.log(`\nWrote ${entries.length} codes to ${OUTPUT} (${entries.length - used.length} spare for events/lanes not in use)`);

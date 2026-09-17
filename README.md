@@ -66,7 +66,7 @@ the clock); DOM rendering in `src/ui/`. Design spec and plan are under
 
 `npm run judge-links` regenerates `src/data/judge-codes.ts` (a fixed 6-event
 × 12-lane grid plus head and sign-up codes; existing codes are kept) and
-prints the URLs the current snapshot uses. `npm run snapshot` pulls the
+prints the URLs for the events and lanes currently in the Sheet. `npm run snapshot` pulls the
 Sheet into `src/data/schedule-snapshot.json`, emails stripped.
 `apps-script/Code.gs` is the Sheet backend; it is pasted into Apps Script by
 hand, not built. `flush` in `submit-queue.ts` is not serialised; concurrent
