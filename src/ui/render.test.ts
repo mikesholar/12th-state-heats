@@ -1,6 +1,6 @@
 import { getByTestId, queryByTestId } from "@testing-library/dom";
 import { render } from "./render";
-import { snapshotSchedule as schedule } from "../data/snapshot";
+import { comp2026 as schedule } from "../test/comp-2026";
 import { at, makeSchedule } from "../test/factories";
 import type { Schedule } from "../core/types";
 

@@ -1,0 +1,833 @@
+{
+  "compDate": "2026-09-12",
+  "timeZone": "America/New_York",
+  "divisions": [
+    {
+      "name": "F/F RX",
+      "teamSize": 2
+    },
+    {
+      "name": "F/F Scaled",
+      "teamSize": 2
+    },
+    {
+      "name": "F/M RX",
+      "teamSize": 2
+    },
+    {
+      "name": "F/M Scaled",
+      "teamSize": 2
+    },
+    {
+      "name": "M/M RX",
+      "teamSize": 2
+    },
+    {
+      "name": "M/M Scaled",
+      "teamSize": 2
+    }
+  ],
+  "signupsOpen": false,
+  "events": [
+    {
+      "number": 1,
+      "title": "12th Gear",
+      "format": "12 Rounds · 8:00 Cap",
+      "scoring": "time-or-rounds",
+      "capSeconds": 480,
+      "rx": "ABA style · 12 Slam Balls (25/20) · 12 Box Jump Overs (24/20) · 1 Shuttle Run",
+      "scaled": "ABA style · 12 Slam Balls (15/10) · 12 Box Step Overs (20\") · 1 Shuttle Run",
+      "lanes": 8,
+      "heats": [
+        {
+          "number": 1,
+          "start": "08:00",
+          "end": "08:08",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Resting WOD Face",
+              "athletes": "Nicole Duncan + Cindy Sholar",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Jointly Unstable",
+              "athletes": "Gail Ho + Kelly Monroe",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Adequately Hydrated",
+              "athletes": "Sara Thompson + Blair Watson",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Glizzy Gals",
+              "athletes": "Kari Welt + Liz Wint",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "B and Sundeep",
+              "athletes": "Sundeep Chennupati + B Evans",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 6,
+              "team": "C&C",
+              "athletes": "Chris Eschbach + Christina Eschbach",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 7,
+              "team": "Un Unbroken",
+              "athletes": "Dirk Vice + Alan Harrington",
+              "division": "M/M Scaled"
+            },
+            {
+              "lane": 8,
+              "team": "TBD",
+              "athletes": "Jonathon Fendelman + TBD",
+              "division": "M/M Scaled"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "start": "08:13",
+          "end": "08:21",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Beauty and the Beast",
+              "athletes": "Alex Yost + Molly Muzevich",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Browne",
+              "athletes": "Stacey Browne + Garretson Browne",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Cowboy Crossfitters",
+              "athletes": "Kristen Andersen + Tyler Andersen",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Parental Guidance",
+              "athletes": "Anne Thompson + Stuart Thompson",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "12th State Dumpys",
+              "athletes": "Jesse Garcia + Benji McRoberts",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Couple of Cooters",
+              "athletes": "Nikki Lashley + Tiffany Miller",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 7,
+              "team": "Rays of Glory",
+              "athletes": "David Reaugh + Shelby Reaugh",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 8,
+              "team": "Fast but Questionable",
+              "athletes": "Caroline Ortiz + Mike Sholar",
+              "division": "F/M Scaled"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "start": "08:26",
+          "end": "08:34",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "The EMOMmies",
+              "athletes": "Gianna Walter + Amy Wilkerson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 2,
+              "team": "Rest Day Rejects",
+              "athletes": "Theresa Coogan + Heidi Shives",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 3,
+              "team": "Pumps and Rumps",
+              "athletes": "Leann Kerr + Jamie Bruno Patterson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 4,
+              "team": "Lumbar Legends",
+              "athletes": "Maddy Woods + Taylor Yonjof",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 5,
+              "team": "K&K's Pitbulls",
+              "athletes": "Kim Harrington + Kelli Kasper",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 6,
+              "team": "Mobility Sold Separately",
+              "athletes": "Lauren Lisko + Brandon Wiggs",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "From WOD to Wed",
+              "athletes": "Emily Moise + Kyle Fiala",
+              "division": "F/M RX"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "start": "08:39",
+          "end": "08:47",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "J/K",
+              "athletes": "Joey Stevens + Kelly Hicks",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 2,
+              "team": "The Golden Tornado",
+              "athletes": "Katherine Lee + Ben Campbell",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "I'm Old Gregg",
+              "athletes": "Garrison Matthews + Mary Kozik",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 4,
+              "team": "Not your cup of tea",
+              "athletes": "Caleb Overholser + Michelle Vancza",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "PR or ER",
+              "athletes": "Sarah Mazier + Jeremy Alsbrook",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Fit & Furious",
+              "athletes": "Dayana Romero + Halee Vice",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 7,
+              "team": "Questions and Answers",
+              "athletes": "Quint Coward + Antonio King",
+              "division": "M/M RX"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "start": "08:52",
+          "end": "09:00",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Thicky & Sticky",
+              "athletes": "JT Hedgepeth + Davis Weber",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 2,
+              "team": "Old Enough to Party",
+              "athletes": "Phil McCarty + Thomas Gende",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "Mildly Athletic",
+              "athletes": "Nathan Newton + Blake Conner",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 4,
+              "team": "Daddy WODs",
+              "athletes": "Jeremy Schmid + Adam Cochran",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "Mobility Mafia",
+              "athletes": "Chris Zwolinski + Camden Woods",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Greggendales",
+              "athletes": "Dale + Greg Moore",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "RXpected to lose",
+              "athletes": "Kevin Everhart + BJ Adamchik",
+              "division": "M/M RX"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Extra Credit",
+      "format": "AMRAP 10",
+      "scoring": "rounds-reps",
+      "rx": "40 Wall Balls (20/14) · 30 Calorie Bike · 20 Pull Ups · 10 Power Cleans (185/135)",
+      "scaled": "40 Wall Balls (14/10) · 30 Calorie Bike · 20 Ring Rows · 10 Power Cleans (95/65)",
+      "lanes": 8,
+      "heats": [
+        {
+          "number": 1,
+          "start": "09:10",
+          "end": "09:20",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Resting WOD Face",
+              "athletes": "Nicole Duncan + Cindy Sholar",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Jointly Unstable",
+              "athletes": "Gail Ho + Kelly Monroe",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Adequately Hydrated",
+              "athletes": "Sara Thompson + Blair Watson",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Glizzy Gals",
+              "athletes": "Kari Welt + Liz Wint",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "Fit & Furious",
+              "athletes": "Dayana Romero + Halee Vice",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 6,
+              "team": "Couple of Cooters",
+              "athletes": "Nikki Lashley + Tiffany Miller",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 7,
+              "team": "Rays of Glory",
+              "athletes": "David Reaugh + Shelby Reaugh",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 8,
+              "team": "Fast but Questionable",
+              "athletes": "Caroline Ortiz + Mike Sholar",
+              "division": "F/M Scaled"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "start": "09:25",
+          "end": "09:35",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Beauty and the Beast",
+              "athletes": "Alex Yost + Molly Muzevich",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Browne",
+              "athletes": "Stacey Browne + Garretson Browne",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Cowboy Crossfitters",
+              "athletes": "Kristen Andersen + Tyler Andersen",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Parental Guidance",
+              "athletes": "Anne Thompson + Stuart Thompson",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "B and Sundeep",
+              "athletes": "Sundeep Chennupati + B Evans",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 6,
+              "team": "C&C",
+              "athletes": "Chris Eschbach + Christina Eschbach",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 7,
+              "team": "Un Unbroken",
+              "athletes": "Dirk Vice + Alan Harrington",
+              "division": "M/M Scaled"
+            },
+            {
+              "lane": 8,
+              "team": "TBD",
+              "athletes": "Jonathon Fendelman + TBD",
+              "division": "M/M Scaled"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "start": "09:40",
+          "end": "09:50",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "The EMOMmies",
+              "athletes": "Gianna Walter + Amy Wilkerson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 2,
+              "team": "Rest Day Rejects",
+              "athletes": "Theresa Coogan + Heidi Shives",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 3,
+              "team": "Pumps and Rumps",
+              "athletes": "Leann Kerr + Jamie Bruno Patterson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 4,
+              "team": "Lumbar Legends",
+              "athletes": "Maddy Woods + Taylor Yonjof",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 5,
+              "team": "K&K's Pitbulls",
+              "athletes": "Kim Harrington + Kelli Kasper",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 6,
+              "team": "Mobility Sold Separately",
+              "athletes": "Lauren Lisko + Brandon Wiggs",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "From WOD to Wed",
+              "athletes": "Emily Moise + Kyle Fiala",
+              "division": "F/M RX"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "start": "09:55",
+          "end": "10:05",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "J/K",
+              "athletes": "Joey Stevens + Kelly Hicks",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 2,
+              "team": "The Golden Tornado",
+              "athletes": "Katherine Lee + Ben Campbell",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "I'm Old Gregg",
+              "athletes": "Garrison Matthews + Mary Kozik",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 4,
+              "team": "Not your cup of tea",
+              "athletes": "Caleb Overholser + Michelle Vancza",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "PR or ER",
+              "athletes": "Sarah Mazier + Jeremy Alsbrook",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "12th State Dumpys",
+              "athletes": "Jesse Garcia + Benji McRoberts",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "Questions and Answers",
+              "athletes": "Quint Coward + Antonio King",
+              "division": "M/M RX"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "start": "10:10",
+          "end": "10:20",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Thicky & Sticky",
+              "athletes": "JT Hedgepeth + Davis Weber",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 2,
+              "team": "Old Enough to Party",
+              "athletes": "Phil McCarty + Thomas Gende",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "Mildly Athletic",
+              "athletes": "Nathan Newton + Blake Conner",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 4,
+              "team": "Daddy WODs",
+              "athletes": "Jeremy Schmid + Adam Cochran",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "Mobility Mafia",
+              "athletes": "Chris Zwolinski + Camden Woods",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Greggendales",
+              "athletes": "Dale + Greg Moore",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "RXpected to lose",
+              "athletes": "Kevin Everhart + BJ Adamchik",
+              "division": "M/M RX"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "Double Trouble",
+      "format": "2 Rounds · 12:00 Cap",
+      "scoring": "time-or-rounds",
+      "capSeconds": 720,
+      "rx": "24 Synchro DB Deadlifts · 24 Burpees over DB · 24 Synchro DB Push Press · 24 DB Reverse Lunges · 24 Synchro Sit Ups · DB (50/35)",
+      "scaled": "Same movements · DB (35/20) · Movements not marked synchro may be split as needed",
+      "lanes": 8,
+      "heats": [
+        {
+          "number": 1,
+          "start": "11:40",
+          "end": "11:52",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Resting WOD Face",
+              "athletes": "Nicole Duncan + Cindy Sholar",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Adequately Hydrated",
+              "athletes": "Sara Thompson + Blair Watson",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Glizzy Gals",
+              "athletes": "Kari Welt + Liz Wint",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Fit & Furious",
+              "athletes": "Dayana Romero + Halee Vice",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "The EMOMmies",
+              "athletes": "Gianna Walter + Amy Wilkerson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 6,
+              "team": "Rest Day Rejects",
+              "athletes": "Theresa Coogan + Heidi Shives",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 7,
+              "team": "Pumps and Rumps",
+              "athletes": "Leann Kerr + Jamie Bruno Patterson",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 8,
+              "team": "Lumbar Legends",
+              "athletes": "Maddy Woods + Taylor Yonjof",
+              "division": "F/F RX"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "start": "11:57",
+          "end": "12:09",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "K&K's Pitbulls",
+              "athletes": "Kim Harrington + Kelli Kasper",
+              "division": "F/F RX"
+            },
+            {
+              "lane": 2,
+              "team": "J/K",
+              "athletes": "Joey Stevens + Kelly Hicks",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "The Golden Tornado",
+              "athletes": "Katherine Lee + Ben Campbell",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 4,
+              "team": "Mobility Sold Separately",
+              "athletes": "Lauren Lisko + Brandon Wiggs",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "From WOD to Wed",
+              "athletes": "Emily Moise + Kyle Fiala",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "I'm Old Gregg",
+              "athletes": "Garrison Matthews + Mary Kozik",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "Not your cup of tea",
+              "athletes": "Caleb Overholser + Michelle Vancza",
+              "division": "F/M RX"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "start": "12:14",
+          "end": "12:26",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Un Unbroken",
+              "athletes": "Dirk Vice + Alan Harrington",
+              "division": "M/M Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "PR or ER",
+              "athletes": "Sarah Mazier + Jeremy Alsbrook",
+              "division": "F/M RX"
+            },
+            {
+              "lane": 3,
+              "team": "Browne",
+              "athletes": "Stacey Browne + Garretson Browne",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Questions and Answers",
+              "athletes": "Quint Coward + Antonio King",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 5,
+              "team": "RXpected to lose",
+              "athletes": "Kevin Everhart + BJ Adamchik",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Daddy WODs",
+              "athletes": "Jeremy Schmid + Adam Cochran",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "TBD",
+              "athletes": "Jonathon Fendelman + TBD",
+              "division": "M/M Scaled"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "start": "12:31",
+          "end": "12:43",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Parental Guidance",
+              "athletes": "Anne Thompson + Stuart Thompson",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "B and Sundeep",
+              "athletes": "Sundeep Chennupati + B Evans",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Couple of Cooters",
+              "athletes": "Nikki Lashley + Tiffany Miller",
+              "division": "F/F Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "C&C",
+              "athletes": "Chris Eschbach + Christina Eschbach",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "12th State Dumpys",
+              "athletes": "Jesse Garcia + Benji McRoberts",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Old Enough to Party",
+              "athletes": "Phil McCarty + Thomas Gende",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "Mildly Athletic",
+              "athletes": "Nathan Newton + Blake Conner",
+              "division": "M/M RX"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "start": "12:48",
+          "end": "13:00",
+          "lanes": [
+            {
+              "lane": 1,
+              "team": "Rays of Glory",
+              "athletes": "David Reaugh + Shelby Reaugh",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 2,
+              "team": "Fast but Questionable",
+              "athletes": "Caroline Ortiz + Mike Sholar",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 3,
+              "team": "Cowboy Crossfitters",
+              "athletes": "Kristen Andersen + Tyler Andersen",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 4,
+              "team": "Beauty and the Beast",
+              "athletes": "Alex Yost + Molly Muzevich",
+              "division": "F/M Scaled"
+            },
+            {
+              "lane": 5,
+              "team": "Mobility Mafia",
+              "athletes": "Chris Zwolinski + Camden Woods",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 6,
+              "team": "Greggendales",
+              "athletes": "Dale + Greg Moore",
+              "division": "M/M RX"
+            },
+            {
+              "lane": 7,
+              "team": "Thicky & Sticky",
+              "athletes": "JT Hedgepeth + Davis Weber",
+              "division": "M/M RX"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

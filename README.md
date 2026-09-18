@@ -1,7 +1,7 @@
 # 12 Years of 12th State — Heat Tracker
 
-Phone-first heat and lane tracker for the 12th State CrossFit in-house comp,
-**Saturday, September 12, 2026**, 8:00 AM – 1:00 PM Eastern.
+Phone-first heat and lane tracker for the 12th State CrossFit in-house comp.
+The comp's name, date, events, heats and lanes all come from a Google Sheet.
 
 **Live:** https://12thstatecomp.com/
 
@@ -27,9 +27,8 @@ site. Everything the organiser does is in **[docs/deploy.md](docs/deploy.md)**.
 
 A lane nobody has claimed shows as *— open —*. `laneLabel` in `Settings`
 renames "Lane" everywhere the site shows it (`Position`, `Spot`…), and
-`compName` is the title on every page. The 2026 snapshot keeps two
-transcription corrections from the source PDFs: Event 1 Heat 2 lane 5 is
-12th State Dumpys, and Jointly Unstable has no Event 3 lane.
+`compName` is the title on every page. The 2026 comp lives on as a test
+fixture (`src/test/comp-2026.json`) that the behaviour tests run against.
 
 ## Sign-up
 
@@ -42,12 +41,12 @@ own claims show a **Cancel**. Organisers open and close the window with the
 
 ## Previewing a different time
 
-Append `?at=YYYY-MM-DDTHH:MM` (Eastern) to see the page as it will look then:
+Append `?at=YYYY-MM-DDTHH:MM` (in the comp's time zone) to see the page as it
+will look then — for a comp on 2027-09-25 with an 8:00 first heat:
 
-- `?at=2026-09-12T07:45` — before the first heat
-- `?at=2026-09-12T08:30` — Event 1 Heat 3 on the floor
-- `?at=2026-09-12T10:30` — break between Events 2 and 3
-- `?at=2026-09-12T13:05` — done
+- `?at=2027-09-25T07:45` — before the first heat
+- `?at=2027-09-25T08:30` — a heat on the floor
+- `?at=2027-09-25T13:05` — done
 
 ## Development
 

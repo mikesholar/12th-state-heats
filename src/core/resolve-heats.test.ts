@@ -1,5 +1,5 @@
 import { heatPhase, resolveHeats } from "./resolve-heats";
-import { snapshotSchedule as schedule } from "../data/snapshot";
+import { comp2026 as schedule } from "../test/comp-2026";
 import { at, makeHeat } from "../test/factories";
 
 const label = (ref: { event: { number: number }; heat: { number: number } } | undefined) =>
