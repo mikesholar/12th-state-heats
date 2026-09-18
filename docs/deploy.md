@@ -137,8 +137,10 @@ Expected `{"ok":true,…}`; the row is gone.
    header shows an amber pill naming the problem (e.g. `Sheet has a
    problem: Events: Event 2: scoring "amrap" must be time-or-rounds or
    rounds-reps`) — fix the cell. Changes show on phones within about a
-   minute and a half: the script caches replies for 30 s and phones
-   re-fetch every 60 s.
+   minute and a half while sign-ups are open (the script caches replies for
+   30 s and phones re-fetch about every 60 s); once `signupsOpen` is
+   unticked phones re-fetch about every 3 minutes, so on comp day allow up
+   to ~4 minutes for a `Slots` fix to reach every phone.
 7. **Slots** — filled in by the sign-up page as members claim lanes. Rows
    can also be typed by hand: one row per claimed lane (`event`, `heat`,
    `lane`, `team`, `athletes`, `division`; `email` and `signedUpAt` are

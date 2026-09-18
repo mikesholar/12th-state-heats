@@ -1,6 +1,6 @@
 import "./styles.css";
 import { resolveJudgeCode } from "./core/judge-codes";
-import { chooseSchedule, sourceNotice, type LoadedSchedule } from "./core/load-schedule";
+import { chooseSchedule, jitter, reloadIntervalMs, sourceNotice, type LoadedSchedule } from "./core/load-schedule";
 import type { Event, Schedule } from "./core/types";
 import { judgeCodes, signupCode } from "./data/judge-codes";
 import { sheetEndpoint } from "./data/sheet-endpoint";
@@ -17,8 +17,11 @@ import { startSignupPage } from "./ui/signup-page";
 import { readSignupCode } from "./ui/signup-route";
 
 const REFRESH_MS = 15_000;
-const RELOAD_SCHEDULE_MS = 60_000;
-const SIGNUP_REFRESH_MS = 30_000;
+const SPECTATOR_RELOAD = { open: 60_000, closed: 180_000 };
+const SIGNUP_RELOAD = { open: 30_000, closed: 180_000 };
+
+const nextReloadMs = (schedule: Schedule, intervals: { readonly open: number; readonly closed: number }): number =>
+  jitter({ ms: reloadIntervalMs({ schedule, ...intervals }), random: Math.random() });
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
@@ -62,7 +65,7 @@ const startSpectator = (): void => {
   };
 
   const reloadLater = (): void => {
-    setTimeout(() => void reload().finally(reloadLater), RELOAD_SCHEDULE_MS);
+    setTimeout(() => void reload().finally(reloadLater), nextReloadMs(loaded.schedule, SPECTATOR_RELOAD));
   };
 
   draw();
@@ -94,7 +97,10 @@ const startJudge = ({ schedule, event, lane }: StartJudgeOptions): void => {
 
 const startSignup = (initial: LoadedSchedule): void => {
   const page = startSignupPage({ root, initial, loadSchedule, endpoint: sheetEndpoint, fetchFn: fetch });
-  setInterval(() => void page.refresh(), SIGNUP_REFRESH_MS);
+  const refreshLater = (): void => {
+    setTimeout(() => void page.refresh().finally(refreshLater), nextReloadMs(page.schedule(), SIGNUP_RELOAD));
+  };
+  refreshLater();
 };
 
 const route = (loaded: LoadedSchedule): void => {

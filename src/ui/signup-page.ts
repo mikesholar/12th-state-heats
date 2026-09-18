@@ -14,7 +14,7 @@ export type SignupPageOptions = {
   readonly fetchFn: typeof fetch;
 };
 
-export type SignupPage = { readonly refresh: () => Promise<void> };
+export type SignupPage = { readonly refresh: () => Promise<void>; readonly schedule: () => Schedule };
 
 type PageState = {
   readonly loaded: LoadedSchedule;
@@ -113,5 +113,5 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
   };
 
   draw(state);
-  return { refresh };
+  return { refresh, schedule: () => state.loaded.schedule };
 };

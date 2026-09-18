@@ -43,6 +43,7 @@ const SLOT_HEADERS = ["event", "heat", "lane", "email", "team", "athletes", "div
 const SCORING_FORMATS = ["time-or-rounds", "rounds-reps"];
 const SCHEDULE_CACHE_KEY = "schedule";
 const SCHEDULE_CACHE_SECONDS = 30;
+const CACHE_REFILL_WAIT_MS = 20000;
 
 function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -57,24 +58,36 @@ function setupError(ss) {
   return missing.length > 0 ? "Run setup() in the script editor first (missing " + missing.join(", ") + ")" : "";
 }
 
+function replyText(json) {
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
 function doGet() {
-  const ss = SpreadsheetApp.getActive();
-  const error = setupError(ss);
-  if (error) return reply({ ok: false, error: error });
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get(SCHEDULE_CACHE_KEY);
+  if (hit) return replyText(hit);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(CACHE_REFILL_WAIT_MS)) return reply({ ok: false, error: "The sheet is busy — try again" });
   try {
-    return reply({ ok: true, schedule: cachedSchedule(ss) });
-  } catch (err) {
-    return reply({ ok: false, error: String((err && err.message) || err) });
+    const refilled = cache.get(SCHEDULE_CACHE_KEY);
+    if (refilled) return replyText(refilled);
+    const json = scheduleReplyJson();
+    cache.put(SCHEDULE_CACHE_KEY, json, SCHEDULE_CACHE_SECONDS);
+    return replyText(json);
+  } finally {
+    lock.releaseLock();
   }
 }
 
-function cachedSchedule(ss) {
-  const cache = CacheService.getScriptCache();
-  const hit = cache.get(SCHEDULE_CACHE_KEY);
-  if (hit) return JSON.parse(hit);
-  const schedule = readSchedule(ss);
-  cache.put(SCHEDULE_CACHE_KEY, JSON.stringify(schedule), SCHEDULE_CACHE_SECONDS);
-  return schedule;
+function scheduleReplyJson() {
+  const ss = SpreadsheetApp.getActive();
+  const error = setupError(ss);
+  if (error) return JSON.stringify({ ok: false, error: error });
+  try {
+    return JSON.stringify({ ok: true, schedule: readSchedule(ss) });
+  } catch (err) {
+    return JSON.stringify({ ok: false, error: String((err && err.message) || err) });
+  }
 }
 
 function clearScheduleCache() {

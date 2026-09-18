@@ -32,3 +32,17 @@ export const sourceNotice = (loaded: LoadedSchedule): string | undefined => {
   if (loaded.reason === UNREACHABLE || loaded.reason === undefined) return "Offline — showing last known schedule";
   return `Sheet has a problem: ${loaded.reason} — showing last known schedule`;
 };
+
+type ReloadIntervalOptions = {
+  readonly schedule: Schedule;
+  readonly open: number;
+  readonly closed: number;
+};
+
+export const reloadIntervalMs = ({ schedule, open, closed }: ReloadIntervalOptions): number => (schedule.signupsOpen ? open : closed);
+
+const JITTER_SPREAD = 0.5;
+
+type JitterOptions = { readonly ms: number; readonly random: number };
+
+export const jitter = ({ ms, random }: JitterOptions): number => Math.round(ms * (1 - JITTER_SPREAD / 2 + random * JITTER_SPREAD));

@@ -1,4 +1,4 @@
-import { chooseSchedule, sourceNotice } from "./load-schedule";
+import { chooseSchedule, jitter, reloadIntervalMs, sourceNotice } from "./load-schedule";
 import { makeSchedule } from "../test/factories";
 
 const live = makeSchedule({ compDate: "2027-09-11" });
@@ -44,5 +44,18 @@ describe("the source notice", () => {
     expect(sourceNotice({ schedule: snapshot, source: "snapshot", reason: "Event 1: has no heats" })).toBe(
       "Sheet has a problem: Event 1: has no heats — showing last known schedule",
     );
+  });
+});
+
+describe("how often a phone re-fetches", () => {
+  it("polls faster while sign-ups are open and slower once the field is frozen", () => {
+    expect(reloadIntervalMs({ schedule: makeSchedule({ signupsOpen: true }), open: 60_000, closed: 180_000 })).toBe(60_000);
+    expect(reloadIntervalMs({ schedule: makeSchedule({ signupsOpen: false }), open: 60_000, closed: 180_000 })).toBe(180_000);
+  });
+
+  it("spreads phones out with up to a quarter of jitter either way", () => {
+    expect(jitter({ ms: 60_000, random: 0 })).toBe(45_000);
+    expect(jitter({ ms: 60_000, random: 0.5 })).toBe(60_000);
+    expect(jitter({ ms: 60_000, random: 0.999 })).toBeLessThan(75_000);
   });
 });
