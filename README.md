@@ -13,7 +13,8 @@ reload needed.
 
 Lane judges get a per-event link (`?j=<code>`) that shows the team in their
 lane for the heat on the floor and posts the score to a Google Sheet. The
-head judge's link shows a QR code for every lane. Setup, comp-day steps and
+head judge's link has a **Generate QR codes** button that draws a QR code for
+every lane in the browser. Setup, comp-day steps and
 troubleshooting: **[docs/deploy.md](docs/deploy.md)**.
 
 ## The schedule lives in the Sheet

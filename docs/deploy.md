@@ -185,8 +185,9 @@ Expected `{"ok":true,…}`; the row is gone.
 
 **Night before**
 - Open the head-judge link (the `HEAD JUDGE` line from `npm run judge-links`)
-  on the head judge's phone and bookmark it. It shows a QR card for every
-  event × lane.
+  on the head judge's phone and bookmark it. Tap **Generate QR codes** to
+  draw a QR card for every event × lane the Sheet has right now (made in the
+  browser, no script to run).
 - Open the Sheet on the laptop at the scorer's table. Keep `Overall` visible.
 - Check the site loads on the gym Wi-Fi and on cellular.
 - The sign-up link keeps working on comp day only if `signupsOpen` is

@@ -46,11 +46,31 @@ const groupHtml = (laneLabel: string, { event, cards }: EventGroup): string => `
     <div class="judge-cards">${cards.map((card) => cardHtml(laneLabel, card)).join("")}</div>
   </section>`;
 
-export const renderHead = async ({ root, schedule, table, siteUrl }: RenderHeadOptions): Promise<void> => {
+const generatedHtml = async ({ schedule, table, siteUrl }: RenderHeadOptions): Promise<string> => {
   const groups = await Promise.all(
     schedule.events.map(async (event) => ({ event, cards: await laneCards({ table, event, siteUrl }) })),
   );
-  root.innerHTML = `
+  return groups.map((group) => groupHtml(schedule.laneLabel, group)).join("");
+};
+
+type GenerateOptions = { readonly page: RenderHeadOptions; readonly button: HTMLButtonElement };
+
+const generate = async ({ page, button }: GenerateOptions): Promise<void> => {
+  const main = page.root.querySelector(".head-main");
+  if (!main) return;
+  button.disabled = true;
+  button.textContent = "Generating…";
+  main.innerHTML = await generatedHtml(page).catch(
+    () => `<p class="loading">Couldn't make the QR codes — reload and try again.</p>`,
+  );
+};
+
+export const renderHead = (options: RenderHeadOptions): void => {
+  options.root.innerHTML = `
     <header class="header"><div class="header-row"><h1 class="title">Judge assignments</h1></div></header>
-    <main class="main head-main">${groups.map((group) => groupHtml(schedule.laneLabel, group)).join("")}</main>`;
+    <main class="main head-main">
+      <button type="button" class="primary" id="generate-qr">Generate QR codes</button>
+    </main>`;
+  const button = options.root.querySelector<HTMLButtonElement>("#generate-qr");
+  button?.addEventListener("click", () => void generate({ page: options, button }));
 };

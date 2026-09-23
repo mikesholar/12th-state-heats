@@ -118,9 +118,7 @@ const route = (loaded: LoadedSchedule): void => {
   if (assignment.kind === "lane" && laneEvent && assignment.lane <= laneEvent.lanes)
     startJudge({ schedule, event: laneEvent, lane: assignment.lane });
   else if (assignment.kind === "head")
-    void renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` }).catch(() =>
-      renderInvalid({ root }),
-    );
+    renderHead({ root, schedule, table: judgeCodes, siteUrl: `${location.origin}${import.meta.env.BASE_URL}` });
   else renderInvalid({ root });
 };
 
