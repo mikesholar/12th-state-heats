@@ -86,12 +86,14 @@ describe("the head judge assignment page", () => {
     expect(root.textContent).not.toContain("Lane 2");
   });
 
-  it("shows each event's format and its RX and Scaled versions", async () => {
+  it("shows each event's format and its RX and Scaled versions before any QR codes are generated", () => {
     const withWod = makeSchedule({
       events: [makeEvent({ number: 1, lanes: 1, format: "AMRAP 10", rx: "10 Slam Balls (25/20)", scaled: "10 Slam Balls (15/10)" })],
     });
 
-    const root = await generate({ schedule: withWod });
+    const root = renderIt({ schedule: withWod });
+
+    expect(queryAllByTestId(root, "judge-card")).toHaveLength(0);
 
     const [group] = queryAllByTestId(root, "event-group");
     expect(group).toHaveTextContent("AMRAP 10");
@@ -107,5 +109,6 @@ describe("the head judge assignment page", () => {
 
     expect(await findByText(root, "Couldn't make the QR codes — reload and try again.")).toBeInTheDocument();
     expect(queryAllByTestId(root, "judge-card")).toHaveLength(0);
+    expect(queryAllByTestId(root, "workout")).toHaveLength(2);
   });
 });
