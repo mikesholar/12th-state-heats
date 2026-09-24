@@ -215,6 +215,7 @@ button.primary:disabled, button.link:disabled { opacity: 0.5; cursor: progress; 
 /* ---------- head judge page ---------- */
 .head-main { display: grid; gap: 24px; }
 .event-group h2 { color: var(--navy); margin: 0 0 12px; }
+.event-group .workout-card { margin-bottom: 12px; break-inside: avoid; }
 .judge-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .judge-card { padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; text-align: center; break-inside: avoid; }
 .judge-card h3 { margin: 0 0 8px; font-size: 1.4rem; color: var(--navy); }

@@ -2,6 +2,7 @@ import { toString as qrToString } from "qrcode";
 import type { JudgeCodeTable } from "../core/judge-codes";
 import type { Event, Schedule } from "../core/types";
 import { esc } from "./html";
+import { workoutHtml } from "./render-workout";
 
 type RenderHeadOptions = {
   readonly root: HTMLElement;
@@ -43,6 +44,7 @@ const cardHtml = (laneLabel: string, { code, lane, url, svg }: LaneCard): string
 const groupHtml = (laneLabel: string, { event, cards }: EventGroup): string => `
   <section class="event-group" data-testid="event-group">
     <h2>Event ${event.number} · ${esc(event.title)}</h2>
+    ${workoutHtml({ event })}
     <div class="judge-cards">${cards.map((card) => cardHtml(laneLabel, card)).join("")}</div>
   </section>`;
 

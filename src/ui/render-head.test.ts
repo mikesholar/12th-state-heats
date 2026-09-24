@@ -86,6 +86,20 @@ describe("the head judge assignment page", () => {
     expect(root.textContent).not.toContain("Lane 2");
   });
 
+  it("shows each event's format and its RX and Scaled versions", async () => {
+    const withWod = makeSchedule({
+      events: [makeEvent({ number: 1, lanes: 1, format: "AMRAP 10", rx: "10 Slam Balls (25/20)", scaled: "10 Slam Balls (15/10)" })],
+    });
+
+    const root = await generate({ schedule: withWod });
+
+    const [group] = queryAllByTestId(root, "event-group");
+    expect(group).toHaveTextContent("AMRAP 10");
+    expect(group).toHaveTextContent("RX 10 Slam Balls (25/20)");
+    expect(group).toHaveTextContent("Scaled 10 Slam Balls (15/10)");
+    expect(group?.querySelectorAll('[aria-current="true"]')).toHaveLength(0);
+  });
+
   it("tells the head judge when the QR codes can't be made", async () => {
     const root = renderIt({ siteUrl: `https://example.test/${"x".repeat(5000)}/` });
 

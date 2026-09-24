@@ -2,6 +2,7 @@ import { resolveJudgeHeat, type ManualPick } from "../core/resolve-judge-heat";
 import type { Score } from "../core/score";
 import type { Event, Lane, Schedule } from "../core/types";
 import { esc } from "./html";
+import { workoutHtml } from "./render-workout";
 
 export type ScoreDraft = {
   readonly mode: Score["kind"];
@@ -132,29 +133,6 @@ const scoreFormHtml = (event: Event, draft: ScoreDraft, sent: boolean): string =
     ${fields}
     <button type="submit" class="primary submit">${sent ? "Update score" : "Submit score"}</button>
   </form>`;
-};
-
-type WorkoutVersion = "rx" | "scaled";
-
-const versionForDivision = (division: string | undefined): WorkoutVersion | undefined => {
-  if (division && /\bscaled\b/i.test(division)) return "scaled";
-  if (division && /\brx\b/i.test(division)) return "rx";
-  return undefined;
-};
-
-type WodLineOptions = { readonly label: string; readonly text: string; readonly theirs: boolean };
-
-const wodLineHtml = ({ label, text, theirs }: WodLineOptions): string =>
-  `<div class="event-wod${theirs ? " wod-theirs" : ""}"${theirs ? ' aria-current="true"' : ""}><span class="wod-label">${label}</span> ${esc(text)}</div>`;
-
-const workoutHtml = (event: Event, lane: Lane | undefined): string => {
-  const version = versionForDivision(lane?.division);
-  return `
-  <section class="workout-card" data-testid="workout">
-    <div class="event-format">${esc(event.format)}</div>
-    ${wodLineHtml({ label: "RX", text: event.rx, theirs: version === "rx" })}
-    ${wodLineHtml({ label: "Scaled", text: event.scaled, theirs: version === "scaled" })}
-  </section>`;
 };
 
 const noticeHtml = (notice: Notice | undefined): string => {
@@ -294,7 +272,7 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
       ${teamCardHtml({ lane: selected.lane, laneNumber: lane, laneLabel: schedule.laneLabel })}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
-      ${workoutHtml(event, selected.lane)}
+      ${workoutHtml({ event, division: selected.lane?.division })}
     </main>
     <footer class="footer"><button type="button" class="link" id="change-name">Not you? Change name</button></footer>`;
 
