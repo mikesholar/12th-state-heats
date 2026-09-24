@@ -184,6 +184,8 @@ button.primary:disabled, button.link:disabled { opacity: 0.5; cursor: progress; 
 .team-card-division { margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--orange); font-weight: 700; font-size: 0.8rem; }
 .workout-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .workout-card .event-format { margin-bottom: 6px; }
+.workout-card:has(.wod-theirs) .event-wod:not(.wod-theirs) { opacity: 0.45; }
+.wod-theirs { opacity: 1; font-weight: 700; font-size: 1rem; }
 .team-card.empty { background: var(--surface-2); color: var(--muted); font-weight: 700; }
 
 .score-form { display: grid; gap: 14px; }

@@ -134,12 +134,28 @@ const scoreFormHtml = (event: Event, draft: ScoreDraft, sent: boolean): string =
   </form>`;
 };
 
-const workoutHtml = (event: Event): string => `
+type WorkoutVersion = "rx" | "scaled";
+
+const versionForDivision = (division: string | undefined): WorkoutVersion | undefined => {
+  if (division && /\bscaled\b/i.test(division)) return "scaled";
+  if (division && /\brx\b/i.test(division)) return "rx";
+  return undefined;
+};
+
+type WodLineOptions = { readonly label: string; readonly text: string; readonly theirs: boolean };
+
+const wodLineHtml = ({ label, text, theirs }: WodLineOptions): string =>
+  `<div class="event-wod${theirs ? " wod-theirs" : ""}"${theirs ? ' aria-current="true"' : ""}><span class="wod-label">${label}</span> ${esc(text)}</div>`;
+
+const workoutHtml = (event: Event, lane: Lane | undefined): string => {
+  const version = versionForDivision(lane?.division);
+  return `
   <section class="workout-card" data-testid="workout">
     <div class="event-format">${esc(event.format)}</div>
-    <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
-    <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
+    ${wodLineHtml({ label: "RX", text: event.rx, theirs: version === "rx" })}
+    ${wodLineHtml({ label: "Scaled", text: event.scaled, theirs: version === "scaled" })}
   </section>`;
+};
 
 const noticeHtml = (notice: Notice | undefined): string => {
   if (!notice) return "";
@@ -278,7 +294,7 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
       ${teamCardHtml({ lane: selected.lane, laneNumber: lane, laneLabel: schedule.laneLabel })}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
-      ${workoutHtml(event)}
+      ${workoutHtml(event, selected.lane)}
     </main>
     <footer class="footer"><button type="button" class="link" id="change-name">Not you? Change name</button></footer>`;
 

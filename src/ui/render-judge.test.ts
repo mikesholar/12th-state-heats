@@ -1,5 +1,6 @@
 import { fireEvent, getByLabelText, getByRole, getByTestId, queryByRole, queryByTestId } from "@testing-library/dom";
 import { renderJudge, type RenderJudgeOptions } from "./render-judge";
+import type { Event } from "../core/types";
 import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
 
 afterEach(() => {
@@ -176,6 +177,36 @@ describe("the workout", () => {
     expect(workout).toHaveTextContent("AMRAP 10");
     expect(workout).toHaveTextContent("RX 10 Slam Balls (25/20)");
     expect(workout).toHaveTextContent("Scaled 10 Slam Balls (15/10)");
+  });
+
+  const highlighted = (root: HTMLElement): readonly string[] =>
+    Array.from(getByTestId(root, "workout").querySelectorAll('[aria-current="true"]'), (line) => line.textContent ?? "");
+
+  const withDivision = (division: string): Event =>
+    makeEvent({ ...amrap, rx: "RX version", scaled: "Scaled version", heats: [makeHeat({ number: 1, start: "09:10", end: "09:20", lanes: [makeLane({ lane: 5, division })] })] });
+
+  it("highlights the Scaled version for a Scaled team", () => {
+    const { root } = renderWith({ event: withDivision("Indy F Scaled") });
+
+    expect(highlighted(root)).toEqual(["Scaled Scaled version"]);
+  });
+
+  it("highlights the RX version for an RX team", () => {
+    const { root } = renderWith({ event: withDivision("F/F RX") });
+
+    expect(highlighted(root)).toEqual(["RX RX version"]);
+  });
+
+  it("highlights neither version when the division doesn't say RX or Scaled", () => {
+    const { root } = renderWith({ event: withDivision("Masters") });
+
+    expect(highlighted(root)).toEqual([]);
+  });
+
+  it("highlights neither version when the lane is empty", () => {
+    const { root } = renderWith({ manual: { heat: 2, at: at("09:12") } });
+
+    expect(highlighted(root)).toEqual([]);
   });
 
   it("still shows the workout when the lane is empty", () => {
