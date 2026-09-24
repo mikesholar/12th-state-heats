@@ -134,6 +134,13 @@ const scoreFormHtml = (event: Event, draft: ScoreDraft, sent: boolean): string =
   </form>`;
 };
 
+const workoutHtml = (event: Event): string => `
+  <section class="workout-card" data-testid="workout">
+    <div class="event-format">${esc(event.format)}</div>
+    <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
+    <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
+  </section>`;
+
 const noticeHtml = (notice: Notice | undefined): string => {
   if (!notice) return "";
   const text = notice.kind === "retrying" ? "Saved on this phone — will retry" : notice.text;
@@ -271,6 +278,7 @@ export const renderJudge = (options: RenderJudgeOptions): void => {
       ${teamCardHtml({ lane: selected.lane, laneNumber: lane, laneLabel: schedule.laneLabel })}
       ${noticeHtml(notice)}
       ${selected.lane ? scoreFormHtml(event, draft, sent) : ""}
+      ${workoutHtml(event)}
     </main>
     <footer class="footer"><button type="button" class="link" id="change-name">Not you? Change name</button></footer>`;
 

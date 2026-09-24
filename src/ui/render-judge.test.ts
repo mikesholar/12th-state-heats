@@ -168,6 +168,23 @@ describe("the team card", () => {
   });
 });
 
+describe("the workout", () => {
+  it("shows the event's format and its RX and Scaled versions", () => {
+    const wod = makeEvent({ ...amrap, format: "AMRAP 10", rx: "10 Slam Balls (25/20)", scaled: "10 Slam Balls (15/10)" });
+    const workout = getByTestId(renderWith({ event: wod }).root, "workout");
+
+    expect(workout).toHaveTextContent("AMRAP 10");
+    expect(workout).toHaveTextContent("RX 10 Slam Balls (25/20)");
+    expect(workout).toHaveTextContent("Scaled 10 Slam Balls (15/10)");
+  });
+
+  it("still shows the workout when the lane is empty", () => {
+    const { root } = renderWith({ manual: { heat: 2, at: at("09:12") } });
+
+    expect(getByTestId(root, "workout")).toBeInTheDocument();
+  });
+});
+
 describe("the score form", () => {
   it("shows rounds and reps for an AMRAP", () => {
     const { root } = renderWith();

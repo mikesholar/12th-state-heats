@@ -182,6 +182,8 @@ button.primary:disabled, button.link:disabled { opacity: 0.5; cursor: progress; 
 .team-card-name { font-weight: 900; font-size: 1.5rem; line-height: 1.15; }
 .team-card-athletes { margin-top: 4px; font-size: 1rem; opacity: 0.9; }
 .team-card-division { margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--orange); font-weight: 700; font-size: 0.8rem; }
+.workout-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.workout-card .event-format { margin-bottom: 6px; }
 .team-card.empty { background: var(--surface-2); color: var(--muted); font-weight: 700; }
 
 .score-form { display: grid; gap: 14px; }
