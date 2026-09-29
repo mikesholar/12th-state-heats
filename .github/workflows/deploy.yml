@@ -27,6 +27,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Refresh schedule fallback
+        run: npm run snapshot || echo "::warning::Could not refresh the schedule fallback from the Sheet; building with the committed snapshot"
       - run: npx vite build
       - uses: actions/upload-pages-artifact@v3
         with:
