@@ -115,33 +115,36 @@ The site bundles a copy of the schedule for phones that have never loaded
 it and can't reach the Sheet. Staff refresh that copy from the Sheet with
 **12th State → Update site fallback**. The menu asks GitHub to redeploy the
 site, and every deploy pulls a fresh copy from the Sheet. One-time setup
-(needs someone with admin on the GitHub repo):
+(needs the repo owner's GitHub account, `mikesholar`):
 
-1. On GitHub: **Settings → Developer settings → Personal access tokens →
-   Fine-grained tokens → Generate new token**.
+1. On GitHub: your profile picture (top right) → **Settings** (your account
+   settings, not the repo's) → **Developer settings → Personal access tokens
+   → Fine-grained tokens → Generate new token**.
    - Repository access: **Only select repositories** →
      `mikesholar/12th-state-heats`.
-   - Permissions → Repository permissions → **Actions: Read and write**.
-     Nothing else.
+   - Permissions → Repository permissions (in newer GitHub: **Add
+     permissions**) → **Actions: Read and write**. Nothing else.
    - Expiration: up to a year. Put the expiry date in the calendar.
 2. In the script editor: **Project Settings (⚙) → Script Properties → Add
    script property** — name `GITHUB_TOKEN`, value the token.
-3. Paste the current `apps-script/Code.gs` (section 1b). If Deploy asks you
-   to authorise again (the script now connects to GitHub), accept. The menu runs
-   inside the Sheet, so it does not need a new web-app deployment — but
-   deploy a new version anyway if `Code.gs` changed in other ways
-   (section 4).
+3. Paste the current `apps-script/Code.gs` (section 1b) and **Save**. The
+   menu runs inside the Sheet, so this feature needs no new web-app
+   deployment. If the paste also brings other script changes, do section 4
+   as well, and if Deploy asks you to authorise again (the script now
+   connects to GitHub), accept.
 4. Reload the Sheet. A **12th State** menu appears next to *Help*.
 5. **12th State → Update site fallback**. The first click asks you to
-   authorise "connect to an external service" — accept. Each staff member
-   sees this once.
+   authorise the script: **Review permissions → your account → Advanced →
+   Go to 12th State Scoring (unsafe) → Allow** (same as 1c; it now also asks
+   to "connect to an external service"). Each staff member sees this once,
+   and needs edit access to the Sheet for the menu to run.
 6. Expected toast: *Site fallback update started — live in about 2
    minutes.* On GitHub, **Actions** shows a *Build and deploy* run
    triggered by `workflow_dispatch`.
 
 Anyone who can edit the Sheet can open the script and read the token. It
-can only start this repo's workflows, so the worst it allows is extra
-deploys. If it leaks, delete it on GitHub and create a new one.
+can only run, cancel or disable this repo's workflows — it can't change
+code or site content — so the worst it allows is extra or blocked deploys. If it leaks, delete it on GitHub and create a new one.
 
 `npm run snapshot` still works for developers, but its output only reaches
 the site if committed.
@@ -318,9 +321,10 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
 | Amber "Sheet has a problem: Divisions: …" | A row in the `Divisions` tab has a blank or non-number `teamSize`, or a blank division name | Fix the row in the `Divisions` tab |
 | No **12th State** menu in the Sheet | Sheet opened before the script was pasted, or `Code.gs` is out of date | Reload the Sheet; paste the current `Code.gs` (1b) |
 | "Fallback updates aren't set up" | No `GITHUB_TOKEN` Script Property | Section 1g, steps 1–2 |
-| "GitHub refused the update (401): Bad credentials" | Token expired, deleted, or pasted wrong | Create a new token (1g step 1) and replace the Script Property |
-| "GitHub refused the update (403) / (404)" | Token lacks *Actions: Read and write*, or isn't scoped to this repo | Edit the token's permissions on GitHub (1g step 1) |
+| "GitHub refused the update (401): Bad credentials" | Token expired, deleted, or pasted wrong | Ask the repo owner to create a new token (1g step 1) and replace the Script Property |
+| "GitHub refused the update (403) / (404)" | Token lacks *Actions: Read and write*, or isn't scoped to this repo | Ask the repo owner to fix the token's permissions on GitHub (1g step 1) |
 | "Couldn't start the update: You do not have permission to call UrlFetchApp.fetch" | The script hasn't been authorised to connect to an external service (or consent was revoked) | Open the script editor, run `refreshFallback` once and accept the prompt |
 | "Couldn't start the update: …" (anything else) | Google couldn't reach GitHub | Try again in a minute |
+| "The sheet is busy — try again." | Another update click is in progress | Wait a few seconds and click again |
 | "An update started less than 5 minutes ago" | Rate limit — one update per 5 minutes | Wait until the time shown |
-| Update started but the fallback didn't change | The Sheet failed validation during the deploy; the site kept the previous copy | On GitHub, **Actions** → the latest run → look for the *Could not refresh the schedule fallback* warning; fix the Sheet (the amber pill on the site names the problem) and update again |
+| Update started but the fallback didn't change | The Sheet failed validation (or didn't answer within 60 s) during the deploy, so the site went back to the copy committed in the repo, which may be older than the last successful update | Check the site for the amber *Sheet has a problem* pill, fix the Sheet and update again; the repo owner can confirm in GitHub **Actions** (latest run → *Could not refresh the schedule fallback* warning) |

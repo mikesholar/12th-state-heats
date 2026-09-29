@@ -29,6 +29,10 @@ from the Sheet, in one click.
   extra deploys.
 - **Failure policy:** a broken or unreachable Sheet never blocks a deploy.
   The build falls back to the committed snapshot and logs a warning.
+  Deploys never commit, so the committed snapshot can be older than the
+  one the last successful refresh put live; a failed refresh (or any push
+  while the Sheet is broken) rolls the fallback back to it. Accepted: the
+  fix is to repair the Sheet and refresh again.
 
 ## Components
 
@@ -111,16 +115,16 @@ the same.
   expiry up to 1 year — note the renewal date), add it as the `GITHUB_TOKEN`
   Script Property, paste the updated `Code.gs`, reload the Sheet, click the
   menu once to authorise, confirm a run in the Actions tab.
-- **§2 / §3** (organiser flow): after finishing schedule edits, use
+- **§2 night before / §2a** (organiser flow): after finishing schedule edits, use
   **12th State → Update site fallback**.
-- **§5 Troubleshooting:** the menu is missing (reload the Sheet); "isn't set
+- **§5 Troubleshooting:** the menu is missing (reload the Sheet); "aren't set
   up" (token property missing); "GitHub refused (401)" (token expired or
   wrong — create a new one); the run succeeded but the fallback didn't change
   (look for the snapshot warning in the Actions log — the Sheet failed
   validation).
 
-`README.md`'s schedule paragraph mentions the menu alongside
-`npm run snapshot`.
+`README.md`'s schedule paragraph describes the refresh-on-deploy and the
+menu; `npm run snapshot` stays documented as a developer command.
 
 ## Out of scope
 
@@ -145,5 +149,5 @@ tests. This is a deliberate deviation from test-first. Verification:
    menu → success toast → a `workflow_dispatch` run appears in Actions → the
    deployed bundle contains a schedule detail edited just before clicking.
 4. **Menu guards:** a second click within 5 minutes shows the cooldown toast;
-   with `GITHUB_TOKEN` removed it shows the "isn't set up" toast; with a bad
+   with `GITHUB_TOKEN` removed it shows the "aren't set up" toast; with a bad
    token it shows "GitHub refused the update (401)".
