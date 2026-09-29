@@ -22,9 +22,11 @@ troubleshooting: **[docs/deploy.md](docs/deploy.md)**.
 Organisers define the comp in the Google Sheet — `Settings`, `Divisions`,
 `Events`, `Heats` and `Slots` tabs — and the site reads it through the Apps Script
 endpoint on every load (re-checked every minute). Phones cache the last
-good copy, and `src/data/schedule-snapshot.json` (refreshed with
-`npm run snapshot`) is the fallback for a phone that has never loaded the
-site. Everything the organiser does is in **[docs/deploy.md](docs/deploy.md)**.
+good copy, and `src/data/schedule-snapshot.json` is the fallback for a
+phone that has never loaded the site. Every deploy refreshes it from the
+Sheet (keeping the committed copy if the Sheet fails), and staff trigger a
+deploy from the Sheet's **12th State → Update site fallback** menu.
+Everything the organiser does is in **[docs/deploy.md](docs/deploy.md)**.
 
 A lane nobody has claimed shows as *— open —*. `laneLabel` in `Settings`
 renames "Lane" everywhere the site shows it (`Position`, `Spot`…), and

@@ -64,6 +64,8 @@ from the Sheet, in one click.
    Anything else → toast *"GitHub refused the update (<status>): <message>"*
    using the `message` field of GitHub's JSON reply when present. The
    timestamp is not stored, so staff can retry immediately after a fix.
+   `UrlFetchApp.fetch` throwing (DNS, timeout) → toast *"Couldn't reach
+   GitHub — try again: <error>"*; the timestamp is not stored.
 
 New constants sit with the others at the top of the file:
 `GITHUB_REPO = "mikesholar/12th-state-heats"`,
@@ -82,12 +84,14 @@ In the `verify` job, after `npm test` and before `npx vite build`:
 
 ```yaml
 - name: Refresh schedule fallback
-  run: npm run snapshot || echo "::warning::Could not refresh the schedule fallback from the Sheet; building with the committed snapshot"
+  run: timeout 60 npm run snapshot || echo "::warning::Could not refresh the schedule fallback from the Sheet; building with the committed snapshot"
 ```
 
 `scripts/snapshot.ts` is unchanged: it already fetches, validates, strips
 emails, overwrites `src/data/schedule-snapshot.json`, and exits non-zero on
 any failure before writing — so on failure the committed file is untouched.
+
+The 60-second `timeout` stops a stalled Sheet endpoint holding up a deploy; a timeout exits non-zero and takes the same fallback path.
 
 Side effect: every push to `main` also refreshes the fallback. That is
 desirable.

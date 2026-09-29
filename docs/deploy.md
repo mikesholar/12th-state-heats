@@ -109,6 +109,42 @@ curl -sL '<url>' --data '{"action":"release","event":1,"heat":1,"lane":1,"email"
 
 Expected `{"ok":true,…}`; the row is gone.
 
+### 1g. Let staff update the site fallback
+
+The site bundles a copy of the schedule for phones that have never loaded
+it and can't reach the Sheet. Staff refresh that copy from the Sheet with
+**12th State → Update site fallback**. The menu asks GitHub to redeploy the
+site, and every deploy pulls a fresh copy from the Sheet. One-time setup
+(needs someone with admin on the GitHub repo):
+
+1. On GitHub: **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+   - Repository access: **Only select repositories** →
+     `mikesholar/12th-state-heats`.
+   - Permissions → Repository permissions → **Actions: Read and write**.
+     Nothing else.
+   - Expiration: up to a year. Put the expiry date in the calendar.
+2. In the script editor: **Project Settings (⚙) → Script Properties → Add
+   script property** — name `GITHUB_TOKEN`, value the token.
+3. Paste the current `apps-script/Code.gs` (section 1b). The menu runs
+   inside the Sheet, so it does not need a new web-app deployment — but
+   deploy a new version anyway if `Code.gs` changed in other ways
+   (section 4).
+4. Reload the Sheet. A **12th State** menu appears next to *Help*.
+5. **12th State → Update site fallback**. The first click asks you to
+   authorise "connect to an external service" — accept. Each staff member
+   sees this once.
+6. Expected toast: *Site fallback update started — live in about 2
+   minutes.* On GitHub, **Actions** shows a *Build and deploy* run
+   triggered by `workflow_dispatch`.
+
+Anyone who can edit the Sheet can open the script and read the token. It
+can only start this repo's workflows, so the worst it allows is extra
+deploys. If it leaks, delete it on GitHub and create a new one.
+
+`npm run snapshot` still works for developers, but its output only reaches
+the site if committed.
+
 ## 2. Each year: define the comp in the Sheet
 
 1. **Settings** — set `compName` (the title shown on every page and in the
@@ -162,11 +198,9 @@ Expected `{"ok":true,…}`; the row is gone.
 
 **Night before**
 - Uncheck `signupsOpen` in `Settings` (if it was ever checked).
-- `npm run snapshot` — pulls the Sheet into
-  `src/data/schedule-snapshot.json`, the fallback a phone uses if it has
-  never loaded the site before. It never contains lane emails; the script
-  strips them before writing the file.
-- `npm test`, commit, push.
+- **12th State → Update site fallback** in the Sheet — the site's copy of
+  the schedule for phones that have never loaded it is refreshed in about
+  2 minutes. It never contains lane emails. (Setup: section 1g.)
 
 ## 2a. Sign-up window
 
@@ -178,8 +212,8 @@ Expected `{"ok":true,…}`; the row is gone.
    for. They can Cancel their own claim from the page.
 4. Watch `Slots` as claims come in; fix anything wrong by editing or
    deleting rows directly.
-5. The night before: untick `signupsOpen`, `npm run snapshot`, commit,
-   push.
+5. The night before: untick `signupsOpen`, then **12th State → Update site
+   fallback**.
 
 ## 3. Comp day
 
@@ -281,3 +315,9 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
 | Sign-up link shows "This link isn't valid" | Code doesn't match `signupCode` in `src/data/judge-codes.ts` | `npm run judge-links` and share the printed `SIGN-UP` link |
 | Sign-up form shows no name fields | The member hasn't picked a division yet — by design, until then the form doesn't know how many names to ask for | Pick a division |
 | Amber "Sheet has a problem: Divisions: …" | A row in the `Divisions` tab has a blank or non-number `teamSize`, or a blank division name | Fix the row in the `Divisions` tab |
+| No **12th State** menu in the Sheet | Sheet opened before the script was pasted, or `Code.gs` is out of date | Reload the Sheet; paste the current `Code.gs` (1b) |
+| "Fallback updates aren't set up" | No `GITHUB_TOKEN` Script Property | Section 1g, steps 1–2 |
+| "GitHub refused the update (401): Bad credentials" | Token expired, deleted, or pasted wrong | Create a new token (1g step 1) and replace the Script Property |
+| "GitHub refused the update (403) / (404)" | Token lacks *Actions: Read and write*, or isn't scoped to this repo | Edit the token's permissions on GitHub (1g step 1) |
+| "An update started less than 5 minutes ago" | Rate limit — one update per 5 minutes | Wait until the time shown |
+| Update started but the fallback didn't change | The Sheet failed validation during the deploy; the site kept the previous copy | On GitHub, **Actions** → the latest run → look for the *Could not refresh the schedule fallback* warning; fix the Sheet (the amber pill on the site names the problem) and update again |
