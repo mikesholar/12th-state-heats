@@ -44,6 +44,12 @@ const SCORING_FORMATS = ["time-or-rounds", "rounds-reps"];
 const SCHEDULE_CACHE_KEY = "schedule";
 const SCHEDULE_CACHE_SECONDS = 30;
 const CACHE_REFILL_WAIT_MS = 20000;
+const MENU_TITLE = "12th State";
+const GITHUB_REPO = "mikesholar/12th-state-heats";
+const DEPLOY_WORKFLOW = "deploy.yml";
+const GITHUB_TOKEN_PROPERTY = "GITHUB_TOKEN";
+const LAST_FALLBACK_REFRESH_PROPERTY = "lastFallbackRefreshAt";
+const FALLBACK_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 
 function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -92,6 +98,70 @@ function scheduleReplyJson() {
 
 function clearScheduleCache() {
   CacheService.getScriptCache().remove(SCHEDULE_CACHE_KEY);
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu(MENU_TITLE).addItem("Update site fallback", "refreshFallback").addToUi();
+}
+
+function refreshFallback() {
+  SpreadsheetApp.getActive().toast(fallbackRefreshMessage(), MENU_TITLE, 10);
+}
+
+function fallbackRefreshMessage() {
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty(GITHUB_TOKEN_PROPERTY);
+  if (!token) return "Fallback updates aren't set up — see docs/deploy.md §1g.";
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(LOCK_WAIT_MS)) return "The sheet is busy — try again.";
+  try {
+    const retryAt = cooldownEndsAt(props);
+    if (retryAt) {
+      const clock = Utilities.formatDate(retryAt, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "HH:mm");
+      return "An update started less than 5 minutes ago — try again at " + clock + ".";
+    }
+    clearScheduleCache();
+    const response = dispatchDeploy(token);
+    const status = response.getResponseCode();
+    if (status !== 204) return "GitHub refused the update (" + status + "): " + githubMessage(response);
+    props.setProperty(LAST_FALLBACK_REFRESH_PROPERTY, String(Date.now()));
+    return "Site fallback update started — live in about 2 minutes.";
+  } catch (err) {
+    return "Couldn't reach GitHub — try again: " + String((err && err.message) || err);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cooldownEndsAt(props) {
+  const last = Number(props.getProperty(LAST_FALLBACK_REFRESH_PROPERTY));
+  if (!last) return null;
+  const endsAt = last + FALLBACK_REFRESH_COOLDOWN_MS;
+  return endsAt > Date.now() ? new Date(endsAt) : null;
+}
+
+function dispatchDeploy(token) {
+  const url = "https://api.github.com/repos/" + GITHUB_REPO + "/actions/workflows/" + DEPLOY_WORKFLOW + "/dispatches";
+  return UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    payload: JSON.stringify({ ref: "main" }),
+    muteHttpExceptions: true,
+  });
+}
+
+function githubMessage(response) {
+  const text = response.getContentText();
+  try {
+    return JSON.parse(text).message || text.slice(0, 200);
+  } catch (err) {
+    return text.slice(0, 200);
+  }
 }
 
 function headerRow(values) {
