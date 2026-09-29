@@ -45,13 +45,16 @@ from the Sheet, in one click.
 
 1. Read `GITHUB_TOKEN` from Script Properties. Missing → toast
    *"Fallback updates aren't set up — see docs/deploy.md §1g."* and stop.
-2. Take the script lock directly (`LockService.getScriptLock().tryLock(LOCK_WAIT_MS)`,
+2. Take the document lock (`LockService.getDocumentLock().tryLock(LOCK_WAIT_MS)`,
    released in `finally`), so two quick clicks can't both pass the rate
-   limit. Not `withLock`, which returns web-app replies rather than showing
+   limit. Not the script lock: that is shared with `doPost` score/sign-up
+   writes and `doGet` refills, and must not be held across a GitHub call.
+   Not `withLock`, which returns web-app replies rather than showing
    a toast. Lock not acquired → toast *"The sheet is busy — try again."*
 3. Read `lastFallbackRefreshAt` (epoch ms) from Script Properties. Less than
    5 minutes ago → toast *"An update started less than 5 minutes ago — try
-   again at HH:MM."* (Sheet time zone) and stop.
+   again at HH:MM."* (Sheet time zone, rounded up to the next minute so
+   the time shown is never still inside the cooldown) and stop.
 4. `clearScheduleCache()`, so the snapshot sees edits made seconds ago
    rather than a reply up to `SCHEDULE_CACHE_SECONDS` old.
 5. `UrlFetchApp.fetch` with `muteHttpExceptions: true`:
@@ -64,8 +67,9 @@ from the Sheet, in one click.
    Anything else → toast *"GitHub refused the update (<status>): <message>"*
    using the `message` field of GitHub's JSON reply when present. The
    timestamp is not stored, so staff can retry immediately after a fix.
-   `UrlFetchApp.fetch` throwing (DNS, timeout) → toast *"Couldn't reach
-   GitHub — try again: <error>"*; the timestamp is not stored.
+   `UrlFetchApp.fetch` throwing (network or permission errors) → toast
+   *"Couldn't start the update: <error>"*; the timestamp is not stored.
+   An empty GitHub reply body shows as *"no details"*.
 
 New constants sit with the others at the top of the file:
 `GITHUB_REPO = "mikesholar/12th-state-heats"`,

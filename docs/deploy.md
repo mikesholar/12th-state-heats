@@ -126,7 +126,8 @@ site, and every deploy pulls a fresh copy from the Sheet. One-time setup
    - Expiration: up to a year. Put the expiry date in the calendar.
 2. In the script editor: **Project Settings (⚙) → Script Properties → Add
    script property** — name `GITHUB_TOKEN`, value the token.
-3. Paste the current `apps-script/Code.gs` (section 1b). The menu runs
+3. Paste the current `apps-script/Code.gs` (section 1b). If Deploy asks you
+   to authorise again (the script now connects to GitHub), accept. The menu runs
    inside the Sheet, so it does not need a new web-app deployment — but
    deploy a new version anyway if `Code.gs` changed in other ways
    (section 4).
@@ -319,5 +320,7 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
 | "Fallback updates aren't set up" | No `GITHUB_TOKEN` Script Property | Section 1g, steps 1–2 |
 | "GitHub refused the update (401): Bad credentials" | Token expired, deleted, or pasted wrong | Create a new token (1g step 1) and replace the Script Property |
 | "GitHub refused the update (403) / (404)" | Token lacks *Actions: Read and write*, or isn't scoped to this repo | Edit the token's permissions on GitHub (1g step 1) |
+| "Couldn't start the update: You do not have permission to call UrlFetchApp.fetch" | The script hasn't been authorised to connect to an external service (or consent was revoked) | Open the script editor, run `refreshFallback` once and accept the prompt |
+| "Couldn't start the update: …" (anything else) | Google couldn't reach GitHub | Try again in a minute |
 | "An update started less than 5 minutes ago" | Rate limit — one update per 5 minutes | Wait until the time shown |
 | Update started but the fallback didn't change | The Sheet failed validation during the deploy; the site kept the previous copy | On GitHub, **Actions** → the latest run → look for the *Could not refresh the schedule fallback* warning; fix the Sheet (the amber pill on the site names the problem) and update again |

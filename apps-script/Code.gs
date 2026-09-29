@@ -112,13 +112,13 @@ function fallbackRefreshMessage() {
   const props = PropertiesService.getScriptProperties();
   const token = props.getProperty(GITHUB_TOKEN_PROPERTY);
   if (!token) return "Fallback updates aren't set up — see docs/deploy.md §1g.";
-  const lock = LockService.getScriptLock();
+  const lock = LockService.getDocumentLock();
   if (!lock.tryLock(LOCK_WAIT_MS)) return "The sheet is busy — try again.";
   try {
     const retryAt = cooldownEndsAt(props);
     if (retryAt) {
       const clock = Utilities.formatDate(retryAt, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "HH:mm");
-      return "An update started less than 5 minutes ago — try again at " + clock + ".";
+      return "An update started less than " + FALLBACK_REFRESH_COOLDOWN_MS / 60000 + " minutes ago — try again at " + clock + ".";
     }
     clearScheduleCache();
     const response = dispatchDeploy(token);
@@ -127,7 +127,7 @@ function fallbackRefreshMessage() {
     props.setProperty(LAST_FALLBACK_REFRESH_PROPERTY, String(Date.now()));
     return "Site fallback update started — live in about 2 minutes.";
   } catch (err) {
-    return "Couldn't reach GitHub — try again: " + String((err && err.message) || err);
+    return "Couldn't start the update: " + String((err && err.message) || err);
   } finally {
     lock.releaseLock();
   }
@@ -137,7 +137,7 @@ function cooldownEndsAt(props) {
   const last = Number(props.getProperty(LAST_FALLBACK_REFRESH_PROPERTY));
   if (!last) return null;
   const endsAt = last + FALLBACK_REFRESH_COOLDOWN_MS;
-  return endsAt > Date.now() ? new Date(endsAt) : null;
+  return endsAt > Date.now() ? new Date(Math.ceil(endsAt / 60000) * 60000) : null;
 }
 
 function dispatchDeploy(token) {
@@ -157,6 +157,7 @@ function dispatchDeploy(token) {
 
 function githubMessage(response) {
   const text = response.getContentText();
+  if (!text) return "no details";
   try {
     return JSON.parse(text).message || text.slice(0, 200);
   } catch (err) {
