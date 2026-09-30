@@ -166,6 +166,7 @@ describe("schedule validation", () => {
 
     expect(validateSchedule(schedule)).toEqual(["Event 1: lanes must be at least 1"]);
   });
+
   it("lets heats on different days share a time", () => {
     const schedule = makeSchedule({
       events: [makeEvent({ heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-13" })] })],
@@ -174,6 +175,21 @@ describe("schedule validation", () => {
     expect(validateSchedule(schedule)).toEqual([]);
   });
 
+  it("still catches an overlap on one day when another day's heat is listed first", () => {
+    const schedule = makeSchedule({
+      events: [
+        makeEvent({
+          heats: [
+            makeHeat({ number: 3, date: "2026-09-13", start: "07:00", end: "07:10" }),
+            makeHeat({ number: 1, start: "08:00", end: "08:08" }),
+            makeHeat({ number: 2, start: "08:04", end: "08:12" }),
+          ],
+        }),
+      ],
+    });
+
+    expect(validateSchedule(schedule)).toEqual(["Event 1 Heat 2: starts 08:04, overlaps Heat 1 ending 08:08"]);
+  });
 });
 
 describe("scoring configuration", () => {
