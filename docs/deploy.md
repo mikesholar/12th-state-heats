@@ -182,7 +182,9 @@ the site if committed.
    (or shows what's wrong). When it looks right: **12th State → Write heats
    to Heats tab**. It asks before replacing that event's rows in `Heats`,
    and names any sign-ups in heats that would no longer exist. Then
-   **12th State → Update site fallback**.
+   **12th State → Update site fallback**. Writing keeps other events'
+   rows but turns any formulas in Heats into plain values, and puts this
+   event's rows at the bottom.
 5. **Heats** — one row per event × heat. `date` (`YYYY-MM-DD`) is the day
    the heat runs; leave it blank to use `compDate` from `Settings`, so a
    one-day comp needs no dates at all. An event can have heats on more than
@@ -332,7 +334,7 @@ show the amber "Sheet has a problem" pill.
 2. In the script editor, run `setup()` once. It adds the `Calculator` tab
    and touches nothing else.
 3. Reload the Sheet. **12th State** now has **Write heats to Heats tab**.
-   The first time you use it, Google asks you to authorise again — accept.
+   Google may ask you to authorise again — accept.
 
 ## 5. Troubleshooting
 
@@ -373,10 +375,14 @@ show the amber "Sheet has a problem" pill.
 | "GitHub refused the update (403) / (404)" | Token lacks *Actions: Read and write*, or isn't scoped to this repo | Ask the repo owner to fix the token's permissions on GitHub (1g step 1) |
 | "Couldn't start the update: You do not have permission to call UrlFetchApp.fetch" | The script hasn't been authorised to connect to an external service (or consent was revoked) | Open the script editor, run `refreshFallback` once and accept the prompt |
 | "Couldn't start the update: …" (anything else) | Google couldn't reach GitHub | Try again in a minute |
-| "The sheet is busy — try again." | Another update click is in progress | Wait a few seconds and click again |
+| "The sheet is busy — try again." | Another update, heat write or sign-up is in progress | Wait a few seconds and click again |
 | "An update started less than 5 minutes ago" | Rate limit — one update per 5 minutes | Wait until the time shown |
 | Update started but the fallback didn't change | The Sheet failed validation (or didn't answer within 60 s) during the deploy, so the site went back to the copy committed in the repo, which may be older than the last successful update | Check the site for the amber *Sheet has a problem* pill, fix the Sheet and update again; the repo owner can confirm in GitHub **Actions** (latest run → *Could not refresh the schedule fallback* warning) |
-| Calculator preview doesn't change | The preview only updates when you edit a cell on the Calculator tab by hand | Retype any input cell |
+| Calculator preview doesn't change | The preview updates when a Calculator cell is edited or pasted | After changing the Events tab, retype a Calculator cell |
+| "Calculator: pick an event number in B1" | `B1` is empty | Put the event number in `B1` |
+| "Calculator: event N is not in the Events tab" | The event isn't listed yet | Add the event to Events first, or fix `B1` |
+| "There's no Calculator tab yet" | `setup()` hasn't been run since the Calculator was added | Run `setup()` once (section 4c) |
+| "The Heats tab or sign-ups changed while you were deciding" | Heats or Slots changed between the confirm dialog and the write, so nothing was written | Run **Write heats to Heats tab** again |
 | "Row 5 starts 08:30, before row 4's last heat ends 08:42" | Two rows on the same day overlap | Move row 5's start later, or give row 4 fewer heats |
 | "Row 4: heat 9 would end after midnight" | A block runs past 23:59 | Fewer heats, a shorter buffer, or split onto the next day's row |
 | "Row 5: heats can't be more than 1440 in one day" | The `heats` number is too big for one day | Fewer heats, or split across days |

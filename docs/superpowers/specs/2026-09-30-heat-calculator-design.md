@@ -97,8 +97,10 @@ preview can't loop.
 
 Added to the existing menu below **Update site fallback**.
 
-1. Take the document lock (as the fallback refresh does); busy → toast
-   *"The sheet is busy — try again."*
+0. If `Heats`, `Events` or `Slots` is missing, alert the `setupError`
+   text and stop.
+1. Take the document lock for the whole command, including the dialog
+   (menu-vs-menu guard); busy → toast *"The sheet is busy — try again."*
 2. Recompute the plan from the inputs (never trust the preview). Error →
    alert with the error, stop.
 3. Build the confirm message:
@@ -111,16 +113,25 @@ Added to the existing menu below **Update site fallback**.
      keep their heat and lane number, but the times change."*
    - `SpreadsheetApp.getUi().alert(title, message, OK_CANCEL)`; Cancel →
      toast *"Nothing changed."*, stop.
+   - The lock held during the dialog is only the document lock, so the web
+     app is never blocked while the user decides.
 4. Rewrite `Heats`: keep the header row and every row whose `event` isn't
    this event (all columns, untouched); append the new rows, filling
    `event`, `heat`, `date`, `start`, `end` by header name (other columns
-   blank). Set the data range's `date`/`start`/`end` columns to plain text
-   before writing so Sheets doesn't convert them. Clear then write in one
-   `setValues`. The table is built by a pure
+   blank). The table is built by a pure
    `heatsTableAfter({ values, event, heats, zone })`, which also
    normalises kept rows' date/start/end cells to text and refuses (`The
    Heats tab needs a date column first — see docs/deploy.md §4b.`) when a
    required column is missing.
+   After OK, take the script lock (the one the web app's refill, claims
+   and score logging use) with a wait; busy → toast *"The sheet is busy —
+   try again."*, stop. Inside it, re-read `Heats` and `Slots` and rebuild
+   the table and summary; if the summary message differs from the one the
+   user confirmed, alert *"The Heats tab or sign-ups changed while you
+   were deciding — nothing was written. Run it again."* and stop.
+   Otherwise write-then-trim: set `date`/`start`/`end` columns to plain
+   text, `setValues` the new table over the top, then clear any spare rows
+   below it, so a failed write never leaves `Heats` empty.
 5. `clearScheduleCache()`, then toast *"Wrote 8 heats for Event 1. Check
    the site, then 12th State → Update site fallback."*
 
