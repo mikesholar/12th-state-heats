@@ -287,15 +287,16 @@ function droppedClaimsNote(claims, heats) {
   const dropped = claims.filter((c) => kept.indexOf(asNumberOrText(c.heat)) === -1);
   if (dropped.length === 0) return "";
   const lead = dropped.length === 1 ? "1 sign-up is in a heat" : dropped.length + " sign-ups are in heats";
-  const list = dropped.map((c) => "Heat " + c.heat + " lane " + c.lane + " (" + c.team + ")").join(", ");
+  const list = dropped.map((c) => "Heat " + c.heat + " lane " + c.lane + " (" + (asText(c.team) || "no team name") + ")").join(", ");
   return lead + " that won't exist and will disappear from the site: " + list + ".";
 }
 
 function writeSummary(input) {
+  const claims = input.claims.filter((c) => asText(c.heat) !== "");
   const notes = [
     replaceQuestion(input),
-    droppedClaimsNote(input.claims, input.heats),
-    input.claims.length > 0 ? "Teams already signed up keep their heat and lane number, but the times change." : "",
+    droppedClaimsNote(claims, input.heats),
+    claims.length > 0 ? "Teams already signed up keep their heat and lane number, but the times change." : "",
   ];
   return { title: "Write Event " + input.event + "'s heats?", message: notes.filter((note) => note !== "").join("\n\n") };
 }
@@ -305,7 +306,7 @@ function heatsTableAfter(input) {
   const missing = HEAT_HEADERS.filter((name) => headers.indexOf(name) === -1);
   if (missing.length > 0) return { ok: false, error: "The Heats tab needs a " + missing.join(", ") + " column first — see docs/deploy.md §4b." };
   const column = (name) => headers.indexOf(name);
-  const isBlank = (row) => row.every((cell) => cell === "" || cell === null);
+  const isBlank = (row) => row.every((cell) => asText(cell) === "");
   const rows = input.values.slice(1).filter((row) => !isBlank(row));
   const isThisEvent = (row) => asNumberOrText(row[column("event")]) === asNumberOrText(input.event);
   const tidied = (row) =>
@@ -316,7 +317,7 @@ function heatsTableAfter(input) {
     });
   const written = (heat) => {
     const cells = { event: asNumberOrText(input.event), heat: heat.heat, date: heat.date, start: heat.start, end: heat.end };
-    return headers.map((name) => (name in cells ? cells[name] : ""));
+    return headers.map((name) => (Object.prototype.hasOwnProperty.call(cells, name) ? cells[name] : ""));
   };
   return {
     ok: true,

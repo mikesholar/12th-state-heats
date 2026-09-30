@@ -244,4 +244,34 @@ describe("the Heats table after writing", () => {
       error: "The Heats tab needs a date column first — see docs/deploy.md §4b.",
     });
   });
+
+  it("does not write prototype members into columns it has no value for", () => {
+    const values = [["event", "heat", "date", "start", "end", "constructor"]];
+    const result = heatsTableAfter({ values, event: 1, heats: threeHeats.slice(0, 1), zone: "UTC" });
+
+    expect(result).toMatchObject({ values: [values[0], [1, 1, "2027-10-02", "18:00", "18:12", ""]] });
+  });
+
+  it("drops rows that only hold whitespace", () => {
+    const values = [HEADER, ["  ", "", "", "", "", ""], [2, 1, "", "09:00", "09:10", ""]];
+
+    expect(heatsTableAfter({ values, event: 1, heats: [], zone: "UTC" })).toMatchObject({
+      values: [HEADER, [2, 1, "", "09:00", "09:10", ""]],
+    });
+  });
+});
+
+describe("the confirm message with incomplete sign-up rows", () => {
+  it("ignores sign-ups with no heat", () => {
+    expect(writeSummary({ event: 1, heats: threeHeats, existingHeatCount: 3, claims: [makeClaim({ heat: "" })] })).toEqual({
+      title: "Write Event 1's heats?",
+      message: "Replace Event 1's 3 heats with 3 heats (Sat Oct 2: 2, Sun Oct 3: 1)?",
+    });
+  });
+
+  it("names a dropped sign-up with no team name", () => {
+    expect(writeSummary({ event: 1, heats: threeHeats, existingHeatCount: 4, claims: [makeClaim({ heat: 4, team: "" })] })).toMatchObject({
+      message: expect.stringContaining("Heat 4 lane 1 (no team name)."),
+    });
+  });
 });
