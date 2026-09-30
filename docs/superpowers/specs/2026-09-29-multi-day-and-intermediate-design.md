@@ -161,11 +161,14 @@ Organisers name Intermediate divisions accordingly in `Divisions`
 
 ## Rollout
 
-Backward compatible both ways: the new site decodes the old script's reply
-(no `date`/`intermediate` → defaults), and the old site's decoder ignores
-the new fields. Deploy the script as a **new version** (not a new
-deployment) and push the site in either order; heats only move off
-`compDate` once dates are typed into the Sheet.
+Backward compatible both ways while no heat has a date: the new site
+decodes the old script's reply (no `date`/`intermediate` → defaults), and
+the old site's decoder ignores the new fields. Deploy the script as a
+**new version** (not a new deployment) and push the site in either order.
+The site must be live **before** dates are typed into the Sheet: the old
+site ignores `date`, so two same-time heats on different days would fail
+its overlap check and every phone would show the "Sheet has a problem"
+pill.
 
 ## Out of scope
 

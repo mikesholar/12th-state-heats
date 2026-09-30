@@ -298,13 +298,21 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
 
 ## 4b. Adding heat dates and Intermediate to an existing Sheet
 
+The site must be updated **before** any heat has a date filled in. (It
+already is if you're reading this after the multi-day update shipped.) An
+older site ignores `date` and puts every heat on `compDate`, so a Friday
+and a Saturday heat at the same time would clash and every phone would
+show the amber "Sheet has a problem" pill.
+
 1. `Heats`: add a column headed `date` (anywhere — columns are read by
-   name). Fill it only for heats that aren't on `compDate`. Format the
-   column as Plain text, or type dates as `'2027-10-02`.
+   name). Leave it empty for now.
 2. `Events`: add a column headed `intermediate`.
 3. Paste the current `Code.gs` (1b) and deploy a **new version**
-   (section 4). The site and script can be updated in either order.
-4. **12th State → Update site fallback**.
+   (section 4).
+4. Fill in `date` for the heats that aren't on `compDate`. Typing
+   `2027-10-02` is fine whether Sheets keeps it as text or turns it into
+   a date.
+5. **12th State → Update site fallback**.
 
 ## 5. Troubleshooting
 
