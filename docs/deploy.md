@@ -171,16 +171,28 @@ the site if committed.
    AMRAP (leave `capSeconds` blank); `lanes` is the number of lanes per
    heat. `rx`, `intermediate` and `scaled` are the workout versions; leave
    `intermediate` blank if the event has none.
-4. **Heats** — one row per event × heat. `date` (`YYYY-MM-DD`) is the day
+4. **Calculator** (optional) — works out an event's heats for you. Put
+   the event number in `B1`. From row 4, one row per block of heats:
+   `date` (`YYYY-MM-DD`), `start` of the first heat (24-hour `HH:MM`),
+   `length` of a heat in minutes, `buffer` minutes between one heat's end
+   and the next start, and how many `heats` (length, buffer and heats are
+   plain whole numbers, and a block can't have more than 1440 heats). Use
+   one row per day — or two rows on the same day for a break. Heat numbers
+   carry on from row to row. The preview on the right updates as you type
+   (or shows what's wrong). When it looks right: **12th State → Write heats
+   to Heats tab**. It asks before replacing that event's rows in `Heats`,
+   and names any sign-ups in heats that would no longer exist. Then
+   **12th State → Update site fallback**.
+5. **Heats** — one row per event × heat. `date` (`YYYY-MM-DD`) is the day
    the heat runs; leave it blank to use `compDate` from `Settings`, so a
    one-day comp needs no dates at all. An event can have heats on more than
    one day. `start`/`end` are 24-hour `HH:MM` text (e.g. `08:00`, `13:30` —
    not `1:30 PM`). Heats on different days may share a time; heats on the
    same day of the same event must not overlap.
-5. Run `setup()` again. It only fills in what's missing, but it always
+6. Run `setup()` again. It only fills in what's missing, but it always
    rebuilds `Overall`'s columns to match the current `Events` tab — do this
    any time the number of events changes.
-6. Open the site and check it against the Sheet. If a cell is wrong, the
+7. Open the site and check it against the Sheet. If a cell is wrong, the
    header shows an amber pill naming the problem (e.g. `Sheet has a
    problem: Events: Event 2: scoring "amrap" must be time-or-rounds or
    rounds-reps`) — fix the cell. Changes show on phones within about a
@@ -188,23 +200,23 @@ the site if committed.
    30 s and phones re-fetch about every 60 s); once `signupsOpen` is
    unticked phones re-fetch about every 3 minutes, so on comp day allow up
    to ~4 minutes for a `Slots` fix to reach every phone.
-7. **Slots** — filled in by the sign-up page as members claim lanes. Rows
+8. **Slots** — filled in by the sign-up page as members claim lanes. Rows
    can also be typed by hand: one row per claimed lane (`event`, `heat`,
    `lane`, `team`, `athletes`, `division`; `email` and `signedUpAt` are
    optional). `division` must be one of the names in the `Divisions` tab.
    Leave `email` blank for a hand-typed row — then nobody can cancel it
    from the sign-up page. A member's row carries their email, so only they
    can cancel it.
-8. Either start a fresh Sheet for the year (repeat section 1 — a new
+9. Either start a fresh Sheet for the year (repeat section 1 — a new
    deployment gives a new `/exec` URL for `src/data/sheet-endpoint.ts`) or
    clear last year's rows from `Slots` and `Log` in the same Sheet.
-9. `npm run judge-links` — reads the Sheet and prints a judge URL for every
+10. `npm run judge-links` — reads the Sheet and prints a judge URL for every
    event × lane it has, plus the head-judge link.
    It also prints the `SIGN-UP` link — share that with members. It is
    obscure, not secret: anyone with the link can sign up. Codes are stable
    across years, so existing links keep working; pass `--regenerate` to
    issue fresh ones (do this if a link was posted somewhere public).
-10. Update the date in `README.md` and the `<meta name="description">` in
+11. Update the date in `README.md` and the `<meta name="description">` in
     `index.html`.
 
 **Night before**
@@ -314,6 +326,14 @@ show the amber "Sheet has a problem" pill.
    a date.
 5. **12th State → Update site fallback**.
 
+## 4c. Adding the Calculator to an existing Sheet
+
+1. Paste the current `Code.gs` (1b) and deploy a new version (section 4).
+2. In the script editor, run `setup()` once. It adds the `Calculator` tab
+   and touches nothing else.
+3. Reload the Sheet. **12th State** now has **Write heats to Heats tab**.
+   The first time you use it, Google asks you to authorise again — accept.
+
 ## 5. Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -356,3 +376,8 @@ show the amber "Sheet has a problem" pill.
 | "The sheet is busy — try again." | Another update click is in progress | Wait a few seconds and click again |
 | "An update started less than 5 minutes ago" | Rate limit — one update per 5 minutes | Wait until the time shown |
 | Update started but the fallback didn't change | The Sheet failed validation (or didn't answer within 60 s) during the deploy, so the site went back to the copy committed in the repo, which may be older than the last successful update | Check the site for the amber *Sheet has a problem* pill, fix the Sheet and update again; the repo owner can confirm in GitHub **Actions** (latest run → *Could not refresh the schedule fallback* warning) |
+| Calculator preview doesn't change | The preview only updates when you edit a cell on the Calculator tab by hand | Retype any input cell |
+| "Row 5 starts 08:30, before row 4's last heat ends 08:42" | Two rows on the same day overlap | Move row 5's start later, or give row 4 fewer heats |
+| "Row 4: heat 9 would end after midnight" | A block runs past 23:59 | Fewer heats, a shorter buffer, or split onto the next day's row |
+| "Row 5: heats can't be more than 1440 in one day" | The `heats` number is too big for one day | Fewer heats, or split across days |
+| "The Heats tab needs a date column first" | The Sheet predates heat dates | Section 4b, step 1 |
