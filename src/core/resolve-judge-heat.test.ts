@@ -71,4 +71,35 @@ describe("a comp over two days", () => {
 
     expect(picked.heat.number).toBe(1);
   });
+
+  it("picks the next upcoming heat even when heats are listed out of time order", () => {
+    const outOfOrder = makeEvent({
+      number: 1,
+      heats: [
+        makeHeat({ number: 2, date: "2026-09-13", start: "08:00", end: "08:10" }),
+        makeHeat({ number: 1, date: "2026-09-12", start: "18:00", end: "18:10" }),
+      ],
+    });
+    const twoDays = makeTwoDaySchedule({ events: [outOfOrder] });
+
+    const picked = resolveJudgeHeat({ schedule: twoDays, event: outOfOrder, lane: 1, now: at("17:00", "2026-09-12"), manual: undefined });
+
+    expect(picked.heat.number).toBe(1);
+  });
+
+  it("stays on the chronologically last heat after an out-of-order event is over", () => {
+    const outOfOrder = makeEvent({
+      number: 1,
+      heats: [
+        makeHeat({ number: 2, date: "2026-09-13", start: "08:00", end: "08:10" }),
+        makeHeat({ number: 1, date: "2026-09-12", start: "18:00", end: "18:10" }),
+      ],
+    });
+    const twoDays = makeTwoDaySchedule({ events: [outOfOrder] });
+
+    const picked = resolveJudgeHeat({ schedule: twoDays, event: outOfOrder, lane: 1, now: at("12:00", "2026-09-13"), manual: undefined });
+
+    expect(picked.heat.number).toBe(2);
+    expect(picked.index).toBe(0);
+  });
 });
