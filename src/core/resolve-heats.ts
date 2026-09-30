@@ -1,4 +1,4 @@
-import { compDayOf, heatInstants } from "./comp-time";
+import { compDayOf, compDays, heatInstants } from "./comp-time";
 import type { Event, Heat, Schedule } from "./types";
 
 export type HeatRef = {
@@ -13,6 +13,7 @@ export type HeatStatus =
   | { readonly phase: "before"; readonly next: HeatRef }
   | { readonly phase: "during"; readonly current: HeatRef | undefined; readonly next: HeatRef | undefined }
   | { readonly phase: "between-events"; readonly next: HeatRef }
+  | { readonly phase: "day-finished"; readonly next: HeatRef }
   | { readonly phase: "finished" };
 
 export type HeatPhase = "past" | "current" | "upcoming";
@@ -25,19 +26,26 @@ export const allHeatRefs = (schedule: Schedule): readonly HeatRef[] =>
 export const isRunning = ({ start, end }: { readonly start: Date; readonly end: Date }, now: Date): boolean =>
   start <= now && now < end;
 
+const afterToday = (refs: readonly HeatRef[], now: Date): HeatStatus => {
+  const later = refs.find((ref) => ref.start > now);
+  return later ? { phase: "day-finished", next: later } : { phase: "finished" };
+};
+
 export const resolveHeats = (schedule: Schedule, now: Date): HeatStatus => {
-  if (compDayOf(now, schedule.timeZone) !== schedule.compDate) return { phase: "not-comp-day" };
+  const today = compDayOf(now, schedule.timeZone);
+  if (!compDays(schedule).includes(today)) return { phase: "not-comp-day" };
 
   const refs = allHeatRefs(schedule);
-  const first = refs[0];
+  const todays = refs.filter((ref) => ref.heat.date === today);
+  const first = todays[0];
   if (!first) return { phase: "finished" };
   if (now < first.start) return { phase: "before", next: first };
 
-  const current = refs.find((ref) => isRunning(ref, now));
-  const next = refs.find((ref) => ref.start > now);
-  if (!current && !next) return { phase: "finished" };
+  const current = todays.find((ref) => isRunning(ref, now));
+  const next = todays.find((ref) => ref.start > now);
+  if (!current && !next) return afterToday(refs, now);
 
-  const lastEnded = [...refs].reverse().find((ref) => ref.end <= now);
+  const lastEnded = [...todays].reverse().find((ref) => ref.end <= now);
   const inGapBetweenEvents = !current && next && lastEnded && lastEnded.event !== next.event;
   if (inGapBetweenEvents) return { phase: "between-events", next };
 

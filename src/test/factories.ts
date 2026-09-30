@@ -130,3 +130,18 @@ export const makeLoadedSchedule = (overrides?: Partial<LoadedSchedule>): LoadedS
   source: "live",
   ...overrides,
 });
+
+export const makeTwoDaySchedule = (overrides?: Partial<Schedule>): Schedule =>
+  makeSchedule({
+    events: [
+      makeEvent({
+        number: 1,
+        heats: [
+          makeHeat({ number: 1, date: "2026-09-12", start: "18:00", end: "18:10" }),
+          makeHeat({ number: 2, date: "2026-09-13", start: "08:00", end: "08:10" }),
+        ],
+      }),
+      makeEvent({ number: 2, heats: [makeHeat({ number: 1, date: "2026-09-13", start: "09:00", end: "09:10" })] }),
+    ],
+    ...overrides,
+  });

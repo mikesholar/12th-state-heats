@@ -45,8 +45,8 @@ export const heatInstants = (
   schedule: Schedule,
   heat: Heat,
 ): { readonly start: Date; readonly end: Date } => ({
-  start: localToInstant({ date: schedule.compDate, hhmm: heat.start, timeZone: schedule.timeZone }),
-  end: localToInstant({ date: schedule.compDate, hhmm: heat.end, timeZone: schedule.timeZone }),
+  start: localToInstant({ date: heat.date, hhmm: heat.start, timeZone: schedule.timeZone }),
+  end: localToInstant({ date: heat.date, hhmm: heat.end, timeZone: schedule.timeZone }),
 });
 
 export const compDayOf = (instant: Date, timeZone: string): string =>
@@ -56,3 +56,8 @@ export const compDayOf = (instant: Date, timeZone: string): string =>
     month: "2-digit",
     day: "2-digit",
   }).format(instant);
+
+export const compDays = (schedule: Schedule): readonly string[] => {
+  const dates = schedule.events.flatMap((event) => event.heats.map((heat) => heat.date));
+  return dates.length === 0 ? [schedule.compDate] : [...new Set(dates)].sort();
+};

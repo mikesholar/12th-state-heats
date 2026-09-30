@@ -59,6 +59,8 @@ const bannerHtml = (schedule: Schedule, status: HeatStatus, now: Date): string =
       return wrap(
         `<div class="banner-line"><span class="tag next">BREAK</span> Event ${status.next.event.number} starts ${formatClock(status.next.heat.start)} · ${formatCountdown(minutesUntil(status.next.start, now))}</div>`,
       );
+    case "day-finished":
+      return wrap(`<div class="banner-line"><span class="tag next">DAY DONE</span></div>`);
     case "finished":
       return wrap(`<div class="banner-line"><span class="tag">DONE</span> Comp complete 🎉</div>`);
     case "during": {
@@ -105,7 +107,10 @@ type HeatCardOptions = {
 
 const heatTag = (id: string, status: HeatStatus): string => {
   const current = status.phase === "during" ? status.current : undefined;
-  const next = status.phase === "during" || status.phase === "before" || status.phase === "between-events" ? status.next : undefined;
+  const next =
+    status.phase === "during" || status.phase === "before" || status.phase === "between-events" || status.phase === "day-finished"
+      ? status.next
+      : undefined;
   if (current && heatId(current) === id) return `<span class="tag now">NOW</span>`;
   if (next && heatId(next) === id) return `<span class="tag next">NEXT</span>`;
   return "";

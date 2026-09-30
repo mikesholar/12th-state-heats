@@ -1,6 +1,6 @@
 import { heatPhase, resolveHeats } from "./resolve-heats";
 import { comp2026 as schedule } from "../test/comp-2026";
-import { at, makeHeat } from "../test/factories";
+import { at, makeEvent, makeHeat, makeTwoDaySchedule } from "../test/factories";
 
 const label = (ref: { event: { number: number }; heat: { number: number } } | undefined) =>
   ref ? `E${ref.event.number}H${ref.heat.number}` : undefined;
@@ -73,5 +73,60 @@ describe("phase of a single heat", () => {
 
   it("is past once it ends", () => {
     expect(heatPhase(schedule, firstHeat, at("08:08"))).toBe("past");
+  });
+});
+
+describe("a comp over two days", () => {
+  const twoDays = makeTwoDaySchedule();
+
+  it("the day before, it is not a comp day", () => {
+    expect(resolveHeats(twoDays, at("12:00", "2026-09-11")).phase).toBe("not-comp-day");
+  });
+
+  it("on day one, the first heat is that day's first heat", () => {
+    const status = resolveHeats(twoDays, at("17:30", "2026-09-12"));
+
+    expect(status.phase).toBe("before");
+    expect(status.phase === "before" && label(status.next)).toBe("E1H1");
+  });
+
+  it("during day one's last heat there is no next heat today", () => {
+    const status = resolveHeats(twoDays, at("18:05", "2026-09-12"));
+
+    expect(status.phase).toBe("during");
+    expect(status.phase === "during" && status.next).toBeUndefined();
+  });
+
+  it("after day one's last heat, the day is done and the next heat is tomorrow's first", () => {
+    const status = resolveHeats(twoDays, at("18:10", "2026-09-12"));
+
+    expect(status.phase).toBe("day-finished");
+    expect(status.phase === "day-finished" && label(status.next)).toBe("E1H2");
+  });
+
+  it("on day two's morning, the first heat is day two's first heat", () => {
+    const status = resolveHeats(twoDays, at("07:30", "2026-09-13"));
+
+    expect(status.phase).toBe("before");
+    expect(status.phase === "before" && label(status.next)).toBe("E1H2");
+  });
+
+  it("on day two, the gap between events points at the next event", () => {
+    const status = resolveHeats(twoDays, at("08:30", "2026-09-13"));
+
+    expect(status.phase).toBe("between-events");
+    expect(status.phase === "between-events" && label(status.next)).toBe("E2H1");
+  });
+
+  it("after the last day's last heat, the comp is finished", () => {
+    expect(resolveHeats(twoDays, at("09:10", "2026-09-13")).phase).toBe("finished");
+  });
+
+  it("a date between two comp days that are not consecutive is not a comp day", () => {
+    const gapped = makeTwoDaySchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-14" })] })],
+    });
+
+    expect(resolveHeats(gapped, at("09:00", "2026-09-13")).phase).toBe("not-comp-day");
   });
 });
