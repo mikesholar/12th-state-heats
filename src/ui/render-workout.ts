@@ -15,6 +15,11 @@ type WodLineOptions = { readonly label: string; readonly text: string; readonly 
 const wodLineHtml = ({ label, text, theirs }: WodLineOptions): string =>
   `<div class="event-wod${theirs ? " wod-theirs" : ""}"${theirs ? ' aria-current="true"' : ""}><span class="wod-label">${label}</span> ${esc(text)}</div>`;
 
+export const eventWodLinesHtml = (event: Event): string => `
+      <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
+      ${event.intermediate ? `<div class="event-wod"><span class="wod-label">Intermediate</span> ${esc(event.intermediate)}</div>` : ""}
+      <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>`;
+
 type WorkoutHtmlOptions = { readonly event: Event; readonly division?: string };
 
 export const workoutHtml = ({ event, division }: WorkoutHtmlOptions): string => {

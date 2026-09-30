@@ -4,6 +4,7 @@ import { isMine, mySlotIn, teamSizeOf, type ClaimDraft, type SlotKey } from "../
 import type { Division, Event, Heat, Lane, Schedule } from "../core/types";
 import { withDayBreaks } from "./day-break";
 import { esc } from "./html";
+import { eventWodLinesHtml } from "./render-workout";
 
 export type SignupNotice = {
   readonly kind: "error" | "info";
@@ -183,9 +184,7 @@ const eventHtml = (options: EventOptions): string => {
       <div class="event-kicker">Event ${event.number}</div>
       <h2>${esc(event.title)}</h2>
       <div class="event-format">${esc(event.format)}</div>
-      <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
-      ${event.intermediate ? `<div class="event-wod"><span class="wod-label">Intermediate</span> ${esc(event.intermediate)}</div>` : ""}
-      <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
+      ${eventWodLinesHtml(event)}
       ${mine ? `<div class="your-slot" data-testid="your-slot-${event.number}">You're in Heat ${mine.heat}, ${esc(schedule.laneLabel.toLowerCase())} ${mine.lane}</div>` : ""}
     </header>
     ${withDayBreaks({ heats: event.heats, heatHtml: (heat) => heatHtml({ ...options, heat, alreadyIn: mine !== undefined }) })}

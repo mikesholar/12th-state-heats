@@ -4,6 +4,7 @@ import { heatPhase, resolveHeats, type HeatRef, type HeatStatus } from "../core/
 import type { Event, Heat, Lane, Schedule } from "../core/types";
 import { withDayBreaks } from "./day-break";
 import { esc } from "./html";
+import { eventWodLinesHtml } from "./render-workout";
 
 export type RenderOptions = {
   readonly root: HTMLElement;
@@ -149,9 +150,7 @@ const eventHtml = (schedule: Schedule, event: Event, now: Date, status: HeatStat
       <div class="event-kicker">Event ${event.number}</div>
       <h2>${esc(event.title)}</h2>
       <div class="event-format">${esc(event.format)}</div>
-      <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
-      ${event.intermediate ? `<div class="event-wod"><span class="wod-label">Intermediate</span> ${esc(event.intermediate)}</div>` : ""}
-      <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
+      ${eventWodLinesHtml(event)}
     </header>
     ${withDayBreaks({ heats: event.heats, heatHtml: (heat) => heatCardHtml({ schedule, event, heat, now, status }) })}
   </section>`;
