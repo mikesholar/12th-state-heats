@@ -142,19 +142,16 @@ body {
 .day-break {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 14px 0 8px;
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  gap: 12px;
+  margin: 24px 0 10px;
+  color: var(--navy);
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.day-break::before,
-.day-break::after { content: ""; height: 1px; background: var(--line); }
-.day-break::before { width: 12px; }
-.day-break::after { flex: 1; }
-.event-header + .day-break { margin-top: 4px; }
+.day-break::after { content: ""; flex: 1; height: 2px; background: var(--orange); }
+.event-header + .day-break { margin-top: 6px; }
 
 .lanes { width: 100%; border-collapse: collapse; }
 .lanes th { text-align: left; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 6px 12px 2px; font-weight: 700; }

@@ -321,8 +321,8 @@ describe("a comp over two days", () => {
 
     expect(root.querySelector(".footer")?.textContent).toContain("Sat Sep 12 – Sun Sep 13");
     expect(Array.from(root.querySelectorAll('#event-1 [data-testid="day-break"]'), (el) => el.textContent)).toEqual([
-      "Sat Sep 12",
-      "Sun Sep 13",
+      "Saturday, September 12",
+      "Sunday, September 13",
     ]);
     expect(root.querySelectorAll('#event-2 [data-testid="day-break"]')).toHaveLength(0);
   });

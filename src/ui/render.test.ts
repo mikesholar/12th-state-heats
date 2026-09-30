@@ -205,7 +205,7 @@ describe("a comp over two days", () => {
     const root = renderScheduleAt(twoDays, at("12:00", "2026-09-12"));
 
     const labels = (selector: string) => Array.from(root.querySelectorAll(selector), (el) => el.textContent);
-    expect(labels('#event-1 [data-testid="day-break"]')).toEqual(["Sat Sep 12", "Sun Sep 13"]);
+    expect(labels('#event-1 [data-testid="day-break"]')).toEqual(["Saturday, September 12", "Sunday, September 13"]);
     expect(labels('#event-2 [data-testid="day-break"]')).toEqual([]);
   });
 

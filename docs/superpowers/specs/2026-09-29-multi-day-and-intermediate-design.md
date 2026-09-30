@@ -116,12 +116,14 @@ more than one date, a divider is drawn before the first heat and before
 every heat whose date differs from the previous heat's:
 
 ```html
-<div class="day-break"><span>Fri Oct 1</span></div>
+<div class="day-break"><span>Friday, October 1</span></div>
 ```
 
-Style: a 1px rule in the muted border colour with the label in small caps,
-muted text, tight vertical margin — visibly lighter than the gap and
-header between events. Events whose heats share one date get no divider,
+Style: the full day name as a bold navy uppercase heading (about the size
+of a heat title) followed by a 2px orange rule to the right edge, with
+extra space above — clearly a heading, but lighter than the dark event
+header. (The first version, a small muted label on a 1px grey rule, was
+too easy to miss.) Events whose heats share one date get no divider,
 so a single-day comp looks exactly as today.
 
 ## Judge and head judge pages

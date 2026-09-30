@@ -1,10 +1,10 @@
-import { formatDay } from "../core/format";
+import { formatCompDays } from "../core/format";
 import type { Heat } from "../core/types";
 
 const spansDays = (heats: readonly Heat[]): boolean => new Set(heats.map((heat) => heat.date)).size > 1;
 
 const dayBreakHtml = (date: string): string =>
-  `<div class="day-break" data-testid="day-break"><span>${formatDay(date)}</span></div>`;
+  `<div class="day-break" data-testid="day-break"><span>${formatCompDays({ days: [date], withYear: false })}</span></div>`;
 
 type WithDayBreaksOptions = {
   readonly heats: readonly Heat[];
