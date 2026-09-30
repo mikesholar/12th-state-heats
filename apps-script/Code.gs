@@ -57,6 +57,8 @@ const CALCULATOR_PREVIEW_HEADERS = ["heat", "date", "start", "end"];
 const MINUTES_PER_DAY = 24 * 60;
 const DATE_TEXT = /^\d{4}-\d{2}-\d{2}$/;
 const CLOCK_TEXT = /^(\d{1,2}):(\d{2})$/;
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -252,6 +254,69 @@ function planHeats(input) {
   return {
     ok: true,
     heats: numbered.map((h) => ({ heat: h.heat, date: h.date, start: clockText(h.startMinutes), end: clockText(h.endMinutes) })),
+  };
+}
+
+function counted(n, noun) {
+  return n + " " + noun + (n === 1 ? "" : "s");
+}
+
+function dayLabel(date) {
+  const day = new Date(date + "T12:00:00Z");
+  return WEEKDAY_NAMES[day.getUTCDay()] + " " + MONTH_NAMES[day.getUTCMonth()] + " " + day.getUTCDate();
+}
+
+function heatsPerDay(heats) {
+  const dates = heats.map((h) => h.date).filter((date, i, all) => all.indexOf(date) === i);
+  return dates.map((date) => dayLabel(date) + ": " + heats.filter((h) => h.date === date).length).join(", ");
+}
+
+function replaceQuestion(input) {
+  const plan = counted(input.heats.length, "heat") + " (" + heatsPerDay(input.heats) + ")?";
+  if (input.existingHeatCount === 0) return "Event " + input.event + " has no heats yet. Write " + plan;
+  return "Replace Event " + input.event + "'s " + counted(input.existingHeatCount, "heat") + " with " + plan;
+}
+
+function droppedClaimsNote(claims, heats) {
+  const kept = heats.map((h) => h.heat);
+  const dropped = claims.filter((c) => kept.indexOf(asNumberOrText(c.heat)) === -1);
+  if (dropped.length === 0) return "";
+  const lead = dropped.length === 1 ? "1 sign-up is in a heat" : dropped.length + " sign-ups are in heats";
+  const list = dropped.map((c) => "Heat " + c.heat + " lane " + c.lane + " (" + c.team + ")").join(", ");
+  return lead + " that won't exist and will disappear from the site: " + list + ".";
+}
+
+function writeSummary(input) {
+  const notes = [
+    replaceQuestion(input),
+    droppedClaimsNote(input.claims, input.heats),
+    input.claims.length > 0 ? "Teams already signed up keep their heat and lane number, but the times change." : "",
+  ];
+  return { title: "Write Event " + input.event + "'s heats?", message: notes.filter((note) => note !== "").join("\n\n") };
+}
+
+function heatsTableAfter(input) {
+  const headers = headerRow(input.values);
+  const missing = HEAT_HEADERS.filter((name) => headers.indexOf(name) === -1);
+  if (missing.length > 0) return { ok: false, error: "The Heats tab needs a " + missing.join(", ") + " column first — see docs/deploy.md §4b." };
+  const column = (name) => headers.indexOf(name);
+  const isBlank = (row) => row.every((cell) => cell === "" || cell === null);
+  const rows = input.values.slice(1).filter((row) => !isBlank(row));
+  const isThisEvent = (row) => asNumberOrText(row[column("event")]) === asNumberOrText(input.event);
+  const tidied = (row) =>
+    row.map((cell, i) => {
+      if (i === column("date")) return asDateString(cell, input.zone);
+      if (i === column("start") || i === column("end")) return asClock(cell, input.zone);
+      return cell;
+    });
+  const written = (heat) => {
+    const cells = { event: asNumberOrText(input.event), heat: heat.heat, date: heat.date, start: heat.start, end: heat.end };
+    return headers.map((name) => (name in cells ? cells[name] : ""));
+  };
+  return {
+    ok: true,
+    removed: rows.filter(isThisEvent).length,
+    values: [input.values[0], ...rows.filter((row) => !isThisEvent(row)).map(tidied), ...input.heats.map(written)],
   };
 }
 
