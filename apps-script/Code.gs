@@ -50,6 +50,13 @@ const DEPLOY_WORKFLOW = "deploy.yml";
 const GITHUB_TOKEN_PROPERTY = "GITHUB_TOKEN";
 const LAST_FALLBACK_REFRESH_PROPERTY = "lastFallbackRefreshAt";
 const FALLBACK_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
+const CALCULATOR = "Calculator";
+const CALCULATOR_FIRST_ROW = 4;
+const CALCULATOR_INPUT_HEADERS = ["date", "start", "length", "buffer", "heats"];
+const CALCULATOR_PREVIEW_HEADERS = ["heat", "date", "start", "end"];
+const MINUTES_PER_DAY = 24 * 60;
+const DATE_TEXT = /^\d{4}-\d{2}-\d{2}$/;
+const CLOCK_TEXT = /^(\d{1,2}):(\d{2})$/;
 
 function reply(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -163,6 +170,89 @@ function githubMessage(response) {
   } catch (err) {
     return text.slice(0, 200);
   }
+}
+
+function clockMinutes(text) {
+  const match = CLOCK_TEXT.exec(asText(text));
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours < 24 && minutes < 60 ? hours * 60 + minutes : null;
+}
+
+function clockText(minutes) {
+  return pad2(Math.floor(minutes / 60)) + ":" + pad2(minutes % 60);
+}
+
+function blockHeats(row) {
+  const start = clockMinutes(row.start);
+  const length = Number(row.length);
+  const step = length + Number(row.buffer);
+  return Array.from({ length: Number(row.heats) }, (_, i) => ({
+    row: row.row,
+    date: row.date,
+    startMinutes: start + i * step,
+    endMinutes: start + i * step + length,
+  }));
+}
+
+function isRealDateText(text) {
+  const date = new Date(text + "T00:00:00Z");
+  return !isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
+}
+
+function isWholeNumberFrom(value, least) {
+  const text = asText(value);
+  const number = Number(text);
+  return text !== "" && Number.isInteger(number) && number >= least;
+}
+
+function planRowError(row) {
+  const where = "Row " + row.row;
+  if (!DATE_TEXT.test(row.date)) return where + ': date "' + row.date + '" must be YYYY-MM-DD';
+  if (!isRealDateText(row.date)) return where + ': date "' + row.date + '" is not a real date';
+  if (clockMinutes(row.start) === null) return where + ': start "' + row.start + '" must be HH:MM';
+  if (!isWholeNumberFrom(row.length, 1)) return where + ": length must be a whole number of at least 1";
+  if (!isWholeNumberFrom(row.buffer, 0)) return where + ": buffer must be a whole number of at least 0";
+  if (!isWholeNumberFrom(row.heats, 1)) return where + ": heats must be a whole number of at least 1";
+  return "";
+}
+
+function planInputError(input) {
+  const event = asNumberOrText(input.event);
+  if (event === "") return "Calculator: pick an event number in B1";
+  if (input.eventNumbers.indexOf(event) === -1) return "Calculator: event " + event + " is not in the Events tab";
+  if (input.rows.length === 0) return "Calculator: add at least one row of heats";
+  return input.rows.map(planRowError).find((error) => error !== "") || "";
+}
+
+function lateHeatError(heats) {
+  const late = heats.find((h) => h.endMinutes >= MINUTES_PER_DAY);
+  return late ? "Row " + late.row + ": heat " + late.heat + " would end after midnight (" + clockText(late.endMinutes) + ")" : "";
+}
+
+function overlapError(blocks) {
+  return blocks
+    .map((block, i) => {
+      const first = block[0];
+      const clash = blocks.slice(0, i).find((earlier) => earlier[0].date === first.date && first.startMinutes < earlier[earlier.length - 1].endMinutes);
+      if (!clash) return "";
+      return "Row " + first.row + " starts " + clockText(first.startMinutes) + ", before row " + clash[0].row + "'s last heat ends " + clockText(clash[clash.length - 1].endMinutes);
+    })
+    .find((error) => error !== "") || "";
+}
+
+function planHeats(input) {
+  const inputError = planInputError(input);
+  if (inputError) return { ok: false, error: inputError };
+  const blocks = input.rows.map(blockHeats);
+  const numbered = blocks.flat().map((h, i) => Object.assign({}, h, { heat: i + 1 }));
+  const scheduleError = lateHeatError(numbered) || overlapError(blocks);
+  if (scheduleError) return { ok: false, error: scheduleError };
+  return {
+    ok: true,
+    heats: numbered.map((h) => ({ heat: h.heat, date: h.date, start: clockText(h.startMinutes), end: clockText(h.endMinutes) })),
+  };
 }
 
 function headerRow(values) {
