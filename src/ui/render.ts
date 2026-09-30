@@ -128,7 +128,7 @@ const heatTag = (id: string, status: HeatStatus): string => {
 
 const heatCardHtml = ({ schedule, event, heat, now, status }: HeatCardOptions): string => {
   const id = heatId({ event, heat });
-  const phase = status.phase === "not-comp-day" ? "upcoming" : heatPhase(schedule, heat, now);
+  const phase = heatPhase(schedule, heat, now);
   return `
   <article class="heat ${phase}" data-heat="${id}">
     <header class="heat-header">

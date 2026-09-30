@@ -197,6 +197,17 @@ describe("a comp over two days", () => {
     expect(labels('#event-2 [data-testid="day-break"]')).toEqual([]);
   });
 
+  it("a rest day between comp days still shows earlier heats as past", () => {
+    const gapped = makeTwoDaySchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-14" })] })],
+    });
+
+    const root = renderScheduleAt(gapped, at("12:00", "2026-09-13"));
+
+    expect(root.querySelector('[data-heat="E1H1"]')).toHaveClass("past");
+    expect(root.querySelector('[data-heat="E1H2"]')).toHaveClass("upcoming");
+  });
+
   it("a single-day comp has no day breaks", () => {
     expect(renderAt(at("08:15")).root.querySelectorAll('[data-testid="day-break"]')).toHaveLength(0);
   });
