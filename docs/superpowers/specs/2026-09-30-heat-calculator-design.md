@@ -50,8 +50,8 @@ menu click. A single event can run over several days.
   - `heats` — how many heats in this block (whole number ≥ 1).
 - Preview: `H3:K3` headers, rows from `H4` down. When the inputs have a
   problem, `H4` shows the error text instead of rows.
-- `setup()` creates the tab if missing (headers, `B1` blank, columns A–D
-  and I–K formatted as plain text, an A1 note explaining the columns). On
+- `setup()` creates the tab if missing (headers, `B1` blank, columns A–B
+  (date, start) and I–K formatted as plain text, an A1 note explaining the columns). On
   the live Sheet, run `setup()` once — it only creates missing tabs.
 
 ## The plan (`planHeats`)
@@ -76,7 +76,9 @@ its sheet row number.
   - `Row 5: date "…" must be YYYY-MM-DD` (or `is not a real date`)
   - `Row 5: start "…" must be HH:MM`
   - `Row 5: length must be a whole number of at least 1` (same shape for
-    `heats`; `buffer` "at least 0")
+    `heats`; `buffer` "at least 0"). Length, buffer and heats must be
+    plain whole numbers (digits only).
+  - `Row 5: heats can't be more than 1440 in one day`
   - `Row 5: heat 8 would end after midnight (24:07)` — a heat may not end
     after 23:59 on its date.
   - `Row 6 starts 08:30, before row 5's last heat ends 08:42` — rows on the
@@ -114,13 +116,19 @@ Added to the existing menu below **Update site fallback**.
    `event`, `heat`, `date`, `start`, `end` by header name (other columns
    blank). Set the data range's `date`/`start`/`end` columns to plain text
    before writing so Sheets doesn't convert them. Clear then write in one
-   `setValues`.
+   `setValues`. The table is built by a pure
+   `heatsTableAfter({ values, event, heats, zone })`, which also
+   normalises kept rows' date/start/end cells to text and refuses (`The
+   Heats tab needs a date column first — see docs/deploy.md §4b.`) when a
+   required column is missing.
 5. `clearScheduleCache()`, then toast *"Wrote 8 heats for Event 1. Check
    the site, then 12th State → Update site fallback."*
 
 The Slots check and the message text come from a pure helper,
-`writeSummary({ event, plan, existingHeatCount, claims })`, so they are
-tested alongside `planHeats`.
+`writeSummary({ event, heats, existingHeatCount, claims })`, so they are
+tested alongside `planHeats`. `Slots` rows with a blank heat are ignored
+when finding affected sign-ups, and a blank team name renders as
+`(no team name)`.
 
 ## Testing
 
@@ -134,6 +142,8 @@ functions), and calls the exported-by-global functions:
   two dates → numbering continues, times restart; two rows on one date
   with a gap → fine; overlapping same-date rows → the overlap error;
   midnight overflow; each input error message; event missing/unknown.
+- `heatsTableAfter`: keeps other events' rows, replaces this event's, normalises
+  date/start/end cells to text, refuses when a required column is missing.
 - `writeSummary`: counts per day in the question; claims in dropped heats
   listed with team names; the times-change note only when the event has
   claims; nothing extra when there are none.
