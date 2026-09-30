@@ -145,3 +145,25 @@ describe("decoding the schedule JSON", () => {
     );
   });
 });
+
+describe("heat dates", () => {
+  const heatWith = (overrides: Readonly<Record<string, unknown>>) =>
+    makeRawSchedule({ events: [makeRawEvent({ heats: [makeRawHeat({ number: 3, ...overrides })] })] });
+
+  it("runs a heat with no date on the comp date", () => {
+    const result = decodeSchedule(heatWith({ date: "" }));
+
+    expect(result.success && result.data.events[0]?.heats[0]?.date).toBe("2026-09-12");
+  });
+
+  it("keeps a heat's own date", () => {
+    const result = decodeSchedule(heatWith({ date: " 2026-09-13 " }));
+
+    expect(result.success && result.data.events[0]?.heats[0]?.date).toBe("2026-09-13");
+  });
+
+  it("names a heat whose date is not a date", () => {
+    expect(errorOf(heatWith({ date: "13/09/2026" }))).toBe('Heats: Event 1 Heat 3: date "13/09/2026" must be YYYY-MM-DD');
+    expect(errorOf(heatWith({ date: "2026-02-30" }))).toBe('Heats: Event 1 Heat 3: date "2026-02-30" is not a real date');
+  });
+});

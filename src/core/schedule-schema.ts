@@ -83,6 +83,17 @@ const clock = (raw: Raw, key: string, where: string): Result<string> => {
   return normalised === undefined ? fail(`${where}: ${key} "${value.data}" must be HH:MM`) : ok(normalised);
 };
 
+const calendarDate = (raw: Raw, key: string, where: string): Result<string> => {
+  const value = text(raw, key, where);
+  if (!value.success) return value;
+  if (!DATE_PATTERN.test(value.data)) return fail(`${where}: ${key} "${value.data}" must be YYYY-MM-DD`);
+  if (!isRealDate(value.data)) return fail(`${where}: ${key} "${value.data}" is not a real date`);
+  return value;
+};
+
+const heatDate = (raw: Raw, compDate: string, where: string): Result<string> =>
+  trimmed(raw.date) === "" ? ok(compDate) : calendarDate(raw, "date", where);
+
 const scoringFormat = (raw: Raw, where: string): Result<ScoringFormat> => {
   const value = trimmed(raw.scoring);
   if (value === "time-or-rounds" || value === "rounds-reps") return ok(value);
@@ -110,11 +121,13 @@ const decodeLane = (where: string) => (value: unknown): Result<Lane> => {
   });
 };
 
-const decodeHeat = (eventNumber: number) => (value: unknown): Result<Heat> => {
+const decodeHeat = (eventNumber: number, compDate: string) => (value: unknown): Result<Heat> => {
   if (!isRaw(value)) return fail(`Heats: Event ${eventNumber}: a heat entry is not an object`);
   const number = integer(value, "number", `Heats: Event ${eventNumber}`);
   if (!number.success) return number;
   const where = `Event ${eventNumber} Heat ${number.data}`;
+  const date = heatDate(value, compDate, `Heats: ${where}`);
+  if (!date.success) return date;
   const start = clock(value, "start", `Heats: ${where}`);
   if (!start.success) return start;
   const end = clock(value, "end", `Heats: ${where}`);
@@ -123,10 +136,10 @@ const decodeHeat = (eventNumber: number) => (value: unknown): Result<Heat> => {
   if (!lanes.success) return lanes;
   const decodedLanes = all(lanes.data.map(decodeLane(where)));
   if (!decodedLanes.success) return decodedLanes;
-  return ok({ number: number.data, start: start.data, end: end.data, lanes: decodedLanes.data });
+  return ok({ number: number.data, date: date.data, start: start.data, end: end.data, lanes: decodedLanes.data });
 };
 
-const decodeEvent = (value: unknown): Result<Event> => {
+const decodeEvent = (compDate: string) => (value: unknown): Result<Event> => {
   if (!isRaw(value)) return fail("Events: an event entry is not an object");
   const number = integer(value, "number", "Events");
   if (!number.success) return number;
@@ -141,7 +154,7 @@ const decodeEvent = (value: unknown): Result<Event> => {
   if (!lanes.success) return lanes;
   const heats = list(value, "heats", where);
   if (!heats.success) return heats;
-  const decodedHeats = all(heats.data.map(decodeHeat(number.data)));
+  const decodedHeats = all(heats.data.map(decodeHeat(number.data, compDate)));
   if (!decodedHeats.success) return decodedHeats;
   return ok({
     number: number.data,
@@ -171,10 +184,8 @@ const decodeDivisions = (raw: Raw): Result<readonly Division[]> => {
 };
 
 const decodeShape = (raw: Raw): Result<Schedule> => {
-  const compDate = text(raw, "compDate", "Settings");
+  const compDate = calendarDate(raw, "compDate", "Settings");
   if (!compDate.success) return compDate;
-  if (!DATE_PATTERN.test(compDate.data)) return fail(`Settings: compDate "${compDate.data}" must be YYYY-MM-DD`);
-  if (!isRealDate(compDate.data)) return fail(`Settings: compDate "${compDate.data}" is not a real date`);
   const timeZone = text(raw, "timeZone", "Settings");
   if (!timeZone.success) return timeZone;
   if (!isTimeZone(timeZone.data)) return fail(`Settings: timeZone "${timeZone.data}" is not a known time zone (e.g. America/New_York)`);
@@ -185,7 +196,7 @@ const decodeShape = (raw: Raw): Result<Schedule> => {
   const signupsOpen = boolean(raw, "signupsOpen", "Settings");
   if (!signupsOpen.success) return signupsOpen;
   if (!Array.isArray(raw.events)) return fail("Events: must be a list");
-  const decodedEvents = all(raw.events.map(decodeEvent));
+  const decodedEvents = all(raw.events.map(decodeEvent(compDate.data)));
   if (!decodedEvents.success) return decodedEvents;
   return ok({
     compName,

@@ -26,10 +26,14 @@ const heatTimeErrors = (event: Event, heat: Heat): readonly string[] =>
   heat.end > heat.start ? [] : [`${heatLabel(event, heat)}: end ${heat.end} is not after start ${heat.start}`];
 
 const blockingHeat = (earlier: readonly Heat[], heat: Heat): Heat | undefined =>
-  [...earlier].filter((other) => other.end > heat.start).sort((a, b) => b.end.localeCompare(a.end))[0];
+  [...earlier]
+    .filter((other) => other.date === heat.date && other.end > heat.start)
+    .sort((a, b) => b.end.localeCompare(a.end))[0];
+
+const startKey = (heat: Heat): string => `${heat.date} ${heat.start}`;
 
 const overlapErrors = (event: Event): readonly string[] => {
-  const byStart = [...event.heats].sort((a, b) => a.start.localeCompare(b.start));
+  const byStart = [...event.heats].sort((a, b) => startKey(a).localeCompare(startKey(b)));
   return byStart.flatMap((heat, index) => {
     const blocking = blockingHeat(byStart.slice(0, index), heat);
     return blocking ? [`${heatLabel(event, heat)}: starts ${heat.start}, overlaps Heat ${blocking.number} ending ${blocking.end}`] : [];

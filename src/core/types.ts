@@ -8,6 +8,7 @@ export type Lane = {
 
 export type Heat = {
   readonly number: number;
+  readonly date: string;
   readonly start: string;
   readonly end: string;
   readonly lanes: readonly Lane[];

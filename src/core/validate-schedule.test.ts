@@ -166,6 +166,14 @@ describe("schedule validation", () => {
 
     expect(validateSchedule(schedule)).toEqual(["Event 1: lanes must be at least 1"]);
   });
+  it("lets heats on different days share a time", () => {
+    const schedule = makeSchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-13" })] })],
+    });
+
+    expect(validateSchedule(schedule)).toEqual([]);
+  });
+
 });
 
 describe("scoring configuration", () => {

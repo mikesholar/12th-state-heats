@@ -14,6 +14,7 @@ export const makeLane = (overrides?: Partial<Lane>): Lane => ({
 
 export const makeHeat = (overrides?: Partial<Heat>): Heat => ({
   number: 1,
+  date: "2026-09-12",
   start: "08:00",
   end: "08:08",
   lanes: [makeLane()],
