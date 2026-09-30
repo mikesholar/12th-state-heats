@@ -1,6 +1,8 @@
-import { formatClock, formatCountdown, formatRange } from "../core/format";
+import { compDays } from "../core/comp-time";
+import { formatClock, formatCountdown, formatDayList, formatRange, formatWeekday } from "../core/format";
 import { heatPhase, resolveHeats, type HeatRef, type HeatStatus } from "../core/resolve-heats";
 import type { Event, Heat, Lane, Schedule } from "../core/types";
+import { withDayBreaks } from "./day-break";
 import { esc } from "./html";
 
 export type RenderOptions = {
@@ -18,13 +20,19 @@ const heatId = (ref: { readonly event: Event; readonly heat: Heat }): string =>
 const minutesUntil = (instant: Date, now: Date): number =>
   Math.floor((instant.getTime() - now.getTime()) / MINUTE_MS);
 
-const compDateLabel = (schedule: Schedule): string =>
+const longDay = (schedule: Schedule, date: string): string =>
   new Intl.DateTimeFormat("en-US", {
     timeZone: schedule.timeZone,
     weekday: "long",
     month: "long",
     day: "numeric",
-  }).format(new Date(`${schedule.compDate}T12:00:00Z`));
+  }).format(new Date(`${date}T12:00:00Z`));
+
+const compDaysLabel = (schedule: Schedule): string => {
+  const days = compDays(schedule);
+  const only = days.length === 1 ? days[0] : undefined;
+  return only === undefined ? formatDayList(days) : longDay(schedule, only);
+};
 
 const clockLabel = (schedule: Schedule, now: Date): string =>
   new Intl.DateTimeFormat("en-US", { timeZone: schedule.timeZone, hour: "numeric", minute: "2-digit" }).format(now);
@@ -50,17 +58,19 @@ const bannerHtml = (schedule: Schedule, status: HeatStatus, now: Date): string =
   const wrap = (inner: string) => `<section class="banner" data-testid="banner">${inner}</section>`;
   switch (status.phase) {
     case "not-comp-day":
-      return wrap(`<div class="banner-line"><span class="tag">COMP DAY</span> ${compDateLabel(schedule)}</div>`);
+      return wrap(`<div class="banner-line"><span class="tag">COMP DAY</span> ${compDaysLabel(schedule)}</div>`);
     case "before":
       return wrap(
-        `<div class="banner-line"><span class="tag next">FIRST HEAT</span> First heat ${formatClock(status.next.heat.start)} AM · ${formatCountdown(minutesUntil(status.next.start, now))}</div>`,
+        `<div class="banner-line"><span class="tag next">FIRST HEAT</span> First heat ${formatClock(status.next.heat.start)} · ${formatCountdown(minutesUntil(status.next.start, now))}</div>`,
       );
     case "between-events":
       return wrap(
         `<div class="banner-line"><span class="tag next">BREAK</span> Event ${status.next.event.number} starts ${formatClock(status.next.heat.start)} · ${formatCountdown(minutesUntil(status.next.start, now))}</div>`,
       );
     case "day-finished":
-      return wrap(`<div class="banner-line"><span class="tag next">DAY DONE</span></div>`);
+      return wrap(
+        `<div class="banner-line"><span class="tag next">DAY DONE</span> Next heat ${formatWeekday(status.next.heat.date)} ${formatClock(status.next.heat.start)} · Event ${status.next.event.number}</div>`,
+      );
     case "finished":
       return wrap(`<div class="banner-line"><span class="tag">DONE</span> Comp complete 🎉</div>`);
     case "during": {
@@ -142,7 +152,7 @@ const eventHtml = (schedule: Schedule, event: Event, now: Date, status: HeatStat
       <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
       <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
     </header>
-    ${event.heats.map((heat) => heatCardHtml({ schedule, event, heat, now, status })).join("")}
+    ${withDayBreaks({ heats: event.heats, heatHtml: (heat) => heatCardHtml({ schedule, event, heat, now, status }) })}
   </section>`;
 
 export const render = ({ root, schedule, now, sourceNotice }: RenderOptions): void => {
@@ -155,5 +165,5 @@ export const render = ({ root, schedule, now, sourceNotice }: RenderOptions): vo
       ${bannerHtml(schedule, status, now)}
       ${schedule.events.map((event) => eventHtml(schedule, event, now, status)).join("")}
     </main>
-    <footer class="footer">Times are Eastern · ${compDateLabel(schedule)}</footer>`;
+    <footer class="footer">Times are Eastern · ${compDaysLabel(schedule)}</footer>`;
 };

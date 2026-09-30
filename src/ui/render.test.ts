@@ -1,7 +1,7 @@
 import { getByTestId, queryByTestId } from "@testing-library/dom";
 import { render } from "./render";
 import { comp2026 as schedule } from "../test/comp-2026";
-import { at, makeSchedule } from "../test/factories";
+import { at, makeEvent, makeHeat, makeSchedule, makeTwoDaySchedule } from "../test/factories";
 import type { Schedule } from "../core/types";
 
 const renderAt = (now: Date) => {
@@ -147,5 +147,57 @@ describe("the source notice", () => {
 
     expect(getByTestId(root, "source-notice").querySelector("b")).toBeNull();
     expect(getByTestId(root, "source-notice")).toHaveTextContent('"<b>x</b>"');
+  });
+});
+
+const renderScheduleAt = (custom: Schedule, now: Date) => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  render({ root, schedule: custom, now, sourceNotice: undefined });
+  return root;
+};
+
+describe("a comp over two days", () => {
+  const twoDays = makeTwoDaySchedule();
+
+  it("on another day, the banner and footer name both days", () => {
+    const root = renderScheduleAt(twoDays, at("12:00", "2026-09-11"));
+
+    expect(bannerText(root)).toContain("Sat Sep 12 – Sun Sep 13");
+    expect(root.querySelector(".footer")?.textContent).toContain("Sat Sep 12 – Sun Sep 13");
+  });
+
+  it("lists comp days that are not consecutive one by one", () => {
+    const gapped = makeTwoDaySchedule({
+      events: [makeEvent({ heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-14" })] })],
+    });
+
+    expect(bannerText(renderScheduleAt(gapped, at("12:00", "2026-09-11")))).toContain("Sat Sep 12 & Mon Sep 14");
+  });
+
+  it("announces an afternoon first heat without calling it morning", () => {
+    const text = bannerText(renderScheduleAt(twoDays, at("17:30", "2026-09-12")));
+
+    expect(text).toContain("First heat 6:00");
+    expect(text).not.toContain("AM");
+  });
+
+  it("after the day's last heat, says the day is done and when the next heat is", () => {
+    const text = bannerText(renderScheduleAt(twoDays, at("18:15", "2026-09-12")));
+
+    expect(text).toContain("DAY DONE");
+    expect(text).toContain("Next heat Sun 8:00 · Event 1");
+  });
+
+  it("separates an event's heats by day, only in events that span days", () => {
+    const root = renderScheduleAt(twoDays, at("12:00", "2026-09-12"));
+
+    const labels = (selector: string) => Array.from(root.querySelectorAll(selector), (el) => el.textContent);
+    expect(labels('#event-1 [data-testid="day-break"]')).toEqual(["Sat Sep 12", "Sun Sep 13"]);
+    expect(labels('#event-2 [data-testid="day-break"]')).toEqual([]);
+  });
+
+  it("a single-day comp has no day breaks", () => {
+    expect(renderAt(at("08:15")).root.querySelectorAll('[data-testid="day-break"]')).toHaveLength(0);
   });
 });

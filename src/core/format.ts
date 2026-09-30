@@ -18,3 +18,29 @@ export const formatCountdown = (minutes: number): string => {
   const remainder = minutes % MINUTES_PER_HOUR;
   return remainder === 0 ? `in ${hours} h` : `in ${hours} h ${remainder} min`;
 };
+
+const DAY_MS = 86_400_000;
+
+const noonOf = (date: string): Date => new Date(`${date}T12:00:00Z`);
+
+const dayPart = (date: string, options: Intl.DateTimeFormatOptions): string =>
+  new Intl.DateTimeFormat("en-US", { timeZone: "UTC", ...options }).format(noonOf(date));
+
+export const formatWeekday = (date: string): string => dayPart(date, { weekday: "short" });
+
+export const formatDay = (date: string): string =>
+  `${formatWeekday(date)} ${dayPart(date, { month: "short", day: "numeric" })}`;
+
+const isNextDay = (earlier: string, later: string): boolean => noonOf(later).getTime() - noonOf(earlier).getTime() === DAY_MS;
+
+const areConsecutive = (days: readonly string[]): boolean =>
+  days.every((day, i) => i === 0 || isNextDay(days[i - 1] ?? day, day));
+
+export const formatDayList = (days: readonly string[]): string => {
+  const labels = days.map(formatDay);
+  const first = labels[0] ?? "";
+  const last = labels[labels.length - 1] ?? "";
+  if (labels.length <= 1) return first;
+  if (areConsecutive(days)) return `${first} – ${last}`;
+  return `${labels.slice(0, -1).join(", ")} & ${last}`;
+};
