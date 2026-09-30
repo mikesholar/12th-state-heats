@@ -51,6 +51,8 @@ will look then — for a comp on 2027-09-25 with an 8:00 first heat:
 - `?at=2027-09-25T08:30` — a heat on the floor
 - `?at=2027-09-25T13:05` — done
 
+On a multi-day comp, the date part picks the day, e.g. `?at=2027-10-02T07:45`.
+
 ## Development
 
 ```bash

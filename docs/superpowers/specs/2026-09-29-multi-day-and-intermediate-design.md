@@ -70,6 +70,8 @@ organisers to add both headers by hand to an existing Sheet.
   `intermediate` decodes with `optionalText` like `rx`/`scaled`.
 - `heatInstants(schedule, heat)` uses `heat.date` instead of
   `schedule.compDate`.
+- `validateSchedule`'s overlap check compares heats only within the same
+  date (a Saturday 8:00 heat doesn't overlap a Friday 8:00 heat).
 - New `compDays(schedule): readonly string[]` — sorted distinct heat dates.
   With no heats, `[compDate]`.
 - `scripts/snapshot.ts` needs no change; the decoded snapshot carries dates.
@@ -91,7 +93,7 @@ Banners:
 
 | Phase | Text |
 |---|---|
-| `not-comp-day` | `COMP DAY` + the comp days: one day `Sat Oct 2`; consecutive `Fri Oct 1 – Sat Oct 2`; otherwise joined, `Fri Oct 1 & Sun Oct 3` (three or more: `Fri Oct 1, Sat Oct 2 & Sun Oct 3`) |
+| `not-comp-day` | `COMP DAY` + the comp days: a single day keeps today's long label (`Saturday, October 2`); several days use short labels — consecutive `Fri Oct 1 – Sat Oct 2`, otherwise `Fri Oct 1 & Sun Oct 3` (`Fri Oct 1, Sat Oct 2 & Mon Oct 4`) |
 | `before` | `FIRST HEAT` First heat 8:00 · in 25 min (drops the hard-coded " AM", which was wrong for afternoon starts) |
 | `day-finished` | `DAY DONE` Next heat Sat 8:00 · Event 2 |
 | `finished` | unchanged `DONE` Comp complete 🎉 |
@@ -103,7 +105,9 @@ is still a comp day: the banner shows `day-finished` and day 1's cards are
 dimmed as past. The morning of day 2 shows `before`.
 
 The page footer and the sign-up header show the comp-days label instead of
-the single `compDate` (`Times are Eastern · Fri Oct 1 – Sat Oct 2`).
+the single `compDate`: a single day keeps the long label (`Saturday, October 2`);
+several days use short labels (`Times are Eastern · Fri Oct 1 – Sat Oct 2`, or
+`Fri Oct 1 & Sun Oct 3` when not consecutive).
 
 ## Day breaks (spectator and sign-up pages)
 
@@ -112,7 +116,7 @@ more than one date, a divider is drawn before the first heat and before
 every heat whose date differs from the previous heat's:
 
 ```html
-<div class="day-break" role="separator"><span>Fri Oct 1</span></div>
+<div class="day-break"><span>Fri Oct 1</span></div>
 ```
 
 Style: a 1px rule in the muted border colour with the label in small caps,
@@ -124,15 +128,14 @@ so a single-day comp looks exactly as today.
 
 - `resolveJudgeHeat` already chooses the heat on the floor from real
   instants; with `heat.date` it works across days unchanged.
-- When `compDays` has more than one day, the judge heat selector and the
-  head-judge heat labels prefix the weekday: `Heat 3 · Sat 8:00 – 8:12`.
-  Single-day comps are unchanged.
+- When the comp has more than one day, the judge heat label adds the weekday: `Heat 3 of 5 · Sat`. The head-judge page lists events, not heats, so it only gains the Intermediate line.
 
 ## Intermediate
 
 `workoutHtml` (judge and head judge), the spectator event header and the
 sign-up event header list **RX, Intermediate, Scaled** in that order;
-Intermediate is omitted when blank.
+Intermediate is omitted when blank. The spectator and sign-up headers share
+one `eventWodLinesHtml` in `render-workout.ts`.
 
 `versionForDivision` checks in order: `\bscaled\b` → Scaled,
 `\bintermediate\b` → Intermediate, `\brx\b` → RX (all case-insensitive). A

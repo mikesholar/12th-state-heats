@@ -164,12 +164,19 @@ the site if committed.
    individual and a pair can share lanes); the sign-up form asks for
    however many names the chosen division's `teamSize` calls for. Division
    names here must match exactly what any hand-typed `Slots` rows use.
+   A division whose name contains `RX`, `Intermediate` or `Scaled` gets that
+   workout highlighted on the judge page (e.g. `F/F Intermediate`).
 3. **Events** — one row per event: `scoring` is `time-or-rounds` for
    anything with a time cap (fill in `capSeconds`) or `rounds-reps` for an
    AMRAP (leave `capSeconds` blank); `lanes` is the number of lanes per
-   heat.
-4. **Heats** — one row per event × heat, `start`/`end` as `HH:MM` text
-   (e.g. `08:00`).
+   heat. `rx`, `intermediate` and `scaled` are the workout versions; leave
+   `intermediate` blank if the event has none.
+4. **Heats** — one row per event × heat. `date` (`YYYY-MM-DD`) is the day
+   the heat runs; leave it blank to use `compDate` from `Settings`, so a
+   one-day comp needs no dates at all. An event can have heats on more than
+   one day. `start`/`end` are 24-hour `HH:MM` text (e.g. `08:00`, `13:30` —
+   not `1:30 PM`). Heats on different days may share a time; heats on the
+   same day of the same event must not overlap.
 5. Run `setup()` again. It only fills in what's missing, but it always
    rebuilds `Overall`'s columns to match the current `Events` tab — do this
    any time the number of events changes.
@@ -289,6 +296,16 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
    version, phones show the amber "Sheet has a problem: Divisions: …" pill
    over the last known schedule.
 
+## 4b. Adding heat dates and Intermediate to an existing Sheet
+
+1. `Heats`: add a column headed `date` (anywhere — columns are read by
+   name). Fill it only for heats that aren't on `compDate`. Format the
+   column as Plain text, or type dates as `'2027-10-02`.
+2. `Events`: add a column headed `intermediate`.
+3. Paste the current `Code.gs` (1b) and deploy a **new version**
+   (section 4). The site and script can be updated in either order.
+4. **12th State → Update site fallback**.
+
 ## 5. Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -319,6 +336,9 @@ still has `teamSize` and `divisions` rows in `Settings` instead.
 | Sign-up link shows "This link isn't valid" | Code doesn't match `signupCode` in `src/data/judge-codes.ts` | `npm run judge-links` and share the printed `SIGN-UP` link |
 | Sign-up form shows no name fields | The member hasn't picked a division yet — by design, until then the form doesn't know how many names to ask for | Pick a division |
 | Amber "Sheet has a problem: Divisions: …" | A row in the `Divisions` tab has a blank or non-number `teamSize`, or a blank division name | Fix the row in the `Divisions` tab |
+| Amber "Heats: Event 1 Heat 3: date "…" must be YYYY-MM-DD" | The `date` cell isn't a date | Type it as `2027-10-02`, or clear it to use `compDate` |
+| Amber "Heats: Event 1 Heat 3: date "…" is not a real date" | e.g. `2027-02-30` | Fix the date |
+| A heat shows on the wrong day | Its `date` is blank, so it uses `compDate` | Fill in its `date` |
 | No **12th State** menu in the Sheet | Sheet opened before the script was pasted, or `Code.gs` is out of date | Reload the Sheet; paste the current `Code.gs` (1b) |
 | "Fallback updates aren't set up" | No `GITHUB_TOKEN` Script Property | Section 1g, steps 1–2 |
 | "GitHub refused the update (401): Bad credentials" | Token expired, deleted, or pasted wrong | Ask the repo owner to create a new token (1g step 1) and replace the Script Property |
