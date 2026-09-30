@@ -212,6 +212,18 @@ describe("the workout", () => {
     expect(highlighted(root)).toEqual(["Intermediate 10 Slam Balls (20/14)"]);
   });
 
+  it("highlights Scaled for a division named Scaled Intermediate", () => {
+    const wod = makeEvent({
+      ...amrap,
+      rx: "RX version",
+      intermediate: "Intermediate version",
+      scaled: "Scaled version",
+      heats: [makeHeat({ number: 1, start: "09:10", end: "09:20", lanes: [makeLane({ lane: 5, division: "Scaled Intermediate" })] })],
+    });
+
+    expect(highlighted(renderWith({ event: wod }).root)).toEqual(["Scaled Scaled version"]);
+  });
+
   it("has no Intermediate line when the event has none", () => {
     expect(getByTestId(renderWith().root, "workout")).not.toHaveTextContent("Intermediate");
   });

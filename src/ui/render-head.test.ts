@@ -102,6 +102,16 @@ describe("the head judge assignment page", () => {
     expect(group?.querySelectorAll('[aria-current="true"]')).toHaveLength(0);
   });
 
+  it("shows an event's Intermediate version between RX and Scaled", () => {
+    const withIntermediate = makeSchedule({
+      events: [makeEvent({ number: 1, lanes: 1, rx: "10 Slam Balls (25/20)", intermediate: "10 Slam Balls (20/14)", scaled: "10 Slam Balls (15/10)" })],
+    });
+
+    const [group] = queryAllByTestId(renderIt({ schedule: withIntermediate }), "event-group");
+
+    expect(group?.textContent?.replace(/\s+/g, " ")).toMatch(/RX 10 Slam Balls \(25\/20\).*Intermediate 10 Slam Balls \(20\/14\).*Scaled 10 Slam Balls \(15\/10\)/);
+  });
+
   it("tells the head judge when the QR codes can't be made", async () => {
     const root = renderIt({ siteUrl: `https://example.test/${"x".repeat(5000)}/` });
 

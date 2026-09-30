@@ -175,6 +175,18 @@ describe("a comp over two days", () => {
     expect(bannerText(renderScheduleAt(gapped, at("12:00", "2026-09-11")))).toContain("Sat Sep 12 & Mon Sep 14");
   });
 
+  it("lists three non-consecutive comp days one by one", () => {
+    const threeDays = makeTwoDaySchedule({
+      events: [
+        makeEvent({
+          heats: [makeHeat({ number: 1 }), makeHeat({ number: 2, date: "2026-09-14" }), makeHeat({ number: 3, date: "2026-09-16" })],
+        }),
+      ],
+    });
+
+    expect(bannerText(renderScheduleAt(threeDays, at("12:00", "2026-09-11")))).toContain("Sat Sep 12, Mon Sep 14 & Wed Sep 16");
+  });
+
   it("announces an afternoon first heat without calling it morning", () => {
     const text = bannerText(renderScheduleAt(twoDays, at("17:30", "2026-09-12")));
 
