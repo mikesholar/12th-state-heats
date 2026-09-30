@@ -1,7 +1,7 @@
 import { fireEvent, getByLabelText, getByRole, getByTestId, getByText, queryByRole, queryByTestId, queryByText } from "@testing-library/dom";
 import { readClaimDraft, renderSignup, type RenderSignupOptions } from "./render-signup";
 import { emptyDraft } from "../core/signup";
-import { DIVISIONS, DIVISION_NAMES, makeClaimDraft, makeDivision, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import { DIVISIONS, DIVISION_NAMES, makeClaimDraft, makeDivision, makeEvent, makeHeat, makeLane, makeSchedule, makeTwoDaySchedule } from "../test/factories";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -312,5 +312,18 @@ describe("reading the draft back", () => {
     const { root } = renderWith();
 
     expect(readClaimDraft({ root, fallback: makeClaimDraft() })).toEqual(makeClaimDraft());
+  });
+});
+
+describe("a comp over two days", () => {
+  it("names both days and separates an event's heats by day", () => {
+    const { root } = renderWith({ schedule: makeTwoDaySchedule() });
+
+    expect(root.querySelector(".footer")?.textContent).toContain("Sat Sep 12 – Sun Sep 13");
+    expect(Array.from(root.querySelectorAll('#event-1 [data-testid="day-break"]'), (el) => el.textContent)).toEqual([
+      "Sat Sep 12",
+      "Sun Sep 13",
+    ]);
+    expect(root.querySelectorAll('#event-2 [data-testid="day-break"]')).toHaveLength(0);
   });
 });
