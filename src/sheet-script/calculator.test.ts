@@ -116,6 +116,37 @@ describe("planning an event's heats", () => {
 
     expect(planHeats(makePlanInput({ rows }))).toEqual({ ok: false, error: "Row 5 starts 18:20, before row 4's last heat ends 18:27" });
   });
+
+  it("refuses more heats in a block than fit in a day", () => {
+    const result = planHeats(makePlanInput({ rows: [makeRow({ row: 5, heats: 100000 })] }));
+
+    expect(result).toEqual({ ok: false, error: "Row 5: heats can't be more than 1440 in one day" });
+  });
+
+  it("only takes plain whole numbers", () => {
+    const result = planHeats(makePlanInput({ rows: [makeRow({ row: 5, length: "1e1" })] }));
+
+    expect(result).toEqual({ ok: false, error: "Row 5: length must be a whole number of at least 1" });
+  });
+
+  it("gives the same heats for numbers typed as text", () => {
+    const asText = planHeats(makePlanInput({ rows: [makeRow({ length: "12", buffer: " 3 ", heats: "2" })] }));
+
+    expect(asText).toEqual(planHeats(makePlanInput()));
+  });
+
+  it("allows a block to start exactly when the previous one ends", () => {
+    const rows = [makeRow(), makeRow({ row: 5, start: "18:27", heats: 1 })];
+
+    expect(planHeats(makePlanInput({ rows }))).toMatchObject({ ok: true, heats: [{ heat: 1 }, { heat: 2 }, { heat: 3, start: "18:27" }] });
+  });
+
+  it("refuses a heat ending exactly at midnight but allows one ending at 23:59", () => {
+    const endingAt = (start: string) => planHeats(makePlanInput({ rows: [makeRow({ start, heats: 1 })] }));
+
+    expect(endingAt("23:48")).toEqual({ ok: false, error: "Row 4: heat 1 would end after midnight (24:00)" });
+    expect(endingAt("23:47")).toMatchObject({ ok: true, heats: [{ start: "23:47", end: "23:59" }] });
+  });
 });
 
 const writeSummary = scriptFunction("writeSummary");

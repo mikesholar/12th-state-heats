@@ -56,6 +56,7 @@ const CALCULATOR_INPUT_HEADERS = ["date", "start", "length", "buffer", "heats"];
 const CALCULATOR_PREVIEW_HEADERS = ["heat", "date", "start", "end"];
 const MINUTES_PER_DAY = 24 * 60;
 const DATE_TEXT = /^\d{4}-\d{2}-\d{2}$/;
+const WHOLE_NUMBER_TEXT = /^\d+$/;
 const CLOCK_TEXT = /^(\d{1,2}):(\d{2})$/;
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -205,8 +206,7 @@ function isRealDateText(text) {
 
 function isWholeNumberFrom(value, least) {
   const text = asText(value);
-  const number = Number(text);
-  return text !== "" && Number.isInteger(number) && number >= least;
+  return WHOLE_NUMBER_TEXT.test(text) && Number(text) >= least;
 }
 
 function planRowError(row) {
@@ -217,6 +217,7 @@ function planRowError(row) {
   if (!isWholeNumberFrom(row.length, 1)) return where + ": length must be a whole number of at least 1";
   if (!isWholeNumberFrom(row.buffer, 0)) return where + ": buffer must be a whole number of at least 0";
   if (!isWholeNumberFrom(row.heats, 1)) return where + ": heats must be a whole number of at least 1";
+  if (Number(asText(row.heats)) > MINUTES_PER_DAY) return where + ": heats can't be more than " + MINUTES_PER_DAY + " in one day";
   return "";
 }
 
