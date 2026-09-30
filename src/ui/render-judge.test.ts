@@ -197,6 +197,25 @@ describe("the workout", () => {
     expect(highlighted(root)).toEqual(["RX RX version"]);
   });
 
+  it("lists RX, Intermediate and Scaled, and highlights Intermediate for an Intermediate division", () => {
+    const wod = makeEvent({
+      ...amrap,
+      rx: "10 Slam Balls (25/20)",
+      intermediate: "10 Slam Balls (20/14)",
+      scaled: "10 Slam Balls (15/10)",
+      heats: [makeHeat({ number: 1, start: "09:10", end: "09:20", lanes: [makeLane({ lane: 5, division: "F/F Intermediate" })] })],
+    });
+    const { root } = renderWith({ event: wod });
+    const workout = getByTestId(root, "workout");
+
+    expect(workout.textContent?.replace(/\s+/g, " ")).toMatch(/RX 10 Slam Balls \(25\/20\).*Intermediate 10 Slam Balls \(20\/14\).*Scaled 10 Slam Balls \(15\/10\)/);
+    expect(highlighted(root)).toEqual(["Intermediate 10 Slam Balls (20/14)"]);
+  });
+
+  it("has no Intermediate line when the event has none", () => {
+    expect(getByTestId(renderWith().root, "workout")).not.toHaveTextContent("Intermediate");
+  });
+
   it("highlights neither version when the division doesn't say RX or Scaled", () => {
     const { root } = renderWith({ event: withDivision("Masters") });
 

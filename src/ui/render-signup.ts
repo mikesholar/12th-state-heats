@@ -184,6 +184,7 @@ const eventHtml = (options: EventOptions): string => {
       <h2>${esc(event.title)}</h2>
       <div class="event-format">${esc(event.format)}</div>
       <div class="event-wod"><span class="wod-label">RX</span> ${esc(event.rx)}</div>
+      ${event.intermediate ? `<div class="event-wod"><span class="wod-label">Intermediate</span> ${esc(event.intermediate)}</div>` : ""}
       <div class="event-wod"><span class="wod-label">Scaled</span> ${esc(event.scaled)}</div>
       ${mine ? `<div class="your-slot" data-testid="your-slot-${event.number}">You're in Heat ${mine.heat}, ${esc(schedule.laneLabel.toLowerCase())} ${mine.lane}</div>` : ""}
     </header>

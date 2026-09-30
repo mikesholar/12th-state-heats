@@ -1,10 +1,11 @@
 import type { Event } from "../core/types";
 import { esc } from "./html";
 
-type WorkoutVersion = "rx" | "scaled";
+type WorkoutVersion = "rx" | "intermediate" | "scaled";
 
 const versionForDivision = (division: string | undefined): WorkoutVersion | undefined => {
   if (division && /\bscaled\b/i.test(division)) return "scaled";
+  if (division && /\bintermediate\b/i.test(division)) return "intermediate";
   if (division && /\brx\b/i.test(division)) return "rx";
   return undefined;
 };
@@ -22,6 +23,7 @@ export const workoutHtml = ({ event, division }: WorkoutHtmlOptions): string => 
   <section class="workout-card" data-testid="workout">
     <div class="event-format">${esc(event.format)}</div>
     ${wodLineHtml({ label: "RX", text: event.rx, theirs: version === "rx" })}
+    ${event.intermediate ? wodLineHtml({ label: "Intermediate", text: event.intermediate, theirs: version === "intermediate" }) : ""}
     ${wodLineHtml({ label: "Scaled", text: event.scaled, theirs: version === "scaled" })}
   </section>`;
 };

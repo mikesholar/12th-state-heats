@@ -23,6 +23,7 @@ export type Event = {
   readonly scoring: ScoringFormat;
   readonly capSeconds?: number;
   readonly rx: string;
+  readonly intermediate: string;
   readonly scaled: string;
   readonly lanes: number;
   readonly heats: readonly Heat[];

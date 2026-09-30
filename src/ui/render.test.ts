@@ -212,3 +212,14 @@ describe("a comp over two days", () => {
     expect(renderAt(at("08:15")).root.querySelectorAll('[data-testid="day-break"]')).toHaveLength(0);
   });
 });
+
+describe("the Intermediate workout", () => {
+  it("is listed between RX and Scaled when the event has one, and absent otherwise", () => {
+    const root = renderSchedule(
+      makeSchedule({ events: [makeEvent({ number: 1, intermediate: "10 Slam Balls (20/14)" }), makeEvent({ number: 2 })] }),
+    );
+
+    expect(root.querySelector("#event-1 .event-header")?.textContent?.replace(/\s+/g, " ")).toMatch(/RX rx Intermediate 10 Slam Balls \(20\/14\) Scaled scaled/);
+    expect(root.querySelector("#event-2 .event-header")?.textContent).not.toContain("Intermediate");
+  });
+});

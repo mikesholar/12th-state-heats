@@ -327,3 +327,11 @@ describe("a comp over two days", () => {
     expect(root.querySelectorAll('#event-2 [data-testid="day-break"]')).toHaveLength(0);
   });
 });
+
+describe("the Intermediate workout", () => {
+  it("is listed in the event header when the event has one", () => {
+    const { root } = renderWith({ schedule: makeSchedule({ events: [makeEvent({ intermediate: "10 Slam Balls (20/14)" })] }) });
+
+    expect(root.querySelector("#event-1 .event-header")).toHaveTextContent("Intermediate 10 Slam Balls (20/14)");
+  });
+});

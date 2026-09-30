@@ -167,3 +167,13 @@ describe("heat dates", () => {
     expect(errorOf(heatWith({ date: "2026-02-30" }))).toBe('Heats: Event 1 Heat 3: date "2026-02-30" is not a real date');
   });
 });
+
+describe("the Intermediate workout", () => {
+  it("is read from the sheet, and blank when the sheet has none", () => {
+    const withIt = decodeSchedule(makeRawSchedule({ events: [makeRawEvent({ intermediate: " 10 Slam Balls (20/14) " })] }));
+    const without = decodeSchedule(makeRawSchedule());
+
+    expect(withIt.success && withIt.data.events[0]?.intermediate).toBe("10 Slam Balls (20/14)");
+    expect(without.success && without.data.events[0]?.intermediate).toBe("");
+  });
+});

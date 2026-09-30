@@ -27,6 +27,7 @@ export const makeEvent = (overrides?: Partial<Event>): Event => ({
   format: "AMRAP 1",
   scoring: "rounds-reps",
   rx: "rx",
+  intermediate: "",
   scaled: "scaled",
   lanes: 8,
   heats: [makeHeat()],

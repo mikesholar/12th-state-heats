@@ -163,6 +163,7 @@ const decodeEvent = (compDate: string) => (value: unknown): Result<Event> => {
     scoring: scoring.data,
     ...(capSeconds.data === undefined ? {} : { capSeconds: capSeconds.data }),
     rx: optionalText(value, "rx"),
+    intermediate: optionalText(value, "intermediate"),
     scaled: optionalText(value, "scaled"),
     lanes: lanes.data,
     heats: decodedHeats.data,
