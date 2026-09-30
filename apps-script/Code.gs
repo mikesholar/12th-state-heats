@@ -37,8 +37,8 @@ const DIVISION_ROWS = [
   ["M/M RX", 2],
   ["M/M Scaled", 2],
 ];
-const EVENT_HEADERS = ["event", "title", "format", "scoring", "capSeconds", "rx", "scaled", "lanes"];
-const HEAT_HEADERS = ["event", "heat", "start", "end"];
+const EVENT_HEADERS = ["event", "title", "format", "scoring", "capSeconds", "rx", "intermediate", "scaled", "lanes"];
+const HEAT_HEADERS = ["event", "heat", "date", "start", "end"];
 const SLOT_HEADERS = ["event", "heat", "lane", "email", "team", "athletes", "division", "signedUpAt"];
 const SCORING_FORMATS = ["time-or-rounds", "rounds-reps"];
 const SCHEDULE_CACHE_KEY = "schedule";
@@ -238,6 +238,7 @@ function readEvents(ss, sheetZone) {
       format: asText(row.format),
       scoring: asText(row.scoring),
       rx: asText(row.rx),
+      intermediate: asText(row.intermediate),
       scaled: asText(row.scaled),
       lanes: laneCount,
       heats: heats
@@ -255,7 +256,7 @@ function readHeat(row, eventNumber, laneCount, slots, sheetZone) {
     .map((s) => readLane(s))
     .filter((lane) => Number.isInteger(lane.lane) && lane.lane >= 1 && (typeof laneCount !== "number" || lane.lane <= laneCount))
     .filter((lane, i, all) => all.findIndex((other) => other.lane === lane.lane) === i);
-  return { number: number, start: asClock(row.start, sheetZone), end: asClock(row.end, sheetZone), lanes: lanes };
+  return { number: number, date: asDateString(row.date, sheetZone), start: asClock(row.start, sheetZone), end: asClock(row.end, sheetZone), lanes: lanes };
 }
 
 function readLane(slot) {
@@ -537,14 +538,14 @@ function setupEvents(ss) {
   createIfMissing(ss, EVENTS_TAB, EVENT_HEADERS, (sheet) => {
     const rule = SpreadsheetApp.newDataValidation().requireValueInList(SCORING_FORMATS, true).build();
     sheet.getRange("D2:D").setDataValidation(rule);
-    sheet.getRange("A1").setNote("One row per event. scoring: time-or-rounds needs capSeconds; rounds-reps leaves it blank. lanes = lanes per heat. Re-run setup() after changing the number of events so Overall gets the right columns.");
+    sheet.getRange("A1").setNote("One row per event. scoring: time-or-rounds needs capSeconds; rounds-reps leaves it blank. lanes = lanes per heat. Re-run setup() after changing the number of events so Overall gets the right columns. rx / intermediate / scaled are the workout versions; leave intermediate blank if there is none.");
   });
 }
 
 function setupHeats(ss) {
   createIfMissing(ss, HEATS, HEAT_HEADERS, (sheet) => {
-    sheet.getRange("C2:D").setNumberFormat("@");
-    sheet.getRange("A1").setNote("One row per heat. start/end as HH:MM text in the comp time zone, e.g. 08:00.");
+    sheet.getRange("C2:E").setNumberFormat("@");
+    sheet.getRange("A1").setNote("One row per heat. date is YYYY-MM-DD; leave it blank to use Settings → compDate. start/end as 24-hour HH:MM text in the comp time zone, e.g. 08:00 or 13:30.");
   });
 }
 
