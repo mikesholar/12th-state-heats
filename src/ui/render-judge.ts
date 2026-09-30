@@ -1,6 +1,8 @@
+import { compDays } from "../core/comp-time";
+import { formatWeekday } from "../core/format";
 import { resolveJudgeHeat, type ManualPick } from "../core/resolve-judge-heat";
 import type { Score } from "../core/score";
-import type { Event, Lane, Schedule } from "../core/types";
+import type { Event, Heat, Lane, Schedule } from "../core/types";
 import { esc } from "./html";
 import { workoutHtml } from "./render-workout";
 
@@ -80,12 +82,16 @@ const headerHtml = ({ event, lane, laneLabel, judgeName, pending, endpointConfig
     ${endpointConfigured ? "" : `<div class="config-warning">Scoring not configured — scores will stay on this phone</div>`}
   </header>`;
 
+const heatDayLabel = (schedule: Schedule, heat: Heat | undefined): string =>
+  heat && compDays(schedule).length > 1 ? ` · ${formatWeekday(heat.date)}` : "";
+
 const heatSelectorHtml = (options: RenderJudgeOptions, index: number, sent: boolean): string => {
   const total = options.event.heats.length;
+  const heat = options.event.heats[index];
   return `
   <div class="heat-selector">
     <button type="button" id="prev-heat" aria-label="Previous heat" ${index === 0 ? "disabled" : ""}>◀</button>
-    <div class="heat-label" data-testid="heat-label">Heat ${options.event.heats[index]?.number ?? ""} of ${total}${sent ? ' <span aria-label="score sent">✓</span>' : ""}</div>
+    <div class="heat-label" data-testid="heat-label">Heat ${heat?.number ?? ""} of ${total}${heatDayLabel(options.schedule, heat)}${sent ? ' <span aria-label="score sent">✓</span>' : ""}</div>
     <button type="button" id="next-heat" aria-label="Next heat" ${index === total - 1 ? "disabled" : ""}>▶</button>
   </div>`;
 };

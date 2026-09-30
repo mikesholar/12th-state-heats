@@ -1,7 +1,7 @@
 import { fireEvent, getByLabelText, getByRole, getByTestId, queryByRole, queryByTestId } from "@testing-library/dom";
 import { renderJudge, type RenderJudgeOptions } from "./render-judge";
 import type { Event } from "../core/types";
-import { at, makeEvent, makeHeat, makeLane, makeSchedule } from "../test/factories";
+import { at, makeEvent, makeHeat, makeLane, makeSchedule, makeTwoDaySchedule } from "../test/factories";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -314,5 +314,21 @@ describe("notices", () => {
 
     expect(getByRole(root, "alert")).toHaveTextContent("Enter a time");
     expect(getByTestId(root, "notice")).toHaveClass("error");
+  });
+});
+
+describe("a comp over two days", () => {
+  it("adds the weekday to the heat label", () => {
+    const schedule = makeTwoDaySchedule();
+    const event = schedule.events[0];
+    if (!event) throw new Error("fixture has no event");
+
+    const { root } = renderWith({ schedule, event, lane: 1, now: at("18:03", "2026-09-12") });
+
+    expect(getByTestId(root, "heat-label")).toHaveTextContent("Heat 1 of 2 · Sat");
+  });
+
+  it("leaves the label alone on a single-day comp", () => {
+    expect(getByTestId(renderWith().root, "heat-label").textContent).not.toContain("·");
   });
 });
