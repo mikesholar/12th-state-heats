@@ -111,7 +111,11 @@ function clearScheduleCache() {
 }
 
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu(MENU_TITLE).addItem("Update site fallback", "refreshFallback").addToUi();
+  SpreadsheetApp.getUi()
+    .createMenu(MENU_TITLE)
+    .addItem("Update site fallback", "refreshFallback")
+    .addItem("Write heats to Heats tab", "writeCalculatorHeats")
+    .addToUi();
 }
 
 function refreshFallback() {
@@ -319,6 +323,105 @@ function heatsTableAfter(input) {
     removed: rows.filter(isThisEvent).length,
     values: [input.values[0], ...rows.filter((row) => !isThisEvent(row)).map(tidied), ...input.heats.map(written)],
   };
+}
+
+function calculatorEvent(sheet) {
+  return asNumberOrText(sheet.getRange("B1").getValue());
+}
+
+function calculatorPlan(ss, sheet) {
+  const zone = ss.getSpreadsheetTimeZone();
+  const count = Math.max(sheet.getLastRow() - CALCULATOR_FIRST_ROW + 1, 1);
+  const rows = sheet
+    .getRange(CALCULATOR_FIRST_ROW, 1, count, CALCULATOR_INPUT_HEADERS.length)
+    .getValues()
+    .map((cells, i) => ({
+      row: CALCULATOR_FIRST_ROW + i,
+      date: asDateString(cells[0], zone),
+      start: asClock(cells[1], zone),
+      length: cells[2],
+      buffer: cells[3],
+      heats: cells[4],
+    }))
+    .filter((row) => [row.date, row.start, asText(row.length), asText(row.buffer), asText(row.heats)].some((value) => value !== ""));
+  const eventNumbers = readTable(ss.getSheetByName(EVENTS_TAB)).map((row) => asNumberOrText(row.event));
+  return planHeats({ event: calculatorEvent(sheet), eventNumbers: eventNumbers, rows: rows });
+}
+
+function ensureRows(sheet, lastRow) {
+  if (sheet.getMaxRows() < lastRow) sheet.insertRowsAfter(sheet.getMaxRows(), lastRow - sheet.getMaxRows());
+}
+
+function showCalculatorPreview(ss, sheet) {
+  const plan = calculatorPlan(ss, sheet);
+  const previewColumn = CALCULATOR_INPUT_HEADERS.length + 3;
+  sheet.getRange(CALCULATOR_FIRST_ROW, previewColumn, sheet.getMaxRows() - CALCULATOR_FIRST_ROW + 1, CALCULATOR_PREVIEW_HEADERS.length).clearContent();
+  if (!plan.ok) {
+    sheet.getRange(CALCULATOR_FIRST_ROW, previewColumn).setValue(plan.error);
+    return;
+  }
+  ensureRows(sheet, CALCULATOR_FIRST_ROW + plan.heats.length - 1);
+  sheet
+    .getRange(CALCULATOR_FIRST_ROW, previewColumn, plan.heats.length, CALCULATOR_PREVIEW_HEADERS.length)
+    .setValues(plan.heats.map((h) => [h.heat, h.date, h.start, h.end]));
+}
+
+function onEdit(e) {
+  if (!e || !e.range || e.range.getSheet().getName() !== CALCULATOR) return;
+  showCalculatorPreview(e.source, e.range.getSheet());
+}
+
+function writeHeatsTable(sheet, values) {
+  const headers = headerRow(values);
+  ensureRows(sheet, values.length);
+  sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns()).clearContent();
+  ["date", "start", "end"].forEach((name) => sheet.getRange(2, headers.indexOf(name) + 1, sheet.getMaxRows() - 1, 1).setNumberFormat("@"));
+  if (values.length > 1) sheet.getRange(2, 1, values.length - 1, headers.length).setValues(values.slice(1));
+}
+
+function calculatorClaims(ss, event) {
+  return readTable(ss.getSheetByName(SLOTS))
+    .filter((slot) => asNumberOrText(slot.event) === event)
+    .map((slot) => ({ heat: asNumberOrText(slot.heat), lane: asNumberOrText(slot.lane), team: asText(slot.team) }));
+}
+
+function writeCalculatorHeats() {
+  const ss = SpreadsheetApp.getActive();
+  const ui = SpreadsheetApp.getUi();
+  const sheet = ss.getSheetByName(CALCULATOR);
+  if (!sheet) {
+    ui.alert("There's no Calculator tab yet — run setup() in the script editor first.");
+    return;
+  }
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(LOCK_WAIT_MS)) {
+    ss.toast("The sheet is busy — try again.", MENU_TITLE, 10);
+    return;
+  }
+  try {
+    const plan = calculatorPlan(ss, sheet);
+    if (!plan.ok) {
+      ui.alert(plan.error);
+      return;
+    }
+    const event = calculatorEvent(sheet);
+    const heatsSheet = ss.getSheetByName(HEATS);
+    const table = heatsTableAfter({ values: heatsSheet.getDataRange().getValues(), event: event, heats: plan.heats, zone: ss.getSpreadsheetTimeZone() });
+    if (!table.ok) {
+      ui.alert(table.error);
+      return;
+    }
+    const summary = writeSummary({ event: event, heats: plan.heats, existingHeatCount: table.removed, claims: calculatorClaims(ss, event) });
+    if (ui.alert(summary.title, summary.message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) {
+      ss.toast("Nothing changed.", MENU_TITLE, 10);
+      return;
+    }
+    writeHeatsTable(heatsSheet, table.values);
+    clearScheduleCache();
+    ss.toast("Wrote " + counted(plan.heats.length, "heat") + " for Event " + event + ". Check the site, then 12th State → Update site fallback.", MENU_TITLE, 15);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function headerRow(values) {
@@ -645,6 +748,7 @@ function setup() {
   setupDivisions(ss);
   setupEvents(ss);
   setupHeats(ss);
+  setupCalculator(ss);
   setupSlots(ss);
   setupLog(ss);
   setupResults(ss);
@@ -703,6 +807,20 @@ function setupHeats(ss) {
     sheet.getRange("C2:E").setNumberFormat("@");
     sheet.getRange("A1").setNote("One row per heat. date is YYYY-MM-DD; leave it blank to use Settings → compDate. start/end as 24-hour HH:MM text in the comp time zone, e.g. 08:00 or 13:30.");
   });
+}
+
+function setupCalculator(ss) {
+  if (ss.getSheetByName(CALCULATOR)) return;
+  const sheet = ss.insertSheet(CALCULATOR);
+  sheet.getRange("A1").setValue("event").setFontWeight("bold");
+  sheet.getRange(3, 1, 1, CALCULATOR_INPUT_HEADERS.length).setValues([CALCULATOR_INPUT_HEADERS]).setFontWeight("bold");
+  sheet.getRange(3, CALCULATOR_INPUT_HEADERS.length + 3, 1, CALCULATOR_PREVIEW_HEADERS.length).setValues([CALCULATOR_PREVIEW_HEADERS]).setFontWeight("bold");
+  sheet.getRange("A4:B").setNumberFormat("@");
+  sheet.getRange("I4:K").setNumberFormat("@");
+  sheet.setFrozenRows(3);
+  sheet.getRange("A1").setNote(
+    "Put the event number in B1. From row 4, one row per block of heats: date (YYYY-MM-DD), start of the first heat (24-hour HH:MM), length of a heat in minutes, buffer minutes between heats, and how many heats. Heat numbers carry on from row to row. The preview on the right updates as you type; 12th State → Write heats to Heats tab replaces this event's heats.",
+  );
 }
 
 function setupSlots(ss) {
