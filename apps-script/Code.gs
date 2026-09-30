@@ -354,8 +354,8 @@ function ensureRows(sheet, lastRow) {
 }
 
 function showCalculatorPreview(ss, sheet) {
-  const plan = calculatorPlan(ss, sheet);
   const previewColumn = CALCULATOR_INPUT_HEADERS.length + 3;
+  const plan = ss.getSheetByName(EVENTS_TAB) ? calculatorPlan(ss, sheet) : { ok: false, error: setupError(ss) };
   sheet.getRange(CALCULATOR_FIRST_ROW, previewColumn, sheet.getMaxRows() - CALCULATOR_FIRST_ROW + 1, CALCULATOR_PREVIEW_HEADERS.length).clearContent();
   if (!plan.ok) {
     sheet.getRange(CALCULATOR_FIRST_ROW, previewColumn).setValue(plan.error);
@@ -375,9 +375,10 @@ function onEdit(e) {
 function writeHeatsTable(sheet, values) {
   const headers = headerRow(values);
   ensureRows(sheet, values.length);
-  sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns()).clearContent();
   ["date", "start", "end"].forEach((name) => sheet.getRange(2, headers.indexOf(name) + 1, sheet.getMaxRows() - 1, 1).setNumberFormat("@"));
   if (values.length > 1) sheet.getRange(2, 1, values.length - 1, headers.length).setValues(values.slice(1));
+  const spare = sheet.getMaxRows() - values.length;
+  if (spare > 0) sheet.getRange(values.length + 1, 1, spare, sheet.getMaxColumns()).clearContent();
 }
 
 function calculatorClaims(ss, event) {
@@ -386,12 +387,48 @@ function calculatorClaims(ss, event) {
     .map((slot) => ({ heat: asNumberOrText(slot.heat), lane: asNumberOrText(slot.lane), team: asText(slot.team) }));
 }
 
+function calculatorWrite(ss, event, plan) {
+  const table = heatsTableAfter({
+    values: ss.getSheetByName(HEATS).getDataRange().getValues(),
+    event: event,
+    heats: plan.heats,
+    zone: ss.getSpreadsheetTimeZone(),
+  });
+  if (!table.ok) return table;
+  const summary = writeSummary({ event: event, heats: plan.heats, existingHeatCount: table.removed, claims: calculatorClaims(ss, event) });
+  return { ok: true, table: table, summary: summary };
+}
+
+function confirmedWrite(ss, event, plan, confirmed) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(LOCK_WAIT_MS)) {
+    ss.toast("The sheet is busy — try again.", MENU_TITLE, 10);
+    return false;
+  }
+  try {
+    const latest = calculatorWrite(ss, event, plan);
+    if (!latest.ok || latest.summary.message !== confirmed.summary.message) {
+      SpreadsheetApp.getUi().alert("The Heats tab or sign-ups changed while you were deciding — nothing was written. Run it again.");
+      return false;
+    }
+    writeHeatsTable(ss.getSheetByName(HEATS), latest.table.values);
+    clearScheduleCache();
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function writeCalculatorHeats() {
   const ss = SpreadsheetApp.getActive();
   const ui = SpreadsheetApp.getUi();
   const sheet = ss.getSheetByName(CALCULATOR);
   if (!sheet) {
     ui.alert("There's no Calculator tab yet — run setup() in the script editor first.");
+    return;
+  }
+  if (setupError(ss)) {
+    ui.alert(setupError(ss));
     return;
   }
   const lock = LockService.getDocumentLock();
@@ -406,19 +443,16 @@ function writeCalculatorHeats() {
       return;
     }
     const event = calculatorEvent(sheet);
-    const heatsSheet = ss.getSheetByName(HEATS);
-    const table = heatsTableAfter({ values: heatsSheet.getDataRange().getValues(), event: event, heats: plan.heats, zone: ss.getSpreadsheetTimeZone() });
-    if (!table.ok) {
-      ui.alert(table.error);
+    const confirmed = calculatorWrite(ss, event, plan);
+    if (!confirmed.ok) {
+      ui.alert(confirmed.error);
       return;
     }
-    const summary = writeSummary({ event: event, heats: plan.heats, existingHeatCount: table.removed, claims: calculatorClaims(ss, event) });
-    if (ui.alert(summary.title, summary.message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) {
+    if (ui.alert(confirmed.summary.title, confirmed.summary.message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) {
       ss.toast("Nothing changed.", MENU_TITLE, 10);
       return;
     }
-    writeHeatsTable(heatsSheet, table.values);
-    clearScheduleCache();
+    if (!confirmedWrite(ss, event, plan, confirmed)) return;
     ss.toast("Wrote " + counted(plan.heats.length, "heat") + " for Event " + event + ". Check the site, then 12th State → Update site fallback.", MENU_TITLE, 15);
   } finally {
     lock.releaseLock();
