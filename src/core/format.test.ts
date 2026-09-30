@@ -1,4 +1,4 @@
-import { formatClock, formatCountdown, formatRange } from "./format";
+import { formatClock, formatCompDays, formatCountdown, formatRange } from "./format";
 
 describe("clock formatting", () => {
   it("drops the leading zero and shows 12-hour time without a suffix", () => {
@@ -27,5 +27,19 @@ describe("countdown formatting", () => {
 
   it("omits minutes on an exact hour", () => {
     expect(formatCountdown(120)).toBe("in 2 h");
+  });
+});
+
+describe("comp days label", () => {
+  it("spells out a single day", () => {
+    expect(formatCompDays({ days: ["2026-09-12"], withYear: false })).toBe("Saturday, September 12");
+  });
+
+  it("adds the year to a single day on request", () => {
+    expect(formatCompDays({ days: ["2026-09-12"], withYear: true })).toBe("Saturday, September 12, 2026");
+  });
+
+  it("lists several days compactly", () => {
+    expect(formatCompDays({ days: ["2026-09-12", "2026-09-13"], withYear: true })).toBe("Sat Sep 12 – Sun Sep 13");
   });
 });

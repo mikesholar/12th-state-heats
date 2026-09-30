@@ -44,3 +44,11 @@ export const formatDayList = (days: readonly string[]): string => {
   if (areConsecutive(days)) return `${first} – ${last}`;
   return `${labels.slice(0, -1).join(", ")} & ${last}`;
 };
+
+type CompDaysOptions = { readonly days: readonly string[]; readonly withYear: boolean };
+
+export const formatCompDays = ({ days, withYear }: CompDaysOptions): string => {
+  const only = days.length === 1 ? days[0] : undefined;
+  if (only === undefined) return formatDayList(days);
+  return dayPart(only, { weekday: "long", month: "long", day: "numeric", ...(withYear ? { year: "numeric" } : {}) });
+};

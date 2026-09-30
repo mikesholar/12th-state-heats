@@ -1,5 +1,5 @@
 import { compDays } from "../core/comp-time";
-import { formatDayList, formatRange } from "../core/format";
+import { formatCompDays, formatRange } from "../core/format";
 import { isMine, mySlotIn, teamSizeOf, type ClaimDraft, type SlotKey } from "../core/signup";
 import type { Division, Event, Heat, Lane, Schedule } from "../core/types";
 import { withDayBreaks } from "./day-break";
@@ -47,17 +47,6 @@ const parseSlot = (value: string | undefined): SlotKey | undefined => {
 const sameHeat = (a: SlotKey | undefined, event: Event, heat: Heat): boolean =>
   a !== undefined && a.event === event.number && a.heat === heat.number;
 
-const longDay = (schedule: Schedule, date: string): string =>
-  new Intl.DateTimeFormat("en-US", { timeZone: schedule.timeZone, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(
-    new Date(`${date}T12:00:00Z`),
-  );
-
-const compDaysLabel = (schedule: Schedule): string => {
-  const days = compDays(schedule);
-  const only = days.length === 1 ? days[0] : undefined;
-  return only === undefined ? formatDayList(days) : longDay(schedule, only);
-};
-
 const emailFormHtml = (): string => `
   <form id="email-form" data-testid="email-form" class="name-form">
     <label for="signup-email">Your email</label>
@@ -82,7 +71,7 @@ const headerHtml = ({ schedule, email, sourceNotice, notice, busy }: HeaderOptio
       <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">${esc(schedule.compName)}</span></h1>
       <span class="pill ${schedule.signupsOpen ? "open" : "closed"}" data-testid="signups-pill">${schedule.signupsOpen ? "Sign-ups open" : "Sign-ups closed"}</span>
     </div>
-    <div class="signup-date">Sign-up · ${compDaysLabel(schedule)}</div>
+    <div class="signup-date">Sign-up · ${formatCompDays({ days: compDays(schedule), withYear: true })}</div>
     ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     ${email ? identityHtml(email) : emailFormHtml()}
     ${notice && !notice.at ? noticeHtml(notice) : ""}
@@ -243,6 +232,6 @@ export const renderSignup = (options: RenderSignupOptions): void => {
     <main class="main signup-main">
       ${schedule.events.map((event) => eventHtml({ ...view, event })).join("")}
     </main>
-    <footer class="footer">One lane per event · ${compDaysLabel(schedule)}</footer>`;
+    <footer class="footer">One lane per event · ${formatCompDays({ days: compDays(schedule), withYear: true })}</footer>`;
   wire(options);
 };
