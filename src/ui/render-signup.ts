@@ -71,7 +71,7 @@ const headerHtml = ({ schedule, email, sourceNotice, notice, busy }: HeaderOptio
       <h1 class="title"><img class="logo" src="${import.meta.env.BASE_URL}logo.png" alt="12th State CrossFit" /><span class="title-text">${esc(schedule.compName)}</span></h1>
       <span class="pill ${schedule.signupsOpen ? "open" : "closed"}" data-testid="signups-pill">${schedule.signupsOpen ? "Sign-ups open" : "Sign-ups closed"}</span>
     </div>
-    <div class="signup-date">Sign-up · ${formatCompDays({ days: compDays(schedule), withYear: true })}</div>
+    <div class="signup-date">Sign-up</div>
     ${sourceNotice ? `<div class="source-notice" role="status" data-testid="source-notice">${esc(sourceNotice)}</div>` : ""}
     ${email ? identityHtml(email) : emailFormHtml()}
     ${notice && !notice.at ? noticeHtml(notice) : ""}

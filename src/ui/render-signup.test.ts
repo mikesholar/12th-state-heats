@@ -335,3 +335,11 @@ describe("the Intermediate workout", () => {
     expect(root.querySelector("#event-1 .event-header")).toHaveTextContent("Intermediate 10 Slam Balls (20/14)");
   });
 });
+
+describe("the page header", () => {
+  it("says it is the sign-up page without repeating the comp date", () => {
+    const { root } = renderWith();
+
+    expect(root.querySelector(".signup-date")?.textContent).toBe("Sign-up");
+  });
+});
