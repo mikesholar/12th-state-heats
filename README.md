@@ -1,4 +1,4 @@
-# 12 Years of 12th State — Heat Tracker
+# 12th State CrossFit — Heat Tracker
 
 Phone-first heat and lane tracker for the 12th State CrossFit in-house comp.
 The comp's name, date, events, heats and lanes all come from a Google Sheet.

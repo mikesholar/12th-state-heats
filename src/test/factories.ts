@@ -41,7 +41,7 @@ export const makeDivision = (overrides?: Partial<Division>): Division => ({ name
 export const DIVISIONS: readonly Division[] = DIVISION_NAMES.map((name) => makeDivision({ name }));
 
 export const makeSchedule = (overrides?: Partial<Schedule>): Schedule => ({
-  compName: "12 Years of 12th State",
+  compName: "12th State CrossFit",
   compDate: "2026-09-12",
   timeZone: "America/New_York",
   divisions: DIVISIONS,
@@ -93,7 +93,7 @@ export const makeRawEvent = (overrides?: RawObject): RawObject => ({
 });
 
 export const makeRawSchedule = (overrides?: RawObject): RawObject => ({
-  compName: "12 Years of 12th State",
+  compName: "12th State CrossFit",
   compDate: "2026-09-12",
   timeZone: "America/New_York",
   divisions: DIVISIONS.map((d) => ({ ...d })),

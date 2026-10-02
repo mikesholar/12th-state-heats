@@ -19,14 +19,14 @@ const CLAIM_REQUIRED = ["event", "heat", "lane", "email", "team", "athletes", "d
 const RELEASE_REQUIRED = ["event", "heat", "lane", "email"];
 
 const SETTINGS_ROWS = [
-  ["compName", "12 Years of 12th State"],
+  ["compName", "12th State CrossFit"],
   ["compDate", "2027-09-11"],
   ["timeZone", "America/New_York"],
   ["laneLabel", "Lane"],
   ["signupsOpen", false],
 ];
 const DEFAULT_LANE_LABEL = "Lane";
-const DEFAULT_COMP_NAME = "12 Years of 12th State";
+const DEFAULT_COMP_NAME = "12th State CrossFit";
 const RETIRED_SETTINGS = ["teamSize", "divisions"];
 const DIVISION_HEADERS = ["division", "teamSize"];
 const DIVISION_ROWS = [

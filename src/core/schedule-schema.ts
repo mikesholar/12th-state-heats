@@ -6,7 +6,7 @@ type Raw = Readonly<Record<string, unknown>>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_LANE_LABEL = "Lane";
-const DEFAULT_COMP_NAME = "12 Years of 12th State";
+const DEFAULT_COMP_NAME = "12th State CrossFit";
 const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
 const HOURS_ON_CLOCK = 24;
 const MINUTES_PER_HOUR = 60;
