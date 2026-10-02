@@ -57,7 +57,10 @@ export const startSignupPage = ({ root, initial, loadSchedule, endpoint, fetchFn
         saveSignupEmail(undefined);
         draw({ ...state, openForm: undefined, notice: undefined });
       },
-      onOpenForm: (slot) => draw({ ...state, openForm: slot, notice: undefined }),
+      onOpenForm: (slot) => {
+        draw({ ...state, openForm: slot, notice: undefined });
+        root.querySelector("#claim-form")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      },
       onCloseForm: () => draw({ ...state, openForm: undefined, notice: undefined }),
       onClaim: (draft) => void claim(draft),
       onRelease: (slot) => void release(slot),

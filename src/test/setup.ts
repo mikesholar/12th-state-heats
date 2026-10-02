@@ -19,3 +19,5 @@ const createMemoryStorage = (): Storage => {
 };
 
 Object.defineProperty(globalThis, "localStorage", { value: createMemoryStorage(), configurable: true });
+
+Object.defineProperty(Element.prototype, "scrollIntoView", { value: () => undefined, configurable: true, writable: true });

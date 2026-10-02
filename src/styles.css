@@ -252,7 +252,7 @@ button.chip.open { border-color: var(--navy); color: var(--navy); font-weight: 7
 .chip.mine { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); font-weight: 700; }
 .chip.mine .link { padding: 6px 8px; margin: -6px -8px -6px 0; }
 .your-slot { margin-top: 6px; font-weight: 700; color: var(--orange); }
-.claim-form { display: grid; gap: 6px; padding: 10px 12px 4px; }
+.claim-form { display: grid; gap: 6px; padding: 10px 12px 4px; scroll-margin-bottom: 16px; }
 .claim-form label { font-weight: 700; color: var(--navy); font-size: 0.85rem; }
 .claim-form input, .claim-form select { font: inherit; font-size: 1rem; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
 .claim-actions { display: flex; align-items: center; gap: 16px; margin-top: 6px; }

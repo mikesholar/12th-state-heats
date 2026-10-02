@@ -118,6 +118,18 @@ describe("claiming", () => {
     expect(loadCachedSchedule()?.events[0]?.heats[0]?.lanes.map((l) => l.lane)).toEqual([1, 2]);
   });
 
+  it("brings the form into view when a lane is picked, and only then", () => {
+    saveSignupEmail(ME);
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { root } = start();
+
+    openLane2(root);
+    fireEvent.change(getByLabelText(root, "Division"), { target: { value: "F/M Scaled" } });
+
+    expect(scrollIntoView.mock.contexts.map((element) => (element instanceof Element ? element.id : ""))).toEqual(["claim-form"]);
+    scrollIntoView.mockRestore();
+  });
+
   it("pre-fills the form from the last claim", () => {
     saveSignupEmail(ME);
     saveLastClaim(makeClaimDraft({ team: "Again" }));
